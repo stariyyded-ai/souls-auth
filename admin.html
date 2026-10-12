@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Админ-панель · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" aria-label="Разделы сайта">
+        <a href="cabinet.html" data-fade>Кабинет</a>
+        <a href="admin.html" class="on" aria-current="page">Админка</a>
+      </nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <div class="adm out" id="panel">
+      <aside class="side plate" aria-label="Разделы админки">
+        <p class="eyebrow">Админ-панель</p>
+        <nav class="side-nav" id="side-nav">
+          <a href="#dashboard" data-v="dashboard">Дашборд</a>
+          <a href="#users" data-v="users">Пользователи</a>
+          <a href="#groups" data-v="groups">Группы</a>
+          <span class="side-sep">Контент</span>
+          <a href="#tasks" data-v="tasks">Задания</a>
+          <a href="#lectures" data-v="lectures">Лекции</a>
+          <a href="#achievements" data-v="achievements">Достижения</a>
+          <a href="#shop" data-v="shop">Магазин</a>
+          <span class="side-sep">Система</span>
+          <a href="#logs" data-v="logs">Логи и события</a>
+        </nav>
+        <button type="button" class="link side-reset" id="reset-demo">Сбросить демо-данные</button>
+      </aside>
+
+      <main class="adm-view" id="view" aria-live="polite"></main>
+    </div>
+
+    <footer class="foot">
+      <span class="msg">хранитель огня на посту</span>
+      <span>Демо: изменения сохраняются только в этом браузере. v0.3 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <dialog class="modal" id="modal" aria-labelledby="modal-title">
+    <form method="dialog" class="modal-box" id="modal-form" novalidate>
+      <div class="modal-head">
+        <h2 id="modal-title"></h2>
+        <button type="button" class="modal-x" id="modal-x" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <p class="note" id="modal-note" role="alert"></p>
+      <div class="modal-actions" id="modal-actions"></div>
+    </form>
+  </dialog>
+
+  <p class="toast" id="toast" role="status"></p>
+  <div class="banner dead" id="bn-dead"><span>ВЫ ПОГИБЛИ</span></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/admin-data.js"></script>
+  <script src="js/admin-store.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/admin-crud.js"></script>
+</body>
+</html>
