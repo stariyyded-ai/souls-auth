@@ -70,5 +70,5 @@
     set(k, v) { try { sessionStorage.setItem('ash:' + k, v); } catch (e) {} }
   };
 
-  window.Ash = { reduce, wait, banner, go, store };
+  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, svg, S, C });
 })();
