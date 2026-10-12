@@ -26,7 +26,8 @@
     if (s && s.read) return { cls: 'started', text: parts.join(' · ') || 'прочитан' };
     return { cls: 'new', text: 'не начат' };
   }
-  const lectures = () => A.db.lectures.filter(l => l.published && (!l.groups || !l.groups.length || l.groups.includes(myGroupId)));
+  // Администратор видит лекции всех групп, студент — только своей (файлы сервер всё равно отдаёт по тем же правилам)
+  const lectures = () => A.db.lectures.filter(l => l.published && (window.Ash.isAdmin() || !l.groups || !l.groups.length || l.groups.includes(myGroupId)));
 
   function renderList() {
     const used = MODULES.filter(m => LESSONS.some(l => l.module === m.id));
@@ -133,7 +134,7 @@
     box.innerHTML = `<p class="loading">Открываю «${esc(l.file.name)}»…</p>`;
     try {
       const rec = await Files.get(l.file.id);
-      if (!rec) throw new Error('файл не найден в этом браузере');
+      if (!rec) throw new Error('файл не найден на сервере');
       blobUrl = URL.createObjectURL(rec.data);
       const head = `<div class="doc-head"><span class="mat-kind k-${rec.kind}">${Files.KINDS[rec.kind].label}</span><b>${esc(rec.name)}</b><span class="plate-sub">${Files.size(rec.size)}</span>
         <a href="${blobUrl}" download="${esc(rec.name)}">Скачать</a>${rec.kind === 'pdf' ? `<a href="${blobUrl}" target="_blank" rel="noopener">Открыть в новой вкладке</a>` : ''}</div>`;
@@ -144,7 +145,7 @@
         box.innerHTML = head + `<div class="docx prose">${clean(out.value) || '<p>Документ пустой.</p>'}</div>`;
       }
     } catch (e) {
-      box.innerHTML = `<p class="note">Не получилось открыть файл: ${esc(e.message)}. Файлы лекций хранятся в браузере, где их загрузили в админке.</p>`;
+      box.innerHTML = `<p class="note">Не получилось открыть файл: ${esc(e.message)}. Попробуйте обновить страницу или напишите куратору.</p>`;
     }
   }
   // Word-документ превращается в HTML; на всякий случай убираем всё, что может выполнять код

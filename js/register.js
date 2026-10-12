@@ -1,6 +1,6 @@
 /* Страница регистрации: проверка полей и анимация слизняка, который уходит в дверь внутри кнопки. */
 (() => {
-  const { reduce, wait, go, store, sfx } = window.Ash;
+  const { reduce, wait, go, store, sfx, api } = window.Ash;
   const form = document.getElementById('f-reg');
   const note = document.getElementById('n-reg');
   const val = id => document.getElementById(id).value;
@@ -23,6 +23,10 @@
     sfx.click();
     if (err) { sfx.error(); note.textContent = err[1]; document.getElementById(err[0]).focus(); return; }
     busy = true;
+
+    // Сначала сервер: имя или e-mail могут быть заняты
+    try { await api('POST', 'api/register', { name: val('r-name').trim(), email: val('r-mail').trim(), password: val('r-pass') }); }
+    catch (err) { sfx.error(); note.textContent = err.message; busy = false; return; }
 
     const btn = document.getElementById('b-reg');
     const slug = btn.querySelector('.slug');
@@ -47,7 +51,6 @@
     sfx.door(false);
     await wait(380);
 
-    // Здесь будет настоящий запрос на сервер. Пока считаем регистрацию успешной.
     store.set('registered', val('r-name').trim());
     go('index.html');
   });

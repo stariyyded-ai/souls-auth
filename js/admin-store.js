@@ -1,44 +1,32 @@
-/* Хранилище админ-панели: данные в памяти + сохранение в localStorage.
-   Каждое изменение пишется в журнал событий (раздел «Логи»).
-   Чтобы подключить сервер, достаточно заменить load/save на запросы к API. */
+/* Хранилище админ-панели. Данные приходят с сервера в api/boot.js (window.BOOT.db).
+   Изменение сразу видно на странице и тут же уходит на сервер; сервер сам пишет его в журнал.
+   Если сервер отказал, показываем причину и перечитываем данные с сервера.
+   Страницы студента (магазин, лидеры, уроки) получают урезанную версию: без e-mail, журнала и черновиков. */
 (() => {
-  const KEY = 'ash:admin:v2';
-  const clone = o => JSON.parse(JSON.stringify(o));
-  let db;
-  try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; }
-  if (!db || !db.users) db = clone(window.ADMIN_SEED);
-
-  // Подхватываем то, что демо-студент сделал на своих страницах (js/student-store.js):
-  // опыт, души, скрытие из таблицы лидеров, покупки и награды попадают в пользователя u24 и в журнал.
-  (function syncStudent() {
-    let st; try { st = JSON.parse(localStorage.getItem('ash:student:v1')); } catch (e) { st = null; }
-    const u = db.users.find(x => x.id === 'u24');
-    if (!st || !u) return;
-    u.xp = st.xp; u.souls = st.souls; u.hidden = !!st.hidden;
-    Object.entries(st.ach || {}).forEach(([id, date]) => {
-      if (db.achievements.some(a => a.id === id) && !u.achievements.some(a => a.id === id)) u.achievements.push({ id, date });
-    });
-    const known = new Set(db.logs.map(l => l.id));
-    (st.journal || []).slice().reverse().forEach(j => {
-      if (known.has(j.id)) return;
-      if (j.kind === 'purchase') {
-        db.purchases.unshift({ id: j.id, user: u.id, item: j.item, price: j.price, date: j.date });
-        db.logs.push({ id: j.id, kind: 'transaction', user: u.id, amount: j.amount, text: j.text, date: j.date });
-      } else db.logs.push({ id: j.id, kind: j.kind, user: u.id, amount: j.amount, text: j.text, date: j.date });
-    });
-    db.logs.sort((a, b) => b.date.localeCompare(a.date));
-    db.purchases.sort((a, b) => b.date.localeCompare(a.date));
-  })();
+  const B = window.BOOT, Ash = window.Ash;
+  let db = B.db;
 
   const listeners = new Set();
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {}
-    listeners.forEach(fn => fn());
-  }
+  const save = () => listeners.forEach(fn => fn());
   const uid = p => p + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  const ADMIN_ID = B.me.id;
+  const name = it => it.title || it.code || it.name;
 
-  // Кто сейчас работает в админке (для журнала)
-  const ADMIN_ID = 'u1';
+  async function reload() {
+    try { db = await Ash.api('GET', 'api/admin/db'); save(); } catch (e) {}
+  }
+  // Отправляем изменение; при ошибке — сообщение и данные с сервера
+  async function send(method, url, body) {
+    try { return await Ash.api(method, url, body); }
+    catch (e) {
+      if (e.status === 401) { location.replace('index.html#admin'); return null; }
+      Ash.notice('Сервер не сохранил изменение: ' + e.message);
+      await reload();
+      return null;
+    }
+  }
+  // Карточку пользователя после действия берём из ответа сервера
+  const putUser = u => { if (!u) return; const i = db.users.findIndex(x => x.id === u.id); if (i >= 0) db.users[i] = u; save(); };
 
   const store = {
     get db() { return db; },
@@ -50,29 +38,36 @@
     create(coll, item, label) {
       const it = { ...item, id: uid(coll[0]) };
       db[coll].push(it);
-      this.log('action', `создал ${label} «${it.title || it.code || it.name}»`);
-      save(); return it;
+      this.log('action', `создал ${label} «${name(it)}»`);
+      save();
+      send('POST', `api/admin/${coll}`, { item: it, label });
+      return it;
     },
     update(coll, id, patch, label) {
       const it = this.byId(coll, id); Object.assign(it, patch);
-      this.log('action', `изменил ${label} «${it.title || it.code || it.name}»`);
-      save(); return it;
+      this.log('action', `изменил ${label} «${name(it)}»`);
+      save();
+      send('PUT', `api/admin/${coll}/${encodeURIComponent(id)}`, { item: it, label });
+      return it;
     },
     remove(coll, id, label) {
       const it = this.byId(coll, id);
       db[coll] = db[coll].filter(x => x.id !== id);
-      this.log('action', `удалил ${label} «${it.title || it.code || it.name}»`);
+      this.log('action', `удалил ${label} «${name(it)}»`);
       save();
+      send('DELETE', `api/admin/${coll}/${encodeURIComponent(id)}`, { label });
     },
     // Действия с пользователями
-    setRole(userId, role) {
+    async setRole(userId, role) {
       const u = this.byId('users', userId), old = u.role; u.role = role;
       this.log('action', `сменил роль «${u.name}»: ${old} → ${role}`); save();
+      putUser(await send('POST', `api/admin/users/${userId}/role`, { role }));
     },
-    resetProgress(userId) {
+    async resetProgress(userId) {
       const u = this.byId('users', userId);
       Object.keys(u.progress).forEach(k => u.progress[k] = 0); u.xp = 0;
       this.log('action', `сбросил прогресс «${u.name}»`); save();
+      putUser(await send('POST', `api/admin/users/${userId}/reset`));
     },
     grantAchievement(userId, achId) {
       const u = this.byId('users', userId), a = this.byId('achievements', achId);
@@ -81,9 +76,14 @@
       u.souls += a.reward || 0;
       this.log('action', `выдал достижение «${a.title}» игроку «${u.name}»`);
       if (a.reward) this.log('transaction', `Награда за достижение «${a.title}»`, { user: userId, amount: a.reward });
-      save(); return true;
+      save();
+      send('POST', `api/admin/users/${userId}/achievements`, { id: achId }).then(putUser);
+      return true;
     },
-    resetDemo() { db = clone(window.ADMIN_SEED); save(); }
+    // Возвращает демо-данные на сервере для всех; после этого перечитываем страницу
+    async resetDemo() {
+      if (await send('POST', 'api/admin/reset-demo')) setTimeout(() => location.reload(), 900);
+    }
   };
   window.AdminStore = store;
 })();

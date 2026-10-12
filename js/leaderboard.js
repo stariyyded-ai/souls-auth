@@ -1,4 +1,4 @@
-/* Таблица лидеров: студенты из админки + вы (данные Student). Скрытые студенты не показываются. */
+/* Таблица лидеров: студенты с сервера + вы (данные Student). Скрытых сервер присылает без имени и опыта. */
 (() => {
   const { $, esc, fmt, toast, chips, avatar } = window.UI;
   const St = window.Student, A = window.AdminStore, E = window.Economy;
@@ -13,7 +13,7 @@
 
   function players() {
     const me = St.state;
-    return A.db.users.filter(u => u.role === 'student').map(u => u.id === St.adminId
+    return A.db.users.filter(u => u.role === 'student' || u.id === St.adminId).map(u => u.id === St.adminId
       ? { id: u.id, me: true, name: St.name, group: u.group, xp: me.xp, hidden: me.hidden, ...me.equipped }
       : { id: u.id, name: u.name, group: u.group, xp: u.xp, hidden: !!u.hidden, ...look(u) })
       .sort((a, b) => b.xp - a.xp);

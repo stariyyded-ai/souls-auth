@@ -1,29 +1,65 @@
 /* Состояние студента: опыт, души, покупки, надетые предметы, бустеры, результаты заданий и уроков.
-   Живёт в localStorage этого браузера. Админка подхватывает его при загрузке (см. admin-store.js):
-   опыт и души студента u24 и журнал покупок и наград.
-   Нужны js/data.js (стартовые данные) и js/economy.js. */
+   Хранится на сервере. Страница получает его в api/boot.js (window.BOOT), меняет у себя
+   и через полсекунды отправляет целиком (PUT api/me/state) вместе с номером версии.
+   Если администратор успел что-то поменять (сбросил прогресс, выдал награду), сервер ответит 409
+   и страница перезагрузится со свежими данными.
+   Нужны js/common.js, js/data.js (описания достижений) и js/economy.js. */
 (() => {
-  const KEY = 'ash:student:v1';
-  const D = window.STUDENT, E = window.Economy;
-  const ADMIN_ID = 'u24';
+  const D = window.STUDENT, E = window.Economy, B = window.BOOT, Ash = window.Ash;
+  const ME = B.me;
   const now = () => new Date().toISOString();
   const uid = p => p + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
 
+  // Имя и группа в кабинете и уроках — того, кто вошёл
+  D.name = ME.name;
+  const grp = B.db.groups.find(g => g.id === ME.group);
+  D.group = grp
+    ? { ...D.group, code: grp.code, title: grp.title, curator: grp.curator, members: B.db.users.filter(u => u.group === grp.id).length }
+    : { ...D.group, code: '—', title: 'Без группы', curator: '—', members: 0 };
+
+  // Первый вход: опыт, души и достижения берём из карточки на сервере
   function fresh() {
     const ach = {};
-    D.achievements.forEach(a => { if (a.date) ach[a.id] = a.date; });
+    (ME.achievements || []).forEach(a => { ach[a.id] = a.date; });
     return {
-      v: 1, xp: D.xp, souls: D.souls, ach, history: [], tasks: {}, lessons: {},
-      inv: {}, equipped: { title: null, avatar: 'knight', frame: null }, boosters: {}, hidden: false, journal: []
+      v: 1, xp: ME.xp, souls: ME.souls, ach, history: [], tasks: {}, lessons: {},
+      inv: {}, equipped: { title: null, avatar: 'knight', frame: null }, boosters: {}, hidden: ME.hidden, journal: []
     };
   }
-  let st;
-  try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; }
-  if (!st || st.v !== 1) st = fresh();
+  let st = B.state && B.state.v === 1 ? B.state : fresh();
+  let rev = B.rev;
+
+  /* ---------- отправка на сервер ---------- */
+  let timer = null, sending = false, dirty = false, warned = false;
+  async function flush() {
+    clearTimeout(timer); timer = null;
+    if (sending || !dirty) return;
+    sending = true; dirty = false;
+    try {
+      rev = (await Ash.api('PUT', 'api/me/state', { state: st, rev })).rev;
+      warned = false;
+    } catch (e) {
+      if (e.status === 409) { Ash.notice('Данные обновил администратор. Загружаю свежие…'); setTimeout(() => location.reload(), 1200); return; }
+      if (e.status === 401) { location.replace('index.html'); return; }
+      dirty = true;
+      if (!warned) { Ash.notice('Не получилось сохранить прогресс: ' + e.message + ' Повторю через 5 секунд.'); warned = true; }
+      timer = setTimeout(flush, 5000);
+    } finally { sending = false; }
+    if (dirty && !timer) flush();
+  }
+  // Уходим со страницы с несохранённым — отправляем напоследок (keepalive переживает закрытие вкладки)
+  addEventListener('pagehide', () => {
+    if (!dirty) return;
+    try {
+      fetch('api/me/state', { method: 'PUT', keepalive: true, credentials: 'same-origin',
+        headers: { 'X-Ash': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ state: st, rev }) });
+    } catch (e) {}
+  });
 
   const listeners = new Set();
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {}
+    dirty = true;
+    if (!timer && !sending) timer = setTimeout(flush, 500);
     listeners.forEach(fn => fn(st));
   }
   function journal(kind, text, amount) {
@@ -55,8 +91,10 @@
 
   const S = {
     get state() { return st; },
-    get name() { return (window.Ash && window.Ash.store.get('name')) || D.name; },
-    adminId: ADMIN_ID,
+    get name() { return ME.name; },
+    // id в таблицах админки и лидеров
+    adminId: ME.id,
+    flush,
     on(fn) { listeners.add(fn); },
     level() { return E.level(st.xp); },
     achievements() { return D.achievements.map(a => ({ ...a, date: st.ach[a.id] ? st.ach[a.id].slice(0, 10) : null })); },

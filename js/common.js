@@ -55,12 +55,34 @@
     await wait(reduce ? 1200 : 2400); b.classList.remove('show');
   }
 
-  // Данные сессии (имя персонажа, роль) живут в sessionStorage: закрыли вкладку — нужно войти снова
+  // Запросы к серверу. Изменения идут с заголовком X-Ash: без него сервер их не примет (защита от чужих сайтов).
+  async function api(method, url, body) {
+    const opt = { method, headers: { 'X-Ash': '1' }, credentials: 'same-origin' };
+    if (body !== undefined) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+    let r;
+    try { r = await fetch(url, opt); } catch (e) { throw Object.assign(new Error('Нет связи с сервером.'), { status: 0 }); }
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(data.error || `Ошибка сервера (${r.status}).`), { status: r.status, data });
+    return data;
+  }
+  // Короткое сообщение внизу экрана (элемент #toast есть на страницах кабинета и в админке)
+  let noticeTimer;
+  function notice(text) {
+    const t = document.getElementById('toast'); if (!t) return;
+    t.textContent = text; t.classList.add('show');
+    clearTimeout(noticeTimer); noticeTimer = setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // Кто вошёл, сервер сообщает в api/boot.js (подключён в <head> закрытых страниц).
+  // Имя и роль дублируем в sessionStorage, чтобы страница входа могла подставить имя.
   const store = {
     get(k) { try { return sessionStorage.getItem('ash:' + k); } catch (e) { return null; } },
     set(k, v) { try { sessionStorage.setItem('ash:' + k, v); } catch (e) {} }
   };
-  const isAdmin = () => store.get('role') === 'admin';
+  const me = window.BOOT && window.BOOT.me;
+  if (me) { store.set('name', me.name); store.set('role', me.role); }
+  // Только для меню: доступ к админке всё равно проверяет сервер
+  const isAdmin = () => !!me && me.role === 'admin';
 
   // Меню в шапке: <nav class="topnav" data-page="cabinet"></nav> заполняется отсюда.
   // Пункт «Админка» видит только администратор.
@@ -85,10 +107,15 @@
     if (panel) { panel.classList.add('out'); await wait(reduce ? 0 : 280); }
     location.href = url;
   }
-  document.querySelectorAll('a[data-fade]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.getAttribute('href')); }));
+  document.querySelectorAll('a[data-fade]:not(.exit)').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.getAttribute('href')); }));
 
-  // «Выйти» сбрасывает роль и имя
-  document.querySelectorAll('a.exit').forEach(a => a.addEventListener('click', () => { store.set('role', ''); store.set('name', ''); }));
+  // «Выйти» закрывает сессию на сервере
+  document.querySelectorAll('a.exit').forEach(a => a.addEventListener('click', async e => {
+    e.preventDefault();
+    store.set('role', ''); store.set('name', '');
+    try { await api('POST', 'api/logout'); } catch (err) {}
+    go(a.getAttribute('href'));
+  }));
 
-  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, isAdmin, svg, S, C });
+  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, isAdmin, api, notice, me, svg, S, C });
 })();

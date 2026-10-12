@@ -1,0 +1,21 @@
+# Чертёж для Render: Dashboard → New → Blueprint → выбрать этот репозиторий.
+# Диск нужен, чтобы база и файлы лекций переживали перезапуски (на бесплатном плане дисков нет).
+services:
+  - type: web
+    name: ashen-pixel
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /index.html
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_PASSWORD
+        sync: false
+    disk:
+      name: ash-data
+      mountPath: /var/data
+      sizeGB: 1

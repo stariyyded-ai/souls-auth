@@ -11,12 +11,9 @@
   <link rel="stylesheet" href="css/cabinet.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/admin.css">
-  <script>
-    // Админку видит только администратор (вход: логин 123, пароль 123123123).
-    // Это демо-проверка в браузере; настоящая проверка роли будет на сервере.
-    try { if (sessionStorage.getItem('ash:role') !== 'admin') location.replace('index.html#admin'); }
-    catch (e) { location.replace('index.html#admin'); }
-  </script>
+  <!-- Сервер пускает сюда только администратора; boot.js отдаёт данные админки -->
+  <script src="api/boot.js"></script>
+  <script>if (!window.BOOT || window.BOOT.me.role !== 'admin') location.replace('index.html#admin');</script>
 </head>
 <body>
   <canvas id="scene" aria-hidden="true"></canvas>
@@ -77,7 +74,6 @@
   <script src="js/sound.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/icons.js"></script>
-  <script src="js/admin-data.js"></script>
   <script src="js/admin-store.js"></script>
   <script src="js/files.js"></script>
   <script src="js/admin.js"></script>

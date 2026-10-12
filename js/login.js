@@ -1,13 +1,11 @@
 /* Страница входа: проверка полей, «ВЫ ПОГИБЛИ» при коротком пароле, разрушение окна при успехе. */
 (() => {
-  const { reduce, wait, banner, store, sfx } = window.Ash;
+  const { reduce, wait, banner, store, sfx, api } = window.Ash;
   const panel = document.getElementById('panel');
   const form = document.getElementById('f-login');
   const nameInput = document.getElementById('l-name');
   const passInput = document.getElementById('l-pass');
   const note = document.getElementById('n-login');
-  // Демо-доступ администратора
-  const ADMIN = { login: '123', password: '123123123' };
   // Попытка открыть админку без входа
   if (location.hash === '#admin') note.textContent = 'Админ-панель доступна только администратору. Войдите под его логином.';
 
@@ -44,10 +42,19 @@
       return;
     }
 
-    // Здесь будет настоящий запрос на сервер. Пока: 123 / 123123123 — администратор, остальные — студенты.
-    const admin = name === ADMIN.login && pass === ADMIN.password;
-    store.set('role', admin ? 'admin' : 'student');
-    store.set('name', admin ? 'Хранитель огня' : name);
+    // Имя, e-mail или логин и пароль проверяет сервер; роль тоже приходит от него
+    let user;
+    try { user = await api('POST', 'api/login', { login: name, password: pass, remember: document.getElementById('l-remember').checked }); }
+    catch (err) {
+      if (err.status === 401) { sfx.death(); await banner('bn-dead'); } else sfx.error();
+      note.textContent = err.message;
+      passInput.focus();
+      busy = false;
+      return;
+    }
+    const admin = user.role === 'admin';
+    store.set('role', user.role);
+    store.set('name', user.name);
     const b = document.getElementById('b-login').getBoundingClientRect();
     sfx.shatter();
     await window.Ash.shatter(panel, { x: b.left + b.width / 2, y: b.top + b.height / 2 });
