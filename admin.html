@@ -6,10 +6,16 @@
   <title>Админ-панель · Пепельный Пиксель</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/cabinet.css">
   <link rel="stylesheet" href="css/admin.css">
+  <script>
+    // Админку видит только администратор (вход: логин 123, пароль 123123123).
+    // Это демо-проверка в браузере; настоящая проверка роли будет на сервере.
+    try { if (sessionStorage.getItem('ash:role') !== 'admin') location.replace('index.html#admin'); }
+    catch (e) { location.replace('index.html#admin'); }
+  </script>
 </head>
 <body>
   <canvas id="scene" aria-hidden="true"></canvas>
@@ -19,10 +25,7 @@
     <header class="top">
       <span id="logoFlame"></span>
       <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
-      <nav class="topnav" aria-label="Разделы сайта">
-        <a href="cabinet.html" data-fade>Кабинет</a>
-        <a href="admin.html" class="on" aria-current="page">Админка</a>
-      </nav>
+      <nav class="topnav" data-page="admin" aria-label="Разделы сайта"></nav>
       <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
       <a class="exit" href="index.html" data-fade>Выйти</a>
     </header>

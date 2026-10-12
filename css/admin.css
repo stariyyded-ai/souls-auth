@@ -79,7 +79,7 @@
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .toolbar .search { flex: 1 1 240px; height: 42px; }
 .sel, .toolbar select, .form select, .form input, .form textarea {
-  font: 15px var(--font-pixel); color: var(--bone);
+  font: 15px var(--font-ui); color: var(--bone);
   background: rgba(0,0,0,0.4); border: 2px solid var(--stone); border-radius: 0;
   padding: 0 10px; height: 42px; box-sizing: border-box; min-width: 0;
 }
@@ -102,7 +102,7 @@
 
 /* Маленькие кнопки действий */
 .act {
-  font: 12px var(--font-pixel); letter-spacing: 0.06em; color: var(--gold-hi);
+  font: 12px var(--font-ui); letter-spacing: 0.06em; color: var(--gold-hi);
   padding: 6px 9px; margin-left: 4px; background: rgba(0,0,0,0.4); border: 2px solid rgba(201,164,92,0.55); cursor: pointer;
 }
 .act:hover { background: rgba(201,164,92,0.15); }
@@ -138,7 +138,7 @@
 .modal-box { display: flex; flex-direction: column; gap: 16px; padding: 24px clamp(16px, 4vw, 28px); }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; }
 .modal-head h2 { margin: 0; flex: 1; font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: 0.04em; text-wrap: balance; }
-.modal-x { font: 18px var(--font-pixel); color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px; }
+.modal-x { font: 18px var(--font-ui); color: var(--muted); background: none; border: 0; cursor: pointer; padding: 4px; }
 .modal-x:hover { color: var(--gold-hi); }
 .modal-body { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .modal-body p { margin: 0; line-height: 1.45; }

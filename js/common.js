@@ -55,6 +55,25 @@
     await wait(reduce ? 1200 : 2400); b.classList.remove('show');
   }
 
+  // Данные сессии (имя персонажа, роль) живут в sessionStorage: закрыли вкладку — нужно войти снова
+  const store = {
+    get(k) { try { return sessionStorage.getItem('ash:' + k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem('ash:' + k, v); } catch (e) {} }
+  };
+  const isAdmin = () => store.get('role') === 'admin';
+
+  // Меню в шапке: <nav class="topnav" data-page="cabinet"></nav> заполняется отсюда.
+  // Пункт «Админка» видит только администратор.
+  const NAV = [
+    ['cabinet', 'cabinet.html', 'Кабинет'],
+    ['admin', 'admin.html', 'Админка', 'admin']
+  ];
+  document.querySelectorAll('nav.topnav[data-page]').forEach(nav => {
+    const page = nav.dataset.page;
+    nav.innerHTML = NAV.filter(n => !n[3] || isAdmin()).map(([id, href, label]) =>
+      id === page ? `<a href="${href}" class="on" aria-current="page">${label}</a>` : `<a href="${href}" data-fade>${label}</a>`).join('');
+  });
+
   // Плавное появление панели при загрузке и уход со страницы
   const panel = document.getElementById('panel');
   if (panel) requestAnimationFrame(() => requestAnimationFrame(() => panel.classList.remove('out')));
@@ -64,11 +83,8 @@
   }
   document.querySelectorAll('a[data-fade]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.getAttribute('href')); }));
 
-  // Имя персонажа передаётся между страницами через sessionStorage
-  const store = {
-    get(k) { try { return sessionStorage.getItem('ash:' + k); } catch (e) { return null; } },
-    set(k, v) { try { sessionStorage.setItem('ash:' + k, v); } catch (e) {} }
-  };
+  // «Выйти» сбрасывает роль и имя
+  document.querySelectorAll('a.exit').forEach(a => a.addEventListener('click', () => { store.set('role', ''); store.set('name', ''); }));
 
-  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, svg, S, C });
+  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, isAdmin, svg, S, C });
 })();

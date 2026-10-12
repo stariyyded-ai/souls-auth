@@ -6,6 +6,10 @@
   const nameInput = document.getElementById('l-name');
   const passInput = document.getElementById('l-pass');
   const note = document.getElementById('n-login');
+  // Демо-доступ администратора
+  const ADMIN = { login: '123', password: '123123123' };
+  // Попытка открыть админку без входа
+  if (location.hash === '#admin') note.textContent = 'Админ-панель доступна только администратору. Войдите под его логином.';
 
   // Пришли со страницы регистрации: подставляем имя и показываем подсказку
   const justRegistered = store.get('registered');
@@ -40,14 +44,16 @@
       return;
     }
 
-    // Здесь будет настоящий запрос на сервер. Пока считаем вход успешным.
-    store.set('name', name);
+    // Здесь будет настоящий запрос на сервер. Пока: 123 / 123123123 — администратор, остальные — студенты.
+    const admin = name === ADMIN.login && pass === ADMIN.password;
+    store.set('role', admin ? 'admin' : 'student');
+    store.set('name', admin ? 'Хранитель огня' : name);
     const b = document.getElementById('b-login').getBoundingClientRect();
     sfx.shatter();
     await window.Ash.shatter(panel, { x: b.left + b.width / 2, y: b.top + b.height / 2 });
     sfx.lit();
     banner('bn-lit');
     await wait(reduce ? 300 : 1400);
-    location.href = 'cabinet.html';
+    location.href = admin ? 'admin.html' : 'cabinet.html';
   });
 })();

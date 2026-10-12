@@ -13,15 +13,16 @@
   --blood: #a3201c;
   --glass: rgba(230, 220, 198, 0.045);
   --glass-edge: rgba(201, 164, 92, 0.55);
-  --font-display: "Cormorant SC", "Cormorant Garamond", "Times New Roman", serif;
-  --font-pixel: "Pixelify Sans", "Courier New", ui-monospace, monospace;
+  --font-display: "Alegreya SC", "Georgia", "Times New Roman", serif;
+  --font-ui: "Golos Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", ui-monospace, monospace;
   color-scheme: dark;
 }
 html, body { height: 100%; }
 body {
   background: var(--void);
   color: var(--bone);
-  font-family: var(--font-pixel);
+  font-family: var(--font-ui);
   font-size: 16px;
   overflow-x: hidden;
 }
@@ -102,7 +103,7 @@ form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
 .input input {
   flex: 1; min-width: 0; height: 100%;
   background: none; border: 0; outline: 0;
-  color: var(--bone); font: 17px var(--font-pixel);
+  color: var(--bone); font: 17px var(--font-ui);
 }
 .input input::placeholder { color: rgba(140,130,115,0.75); }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -114,7 +115,7 @@ form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
 .check input:checked::after { content: ""; width: 8px; height: 8px; background: var(--ember-hi); }
 .check input:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
 a, .link {
-  color: var(--gold-hi); font-family: var(--font-pixel); font-weight: 500; font-size: inherit;
+  color: var(--gold-hi); font-family: var(--font-ui); font-weight: 500; font-size: inherit;
   background: none; border: 0; padding: 0; cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px;
 }
@@ -125,7 +126,7 @@ a:focus-visible, .link:focus-visible { outline: 2px solid var(--ember-hi); outli
   position: relative;
   display: flex; align-items: center; justify-content: center; gap: 14px;
   width: 100%; height: 56px; margin-top: 6px;
-  font: 700 18px var(--font-pixel); letter-spacing: 0.18em; color: var(--gold-hi);
+  font: 700 18px var(--font-ui); letter-spacing: 0.18em; color: var(--gold-hi);
   background: linear-gradient(180deg, #4a1a12, #1e0a08);
   border: 2px solid var(--gold);
   box-shadow: 4px 4px 0 rgba(0,0,0,0.85), inset 0 2px 0 rgba(242,213,138,0.35), 0 0 24px rgba(232,119,46,0.35);
@@ -202,7 +203,7 @@ a.btn { text-decoration: none; box-sizing: border-box; }
   margin-left: auto;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 10px;
-  font: 500 12px var(--font-pixel); letter-spacing: 0.12em; color: var(--gold);
+  font: 500 12px var(--font-ui); letter-spacing: 0.12em; color: var(--gold);
   background: rgba(0,0,0,0.35); border: 2px solid rgba(201,164,92,0.5);
   cursor: pointer;
 }

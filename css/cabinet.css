@@ -129,7 +129,7 @@
   padding: 14px 16px; background: rgba(0,0,0,0.35); border: 2px solid var(--stone);
 }
 .souls { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 32px; color: var(--bone); font-variant-numeric: tabular-nums; }
-.souls small { font-family: var(--font-pixel); font-weight: 400; font-size: 14px; color: var(--muted); }
+.souls small { font-family: var(--font-ui); font-weight: 400; font-size: 14px; color: var(--muted); }
 .week { margin: 0 0 0 auto; font-size: 13px; color: var(--ok); }
 
 /* Модули */
@@ -159,7 +159,7 @@
 /* Фильтры */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
 .chip {
-  font: 12px var(--font-pixel); letter-spacing: 0.06em; color: rgba(230,220,198,0.8);
+  font: 12px var(--font-ui); letter-spacing: 0.06em; color: rgba(230,220,198,0.8);
   padding: 5px 9px; background: rgba(0,0,0,0.35); border: 2px solid var(--stone); cursor: pointer;
 }
 .chip:hover { color: var(--gold-hi); }
