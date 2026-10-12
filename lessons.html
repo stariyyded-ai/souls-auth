@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Уроки · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/lessons.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" data-page="lessons" aria-label="Разделы сайта"></nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <main class="page out" id="panel">
+      <!-- Список модулей, уроков и лекций -->
+      <div id="list-view">
+        <div class="page-head">
+          <h1>Уроки</h1>
+          <p class="lead">Модули делятся на уроки: текст, примеры кода и квиз. К каждому уроку есть мини-задание на 15–30 минут с автопроверкой. Ниже — лекции преподавателя в PDF и Word.</p>
+        </div>
+        <div id="modules"></div>
+        <section class="plate" aria-labelledby="mat-title">
+          <div class="plate-head"><h2 id="mat-title">Лекции преподавателя</h2><p class="plate-sub" id="mat-sub"></p></div>
+          <ul class="mat-list" id="mat-list"></ul>
+        </section>
+      </div>
+
+      <!-- Урок -->
+      <article id="lesson-view" class="lesson" hidden>
+        <a href="#" class="back" data-back>← Все уроки</a>
+        <header class="lesson-head">
+          <p class="eyebrow" id="ls-crumb"></p>
+          <h1 id="ls-title" tabindex="-1"></h1>
+          <p class="meta" id="ls-meta"></p>
+        </header>
+        <div class="plate prose" id="ls-body"></div>
+        <section class="plate quiz" aria-labelledby="quiz-title">
+          <div class="plate-head"><h2 id="quiz-title">Квиз</h2><p class="plate-sub" id="quiz-sub"></p></div>
+          <form id="quiz-form" class="quiz-form"></form>
+        </section>
+        <section class="plate mini" aria-labelledby="mini-title">
+          <div class="plate-head"><h2 id="mini-title">Мини-задание</h2></div>
+          <div id="mini"></div>
+        </section>
+        <nav class="ls-nav" id="ls-nav" aria-label="Соседние уроки"></nav>
+      </article>
+
+      <!-- Лекция с файлом -->
+      <article id="mat-view" class="lesson" hidden>
+        <a href="#" class="back" data-back>← Все уроки</a>
+        <header class="lesson-head">
+          <p class="eyebrow" id="mt-crumb"></p>
+          <h1 id="mt-title" tabindex="-1"></h1>
+          <p class="meta" id="mt-meta"></p>
+        </header>
+        <section class="plate doc" aria-label="Файл лекции" id="mt-file"></section>
+        <div class="plate prose" id="mt-body"></div>
+      </article>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">знание — тоже оружие</span>
+      <span>Уроки — файлы Markdown в content/lessons, лекции загружает администратор. v0.4 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>УРОК ПРОЙДЕН</span></div>
+  <p class="toast" id="toast" role="status"></p>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/student-store.js"></script>
+  <script src="js/admin-data.js"></script>
+  <script src="js/admin-store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/files.js"></script>
+  <script src="vendor/marked/marked.min.js"></script>
+  <script src="js/tasks-data.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/lessons.js"></script>
+</body>
+</html>

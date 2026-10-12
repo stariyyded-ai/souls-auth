@@ -27,6 +27,8 @@
     const txt = n < 0 ? `просрочен ${-n} дн` : n === 0 ? 'сегодня' : `через ${n} дн`;
     return `${dateStr(d)}<small><span class="pill ${cls}">${txt}</span></small>`;
   };
+  const LEVELS = { easy: 'Лёгкая', base: 'Средняя', hard: 'Сложная' };
+  const groupsText = ids => (ids && ids.length) ? ids.map(id => esc(S.byId('groups', id)?.code || '?')).join(', ') : 'все группы';
   const paragraphs = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
 
   /* ---------- схемы разделов ---------- */
@@ -85,27 +87,33 @@
     },
 
     lectures: {
-      title: 'Лекции', one: 'лекцию', create: 'НОВАЯ ЛЕКЦИЯ', search: l => l.title + ' ' + l.content,
-      defaults: () => ({ title: '', module: db().modules[0]?.id, minutes: 45, video: '', content: '', published: false }),
+      title: 'Лекции', one: 'лекцию', create: 'НОВАЯ ЛЕКЦИЯ', search: l => l.title + ' ' + l.content + ' ' + (l.file?.name || ''),
+      defaults: () => ({ title: '', module: db().modules[0]?.id, minutes: 45, difficulty: 'base', groups: [], video: '', content: '', file: null, published: false }),
       columns: [
-        ['Лекция', l => `${esc(l.title)}<small>${esc(titleOf('modules', l.module))}</small>`],
+        ['Лекция', l => `${esc(l.title)}<small>${esc(titleOf('modules', l.module))} · ${LEVELS[l.difficulty] || '—'}</small>`],
+        ['Файл', l => l.file ? `<span class="pill on">${window.AshFiles.KINDS[l.file.kind]?.label || 'файл'}</span><small>${esc(l.file.name)} · ${window.AshFiles.size(l.file.size)}</small>` : '<span class="pill off">нет</span>'],
+        ['Доступ', l => groupsText(l.groups)],
         ['Длительность', l => `${l.minutes} мин`],
-        ['Видео', l => l.video ? '<span class="pill on">есть</span>' : '<span class="pill off">нет</span>'],
         ['Статус', l => `<span class="pill ${l.published ? 'on' : 'soon'}">${l.published ? 'опубликована' : 'черновик'}</span>`]
       ],
       fields: [
         { key: 'title', label: 'Название', type: 'text', required: true, full: true },
         { key: 'module', label: 'Модуль', type: 'select', options: moduleOpts },
-        { key: 'minutes', label: 'Длительность, мин', type: 'number', min: 1 },
+        { key: 'difficulty', label: 'Сложность', type: 'select', options: () => Object.entries(LEVELS) },
+        { key: 'minutes', label: 'Время изучения, мин', type: 'number', min: 1 },
+        { key: 'groups', label: 'Доступ для групп', type: 'multi', options: () => db().groups.map(g => [g.id, g.code]), full: true, hint: 'Ничего не отмечено — лекция видна всем группам' },
+        { key: 'file', label: 'Файл лекции (PDF или Word)', type: 'file', full: true, hint: 'Студент откроет его прямо на сайте. До 20 МБ.' },
         { key: 'video', label: 'Ссылка на видео', type: 'url', full: true, hint: 'Необязательно' },
         { key: 'content', label: 'Конспект', type: 'textarea', full: true, hint: 'Пустая строка начинает новый абзац' },
         { key: 'published', label: 'Публикация', type: 'bool', text: 'Видна студентам' }
       ],
       preview: l => `
         <h3>${esc(l.title || 'Без названия')}</h3>
-        <div class="meta"><span>${esc(titleOf('modules', l.module))}</span><span>${l.minutes} мин</span><span>${l.published ? 'опубликована' : 'черновик, студенты не видят'}</span></div>
+        <div class="meta"><span>${esc(titleOf('modules', l.module))}</span><span>${LEVELS[l.difficulty] || ''}</span><span>${l.minutes} мин</span><span>${groupsText(l.groups)}</span><span>${l.published ? 'опубликована' : 'черновик, студенты не видят'}</span></div>
+        ${l.file ? `<p class="hint">Файл: ${esc(l.file.name)} (${window.AshFiles.size(l.file.size)})</p>` : ''}
         ${l.video ? `<p class="hint">Видео: ${esc(l.video)}</p>` : ''}
-        <div class="body">${paragraphs(l.content || 'Конспект пока пустой.')}</div>`
+        <div class="body">${paragraphs(l.content || 'Конспект пока пустой.')}</div>`,
+      afterRemove: l => { if (l.file) window.AshFiles.remove(l.file.id); }
     },
 
     achievements: {
@@ -182,6 +190,7 @@
       case 'bool': return wrap(`<span class="lbl">${f.label}</span><label class="bool"><input type="checkbox" id="${id}" name="${f.key}"${v ? ' checked' : ''}> ${esc(f.text)}</label>`);
       case 'icon': return wrap(`<span class="lbl" id="${id}-l">${f.label}</span><div class="icon-pick" role="radiogroup" aria-labelledby="${id}-l">${Object.keys(window.ASH_ICONS).filter(k => !['avatar', 'soul', 'badge'].includes(k)).map(k =>
         `<label title="${k}"><input type="radio" name="${f.key}" value="${k}"${k === v ? ' checked' : ''}><span>${achIcon({ icon: k, rarity: 'legendary' }, 3)}</span></label>`).join('')}</div>`);
+      case 'file': return wrap(`<label for="${id}">${f.label}</label>${v ? `<p class="file-now">Сейчас: <b>${esc(v.name)}</b> · ${window.AshFiles.size(v.size)} <label class="bool"><input type="checkbox" name="${f.key}-drop"> убрать файл</label></p>` : ''}<input id="${id}" name="${f.key}" type="file" accept="${window.AshFiles.ACCEPT}">`);
       default: return wrap(`<label for="${id}">${f.label}</label><input id="${id}" name="${f.key}" type="${f.type}"${f.min != null ? ` min="${f.min}"` : ''} value="${esc(v)}"${req}>`);
     }
   }
@@ -191,6 +200,7 @@
       if (f.type === 'multi') out[f.key] = [...box.querySelectorAll(`input[name="${f.key}"]:checked`)].map(i => i.value);
       else if (f.type === 'bool') out[f.key] = box.querySelector(`[name="${f.key}"]`).checked;
       else if (f.type === 'icon') out[f.key] = box.querySelector(`[name="${f.key}"]:checked`)?.value;
+      else if (f.type === 'file') out[f.key] = { pick: box.querySelector(`[name="${f.key}"]`).files[0] || null, drop: !!box.querySelector(`[name="${f.key}-drop"]`)?.checked };
       else if (f.type === 'number') out[f.key] = Number(box.querySelector(`[name="${f.key}"]`).value);
       else out[f.key] = box.querySelector(`[name="${f.key}"]`).value.trim();
     }
@@ -202,6 +212,7 @@
     for (const f of schema.fields) {
       const el = box.querySelector(`[name="${f.key}"]`);
       if (f.required && (v[f.key] === '' || v[f.key] == null)) { el?.setAttribute('aria-invalid', 'true'); el?.focus(); return `Заполните поле «${f.label}».`; }
+      if (f.type === 'file' && v[f.key].pick) { const e = window.AshFiles.check(v[f.key].pick); if (e) { el?.setAttribute('aria-invalid', 'true'); return e; } }
       if (f.type === 'number' && (Number.isNaN(v[f.key]) || (f.min != null && v[f.key] < f.min))) { el?.setAttribute('aria-invalid', 'true'); el?.focus(); return `«${f.label}»: число не меньше ${f.min}.`; }
     }
     return schema.validate ? schema.validate(v, id) : null;
@@ -224,8 +235,27 @@
         return checkForm(schema, values, id);
       }
     });
-    if (v === 'preview') { const d = { ...item, ...values }; await showPreview(coll, d); return edit(coll, id, d); }
+    if (v === 'preview') {
+      const d = { ...item, ...values };
+      // Выбранный, но ещё не сохранённый файл помним до сохранения
+      schema.fields.filter(f => f.type === 'file').forEach(f => {
+        const { pick, drop } = values[f.key];
+        d[f.key] = drop ? null : pick ? { name: pick.name, size: pick.size, kind: window.AshFiles.kindOf(pick.name), _file: pick } : item[f.key];
+      });
+      await showPreview(coll, d); return edit(coll, id, d);
+    }
     if (v !== 'save') return;
+    // Файлы: новый кладём в IndexedDB, старый удаляем
+    for (const f of schema.fields.filter(x => x.type === 'file')) {
+      const stored = id ? S.byId(coll, id)[f.key] || null : null;
+      const pick = values[f.key].pick || item[f.key]?._file || null;
+      const drop = values[f.key].drop || (item[f.key] === null && !!stored);
+      try {
+        if (pick && !values[f.key].drop) { values[f.key] = await window.AshFiles.put(pick); if (stored) window.AshFiles.remove(stored.id); }
+        else if (drop) { values[f.key] = null; if (stored) window.AshFiles.remove(stored.id); }
+        else values[f.key] = stored;
+      } catch (e) { A.toast('Не удалось сохранить файл: ' + e.message); return; }
+    }
     if (id) { S.update(coll, id, values, schema.one); A.toast('Сохранено.'); }
     else { S.create(coll, values, schema.one); A.toast(`Создано: ${values.title || values.code}.`); }
   }

@@ -23,7 +23,7 @@
 .exit { font-size: 14px; }
 .top { flex-wrap: wrap; row-gap: 12px; }
 @media (max-width: 720px) {
-  .topnav { order: 5; width: 100%; margin-left: 0; }
+  .topnav { order: 5; width: 100%; margin-left: 0; flex-wrap: wrap; gap: 8px 16px; }
   .top .sound { margin-left: auto; }
 }
 
