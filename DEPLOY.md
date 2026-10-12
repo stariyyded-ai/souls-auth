@@ -112,6 +112,10 @@ sudo apt install -y certbot python3-certbot-nginx && sudo certbot --nginx -d exa
 cd /srv/ashen-pixel && sudo -u www-data git pull && sudo -u www-data npm ci --omit=dev && sudo systemctl restart ashen-pixel
 ```
 
+## Скорость
+
+Сжатие и кэш браузера сервер включает сам, в nginx ничего добавлять не нужно. Сильнее всего на скорость влияет, где стоит сервер: выбирайте хостинг поближе к студентам. У Render и Railway ближайшие регионы — Европа (Франкфурт, Амстердам); VPS в России или рядом откроет страницы быстрее всего.
+
 ## Резервная копия
 
 Копируйте папку `DATA_DIR` целиком: `ash.db` и `uploads`. Надёжнее всего остановить сайт на минуту или снять копию базы так:

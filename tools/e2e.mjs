@@ -47,6 +47,13 @@ try {
   ok((await anon.request.get(U + 'data/ash.db')).status() === 404 && (await anon.request.get(U + 'server/db.js')).status() === 404, 'база и код сервера наружу не отдаются');
   ok((await anon.request.post(U + 'api/login', { data: { login: '123', password: '123123123' } })).status() === 403, 'запрос без X-Ash отклонён');
 
+  /* ---------- скорость загрузки ---------- */
+  const html = await (await anon.request.get(U + 'index.html')).text();
+  const css = html.match(/href="(css\/style\.css\?v=\w+)"/);
+  ok(css && !/fonts\.googleapis/.test(html), 'стили с меткой версии, шрифты свои, без Google');
+  const cssRes = css && await anon.request.get(U + css[1], { headers: { 'Accept-Encoding': 'gzip' } });
+  ok(cssRes && /immutable/.test(cssRes.headers()['cache-control']) && cssRes.headers()['content-encoding'] === 'gzip', 'стили сжаты и кэшируются надолго');
+
   /* ---------- неверный пароль ---------- */
   await login(anon, '123', 'wrong-pass');
   await anon.waitForFunction(() => document.getElementById('n-login').textContent.length > 0, null, { timeout: 8000 });

@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
+const compression = require('compression');
 const D = require('./db');
 const A = require('./auth');
 
@@ -21,6 +22,7 @@ const ROOT = path.join(__dirname, '..');
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // за прокси Render, Railway или nginx req.secure и req.ip берутся из заголовков
+app.use(compression()); // gzip: скрипты, стили и данные страницы уходят в 3–5 раз меньше
 
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 const fail = (status, msg) => { throw new HttpError(status, msg); };
@@ -427,9 +429,44 @@ app.get('/:page', (req, res, next) => {
 });
 // Служебные папки наружу не отдаём
 app.use((req, res, next) => /^\/(server|data|node_modules|package(-lock)?\.json)(\/|$)/.test(req.path) ? res.status(404).end() : next());
+
+/* Кэш. Страница каждый раз сверяется с сервером, а скрипты, стили и картинки в ней (кроме шрифтов) получают метку ?v=<хеш файла>.
+   С меткой браузер хранит файл год и не спрашивает сервер вовсе; изменился файл — изменилась метка, и браузер скачает новый. */
+const stamps = new Map(), pages = new Map();
+function stamp(rel) {
+  const file = path.join(ROOT, rel);
+  let st; try { st = fs.statSync(file); } catch (e) { return null; }
+  const hit = stamps.get(rel);
+  if (hit && hit.mtime === st.mtimeMs) return hit.v;
+  const v = crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 10);
+  stamps.set(rel, { mtime: st.mtimeMs, v });
+  return v;
+}
+function page(rel) {
+  const file = path.join(ROOT, rel);
+  let st; try { st = fs.statSync(file); } catch (e) { return null; }
+  const hit = pages.get(rel);
+  if (hit && hit.mtime === st.mtimeMs) return hit.html;
+  const html = fs.readFileSync(file, 'utf8').replace(/((?:src|href)=")((?:js|css|vendor|img)\/[^"?#]+)"/g,
+    (all, attr, url) => { const v = stamp(url); return v ? `${attr}${url}?v=${v}"` : all; });
+  pages.set(rel, { mtime: st.mtimeMs, html });
+  return html;
+}
+app.get(['/', '/:page.html'], (req, res, next) => {
+  const html = page(req.params.page ? req.params.page + '.html' : 'index.html');
+  if (html == null) return next();
+  res.type('html').set('Cache-Control', 'no-cache').send(html);
+});
+const YEAR = 'public, max-age=31536000, immutable';
 app.use(express.static(ROOT, {
   dotfiles: 'ignore',
-  setHeaders: (res, file) => { if (file.endsWith('.html')) res.set('Cache-Control', 'no-cache'); }
+  setHeaders: (res, file) => {
+    const req = res.req;
+    if (req.query.v) res.set('Cache-Control', YEAR);
+    // Шрифты, библиотеки и картинки меняются редко: неделя без вопросов к серверу
+    else if (/^\/(fonts|vendor|img)\//.test(req.path)) res.set('Cache-Control', 'public, max-age=604800');
+    else res.set('Cache-Control', 'no-cache');
+  }
 }));
 
 /* ---------- ошибки ---------- */

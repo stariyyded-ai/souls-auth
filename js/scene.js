@@ -43,7 +43,10 @@
   }
   const bonPal = { H: '#6b4a2b', S: '#b8b8c4', s: '#5a5a66', C: '#3a2a22', c: '#5a3a28', E: '#ff9a3c', B: '#bdb2a0' };
   let t0 = performance.now(), last = 0;
+  // Пиксельной картинке хватает 30 кадров в секунду: на слабых компьютерах страница остаётся отзывчивой
+  const STEP = 1000 / 30;
   function frame(now) {
+    if (now - last < STEP - 2) { requestAnimationFrame(frame); return; }
     const t = (now - t0) / 1000, dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
     const gy = H - Math.max(18, Math.round(H * 0.12));
     // sky
