@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="utf-8"><base href="../"><title>Проверка автотестов заданий</title></head>
+<body>
+<!-- Прогоняет каждое задание дважды: шаблон должен провалить проверки результата, эталон — пройти все.
+     Запуск: node tools/check-tasks.mjs (нужен локальный сервер, см. README). -->
+<pre id="out">Проверяю…</pre>
+<script src="vendor/htmlhint/htmlhint.min.js"></script>
+<script src="js/task-runner.js"></script>
+<script src="js/tasks-data.js"></script>
+<script src="tools/solutions.js"></script>
+<script>
+(async () => {
+  const rows = [];
+  for (const t of window.TASKS) {
+    const start = await TaskRunner.run(t, t.html, t.css);
+    const sol = window.TASK_SOLUTIONS[t.id](t);
+    const done = await TaskRunner.run(t, sol.html, sol.css);
+    rows.push({
+      id: t.id, title: t.title,
+      starterFails: start.func.filter(x => !x.ok).length,
+      solutionFuncFails: done.func.filter(x => !x.ok).map(x => x.name + (x.note ? ' — ' + x.note : '')),
+      solutionQualityFails: done.quality.filter(x => !x.ok).map(x => x.name + (x.note ? ' — ' + x.note : '')),
+      lintErrors: done.lint.filter(m => m.type === 'error').map(m => m.lang + ':' + m.line + ' ' + m.message)
+    });
+  }
+  window.RESULT = rows;
+  document.getElementById('out').textContent = JSON.stringify(rows, null, 2);
+})();
+</script>
+</body>
+</html>

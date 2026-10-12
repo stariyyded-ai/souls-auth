@@ -104,6 +104,9 @@
     // Сохраняем черновик кода, чтобы не потерять при перезагрузке
     saveDraft(taskId, code) { const t = st.tasks[taskId] || (st.tasks[taskId] = { best: 0, attempts: 0 }); t.code = code; save(); },
     taskState(taskId) { return st.tasks[taskId] || null; },
+    // Таймер для бонуса за скорость идёт с первого открытия задания (или с «Начать заново»)
+    startTask(taskId) { const t = st.tasks[taskId] || (st.tasks[taskId] = { best: 0, attempts: 0 }); if (!t.startedAt) { t.startedAt = now(); save(); } return t.startedAt; },
+    restartTask(taskId) { const t = st.tasks[taskId] || (st.tasks[taskId] = { best: 0, attempts: 0 }); t.startedAt = now(); delete t.code; save(); return t.startedAt; },
     // Начисляем только прирост к лучшему результату: перерешать ради очков бесполезно
     recordTask(task, sc, code, moduleTitle) {
       const t = st.tasks[task.id] || (st.tasks[task.id] = { best: 0, attempts: 0 });

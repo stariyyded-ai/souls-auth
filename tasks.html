@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Задания · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+  <link rel="stylesheet" href="vendor/codemirror/codemirror.css">
+  <link rel="stylesheet" href="vendor/codemirror/addon/lint.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tasks.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" data-page="tasks" aria-label="Разделы сайта"></nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <main class="page out" id="panel">
+      <!-- Список заданий -->
+      <div id="list-view">
+        <div class="page-head">
+          <h1>Испытания</h1>
+          <p class="lead">25 заданий по HTML и CSS. Очки = базовый балл за результат + бонус за чистый код (до 40%) + бонус за скорость (до 30%, если уложились в норму времени). Перерешать можно сколько угодно: начисляется только прирост к лучшему результату.</p>
+        </div>
+        <section class="plate tasks-sum" aria-label="Прогресс">
+          <div><p class="eyebrow">Решено</p><p class="big" id="sum-solved">0 / 25</p></div>
+          <div class="sum-bar"><div class="bar xp" role="progressbar" aria-label="Решено заданий" id="sum-bar"><i></i></div></div>
+          <div><p class="eyebrow">Очков за задания</p><p class="big" id="sum-points">0</p></div>
+          <div class="boosts" id="boosts"></div>
+        </section>
+        <div class="chips mech-filter" role="group" aria-label="Механика" id="mech-filter"></div>
+        <div id="mech-list"></div>
+      </div>
+
+      <!-- Одно задание -->
+      <div id="task-view" hidden>
+        <div class="task-top">
+          <a href="#" class="back" id="back">← Все задания</a>
+          <div class="task-title">
+            <p class="eyebrow" id="t-mech"></p>
+            <h1 id="t-title"></h1>
+          </div>
+          <div class="timer" id="timer" role="timer" aria-live="off">
+            <span class="eyebrow">Время</span>
+            <span class="clock" id="clock">0:00</span>
+            <small id="norm"></small>
+          </div>
+        </div>
+
+        <div class="ws">
+          <section class="plate brief" aria-label="Условие">
+            <p class="story" id="t-story"></p>
+            <div><h2 class="h3">Условие</h2><p id="t-goal"></p></div>
+            <p class="meta" id="t-meta"></p>
+            <div>
+              <h2 class="h3">Чек-лист требований</h2>
+              <ul class="checks" id="t-checks"></ul>
+            </div>
+            <details class="quality" open>
+              <summary><span class="h3">Качество кода</span> <small>бонус за чистоту</small></summary>
+              <ul class="checks" id="t-quality"></ul>
+            </details>
+            <div id="frag-box" hidden>
+              <h2 class="h3">Фрагменты</h2>
+              <p class="hint">Поставь курсор в нужное место и нажми на фрагмент. Ловушки портят оценку.</p>
+              <div class="frags" id="frags"></div>
+            </div>
+          </section>
+
+          <section class="plate editor-box" aria-label="Редактор кода">
+            <div class="ed-tabs" role="tablist" aria-label="Файлы">
+              <button type="button" role="tab" id="tab-html" aria-selected="true" aria-controls="pane-html">index.html</button>
+              <button type="button" role="tab" id="tab-css" aria-selected="false" aria-controls="pane-css">style.css</button>
+              <span class="lint-sum" id="lint-sum"></span>
+            </div>
+            <div class="ed-pane" id="pane-html" role="tabpanel" aria-labelledby="tab-html"></div>
+            <div class="ed-pane" id="pane-css" role="tabpanel" aria-labelledby="tab-css" hidden></div>
+            <div class="ed-actions">
+              <button type="button" class="btn" id="run">ПРОВЕРИТЬ</button>
+              <button type="button" class="link" id="restart">Начать заново</button>
+            </div>
+            <div class="preview-head">
+              <span class="eyebrow">Предпросмотр</span>
+              <div class="chips" role="group" aria-label="Ширина предпросмотра" id="pv-size">
+                <button type="button" class="chip on" data-w="desk">Компьютер</button>
+                <button type="button" class="chip" data-w="phone">Телефон 360</button>
+              </div>
+            </div>
+            <div class="preview-frame"><iframe id="preview" title="Предпросмотр страницы" sandbox=""></iframe></div>
+          </section>
+        </div>
+
+        <section class="plate result" id="result" hidden aria-live="polite" aria-labelledby="res-title">
+          <div class="plate-head"><h2 id="res-title">Результат проверки</h2><p class="plate-sub" id="res-sub"></p></div>
+          <div class="score" id="score"></div>
+          <div id="lint-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">не теряй надежду</span>
+      <span>Код и результаты сохраняются в этом браузере. v0.4 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>ИСПЫТАНИЕ ПРОЙДЕНО</span></div>
+  <div class="banner dead" id="bn-dead"><span>ВЫ ПОГИБЛИ</span></div>
+  <p class="toast" id="toast" role="status"></p>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/student-store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="vendor/codemirror/codemirror.js"></script>
+  <script src="vendor/codemirror/mode/xml.js"></script>
+  <script src="vendor/codemirror/mode/css.js"></script>
+  <script src="vendor/codemirror/mode/javascript.js"></script>
+  <script src="vendor/codemirror/mode/htmlmixed.js"></script>
+  <script src="vendor/codemirror/addon/lint.js"></script>
+  <script src="vendor/codemirror/addon/xml-fold.js"></script>
+  <script src="vendor/codemirror/addon/closetag.js"></script>
+  <script src="vendor/codemirror/addon/closebrackets.js"></script>
+  <script src="vendor/codemirror/addon/matchbrackets.js"></script>
+  <script src="vendor/htmlhint/htmlhint.min.js"></script>
+  <script src="js/task-runner.js"></script>
+  <script src="js/tasks-data.js"></script>
+  <script src="js/tasks.js"></script>
+</body>
+</html>

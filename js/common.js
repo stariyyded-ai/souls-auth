@@ -66,6 +66,7 @@
   // Пункт «Админка» видит только администратор.
   const NAV = [
     ['cabinet', 'cabinet.html', 'Кабинет'],
+    ['tasks', 'tasks.html', 'Задания'],
     ['shop', 'shop.html', 'Магазин'],
     ['leaders', 'leaderboard.html', 'Лидеры'],
     ['admin', 'admin.html', 'Админка', 'admin']
