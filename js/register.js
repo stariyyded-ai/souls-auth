@@ -1,6 +1,6 @@
 /* Страница регистрации: проверка полей и анимация слизняка, который уходит в дверь внутри кнопки. */
 (() => {
-  const { reduce, wait, go, store } = window.Ash;
+  const { reduce, wait, go, store, sfx } = window.Ash;
   const form = document.getElementById('f-reg');
   const note = document.getElementById('n-reg');
   const val = id => document.getElementById(id).value;
@@ -20,7 +20,8 @@
     if (busy) return;
     note.textContent = '';
     const err = check();
-    if (err) { note.textContent = err[1]; document.getElementById(err[0]).focus(); return; }
+    sfx.click();
+    if (err) { sfx.error(); note.textContent = err[1]; document.getElementById(err[0]).focus(); return; }
     busy = true;
 
     const btn = document.getElementById('b-reg');
@@ -32,14 +33,18 @@
     await wait(220);
     // 2. Дверь открывается
     btn.classList.add('door-open');
+    sfx.door(true);
     // 3. Слизняк ползёт к двери пиксельными шагами и скрывается за ней
     const dist = door.offsetLeft + 4 - slug.offsetLeft;
     const crawl = reduce ? 300 : 1500;
     slug.style.transition = `transform ${crawl}ms steps(${reduce ? 1 : 30})`;
     slug.style.transform = `translateX(${dist}px)`;
+    const steps = reduce ? 0 : Math.floor(crawl / 110);
+    for (let i = 0; i < steps; i++) setTimeout(sfx.squish, 60 + i * 110);
     await wait(crawl + 120);
     // 4. Дверь закрывается, переходим на вход
     btn.classList.remove('door-open');
+    sfx.door(false);
     await wait(380);
 
     // Здесь будет настоящий запрос на сервер. Пока считаем регистрацию успешной.

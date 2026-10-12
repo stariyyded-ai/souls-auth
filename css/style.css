@@ -196,3 +196,18 @@ a:focus-visible, .link:focus-visible { outline: 2px solid var(--ember-hi); outli
 
 /* Кнопка-ссылка (выход на главной) */
 a.btn { text-decoration: none; box-sizing: border-box; }
+
+/* Переключатель звука в шапке */
+.sound {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  font: 500 12px var(--font-pixel); letter-spacing: 0.12em; color: var(--gold);
+  background: rgba(0,0,0,0.35); border: 2px solid rgba(201,164,92,0.5);
+  cursor: pointer;
+}
+.sound:hover { color: var(--gold-hi); border-color: var(--gold); }
+.sound:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
+.sound .ico { width: 10px; height: 10px; background: var(--ember-hi); box-shadow: 0 0 8px var(--ember); }
+.sound[aria-pressed="false"] { color: var(--muted); }
+.sound[aria-pressed="false"] .ico { background: var(--stone); box-shadow: none; }
