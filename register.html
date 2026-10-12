@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Регистрация · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+    </header>
+
+    <main class="center">
+      <section class="panel out" id="panel" aria-labelledby="t-reg">
+        <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-br"></span><span class="corner c-bl"></span>
+        <div class="view">
+          <div class="runes"></div>
+          <h1 class="sm" id="t-reg">РЕГИСТРАЦИЯ</h1>
+          <p class="sub">Создай персонажа, чтобы возжечь пламя</p>
+          <div class="divider"><i></i><span class="dia"></span><i></i></div>
+          <form id="f-reg" novalidate>
+            <div class="field">
+              <label for="r-name">Имя персонажа</label>
+              <div class="input"><span class="dia ember"></span><input id="r-name" name="name" autocomplete="nickname" placeholder="Сигмайер из Катарины"></div>
+            </div>
+            <div class="field">
+              <label for="r-mail">E-mail</label>
+              <div class="input"><span class="dia ember"></span><input id="r-mail" name="email" type="email" autocomplete="email" placeholder="onion@catarina.io"></div>
+            </div>
+            <div class="pair">
+              <div class="field">
+                <label for="r-pass">Пароль</label>
+                <div class="input"><span class="dia ember"></span><input id="r-pass" name="password" type="password" autocomplete="new-password"></div>
+              </div>
+              <div class="field">
+                <label for="r-pass2">Повтор</label>
+                <div class="input"><span class="dia ember"></span><input id="r-pass2" name="password2" type="password" autocomplete="new-password"></div>
+              </div>
+            </div>
+            <div class="opts">
+              <label class="check"><input id="r-oath" name="oath" type="checkbox"> Принимаю клятву ковенанта</label>
+            </div>
+            <button class="btn reg" id="b-reg" type="submit">
+              <span class="label">ЗАРЕГИСТРИРОВАТЬСЯ</span>
+              <span class="floor"></span>
+              <span class="slug"></span>
+              <span class="door"></span>
+            </button>
+            <p class="note" id="n-reg" role="status"></p>
+          </form>
+          <p class="alt">Уже есть персонаж? <a href="index.html" data-fade>Войти</a></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">попробуй слизня</span>
+      <span>v0.1 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>КОСТЁР ЗАЖЖЁН</span></div>
+  <div class="banner dead" id="bn-dead"><span>ВЫ ПОГИБЛИ</span></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/register.js"></script>
+</body>
+</html>

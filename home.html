@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Главная · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+    </header>
+
+    <main class="center">
+      <section class="panel wide out" id="panel" aria-labelledby="hello">
+        <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-br"></span><span class="corner c-bl"></span>
+        <div class="view home">
+          <div class="home-bar">
+            <div class="runes"></div>
+            <nav aria-label="Разделы"><span class="on">Главная</span><span>Работы</span><span>Курсы</span><span>Ковенант</span></nav>
+          </div>
+          <span class="tag">ЗАГЛУШКА ГЛАВНОЙ</span>
+          <h1 class="sm" id="hello">У костра, Негорящий</h1>
+          <p class="lead">Здесь будет главная страница сайта. Окно входа рассыпалось на кубики, значит авторизация прошла.</p>
+          <div class="cards">
+            <div class="card"><h2>Работы</h2><p>Портфолио веб-дизайна</p><div class="skel"></div><div class="skel" style="width:70%"></div></div>
+            <div class="card"><h2>Курсы</h2><p>Уроки по интерфейсам</p><div class="skel"></div><div class="skel" style="width:55%"></div></div>
+            <div class="card"><h2>Ковенант</h2><p>Сообщество и отзывы</p><div class="skel"></div><div class="skel" style="width:80%"></div></div>
+          </div>
+          <a class="btn" href="index.html" data-fade id="b-logout">ВЫЙТИ К КОСТРУ</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">хвала солнцу</span>
+      <span>v0.1 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>КОСТЁР ЗАЖЖЁН</span></div>
+  <div class="banner dead" id="bn-dead"><span>ВЫ ПОГИБЛИ</span></div>
+
+  <script src="js/common.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>
