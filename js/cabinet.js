@@ -1,8 +1,10 @@
 /* Личный кабинет: рисует персонажа, уровень, полосы HP/XP, модули, достижения, курсы и историю.
-   Курс, модули и группа — из window.STUDENT, опыт, души, облик, достижения и новые задания — из Student. */
+   Всё считается по настоящим данным студента (Student) и курса с сервера (window.BOOT):
+   модули — из админки, уроки — из js/content.js, история — решённые задания. Новичок начинает с нуля. */
 (() => {
   const St = window.Student, SS = St.state;
-  const D = { ...window.STUDENT, xp: SS.xp, souls: SS.souls, achievements: St.achievements(), history: [...SS.history, ...window.STUDENT.history] };
+  const D = { ...window.STUDENT, xp: SS.xp, souls: SS.souls, achievements: St.achievements(), history: SS.history };
+  const B = window.BOOT, E = window.Economy;
   const { svg, C, store, banner, sfx = {} } = window.Ash;
   const $ = id => document.getElementById(id);
   const fmt = n => n.toLocaleString('ru-RU');
@@ -54,17 +56,30 @@
   }
 
   /* ---------- курс и модули ---------- */
-  const all = D.modules.flatMap(m => m.lessons);
+  // Модули группы из админки; в каждом — опубликованные уроки, остальные места модуля пока закрыты
+  const myGroup = B.db.groups.find(g => g.id === B.me.group);
+  const lessonState = l => {
+    if (l.groups && l.groups.length && !l.groups.includes(D.group.code)) return 'locked';
+    if (E.lessonDone(l, SS)) return 'done';
+    return SS.lessons[l.id]?.read ? 'current' : 'open';
+  };
+  const modules = B.db.modules.filter(m => !myGroup || !myGroup.modules || myGroup.modules.includes(m.id)).map(m => {
+    const real = window.LESSONS.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
+    const planned = Math.max(m.lessons || 0, real.length);
+    for (let k = real.length; k < planned; k++) real.push([`Урок ${k + 1} ещё не опубликован`, 'locked']);
+    return { title: m.title, lessons: real };
+  }).filter(m => m.lessons.length);
+  const all = modules.flatMap(m => m.lessons);
   const done = all.filter(l => l[1] === 'done').length;
   $('hp-val').textContent = `${done} / ${all.length} уроков`;
   setBar($('hp-bar'), done, all.length, `${done} из ${all.length} уроков`);
   $('course-name').textContent = D.course;
 
   const STATUS_L = { done: 'пройден', current: 'в работе', open: 'доступен', locked: 'закрыт' };
-  $('mod-list').innerHTML = D.modules.map((m, i) => {
+  $('mod-list').innerHTML = modules.map((m, i) => {
     const d = m.lessons.filter(l => l[1] === 'done').length, n = m.lessons.length;
     const locked = m.lessons.every(l => l[1] === 'locked');
-    const pct = Math.round(d / n * 100);
+    const pct = n ? Math.round(d / n * 100) : 0;
     return `<li class="mod${d === n ? ' full' : ''}${locked ? ' locked' : ''}">
       <span class="mod-num">${i + 1}</span>
       <div class="mod-top"><span class="mod-title">${esc(m.title)}</span><span class="mod-count">${locked ? 'закрыт' : `${d} / ${n} · ${pct}%`}</span></div>
@@ -91,6 +106,10 @@
 
   /* ---------- группа и курсы ---------- */
   const g = D.group;
+  // Место в группе — по опыту среди одногруппников, скрывшиеся из таблицы лидеров тоже считаются
+  const mates = B.db.users.filter(u => u.group === B.me.group && (u.role === 'student' || u.id === B.me.id));
+  g.members = mates.length || 1;
+  g.rank = mates.filter(u => u.id !== B.me.id && u.xp > SS.xp).length + 1;
   $('st-group').innerHTML = `Группа <b>${esc(g.code)}</b> · ${esc(g.title)}`;
   $('group-card').innerHTML = `
     <div><p class="eyebrow">Группа</p><p class="big">${esc(g.code)}</p></div>
@@ -101,7 +120,7 @@
     const locked = c.status === 'locked' && levelIndex(c.need) > cur;
     const status = c.status === 'locked' && !locked ? 'open' : c.status;
     let right = '';
-    if (status === 'active') right = `<span class="tagline active">ИДЁТ · ${Math.round(done / all.length * 100)}%</span>`;
+    if (status === 'active') right = `<span class="tagline active">ИДЁТ · ${all.length ? Math.round(done / all.length * 100) : 0}%</span>`;
     else if (status === 'open') right = `<button type="button" class="btn" data-enroll="${i}">ЗАПИСАТЬСЯ</button>`;
     else right = `<span class="tagline locked">НУЖЕН УРОВЕНЬ «${esc(c.need).toUpperCase()}»</span>`;
     return `<li class="course ${status}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text)}${c.hours ? ` · ${c.hours} ч` : ''}</p></div>${right}</li>`;
@@ -124,12 +143,14 @@
       <td><span class="status ${h.status}">${ST[h.status]}</span></td>
       <td class="num">${signed(h.xp)}</td>
       <td class="num">${signed(h.souls)}</td>
-    </tr>`).join('');
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">Пока нет сданных заданий. Начните с раздела «Задания».</td></tr>';
   filterChips('hist-filter', 's', v => document.querySelectorAll('#hist-body tr').forEach(tr => tr.hidden = v !== 'all' && tr.dataset.s !== v));
 
   /* ---------- баланс ---------- */
   $('souls').textContent = fmt(D.souls);
-  $('souls-week').textContent = `+${fmt(D.soulsWeek)} за неделю`;
+  const weekAgo = Date.now() - 7 * 864e5;
+  const week = SS.journal.filter(j => j.amount > 0 && j.kind === 'transaction' && new Date(j.date) > weekAgo).reduce((a, j) => a + j.amount, 0);
+  $('souls-week').textContent = `+${fmt(week)} за неделю`;
 
   /* ---------- общее ---------- */
   function filterChips(groupId, key, apply) {

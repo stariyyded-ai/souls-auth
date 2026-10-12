@@ -22,7 +22,7 @@
     const parts = [];
     if (s && s.quizMax) parts.push(`квиз ${s.quiz} из ${s.quizMax}`);
     if (t && t.solved) parts.push('задание решено');
-    if (s && s.quiz === s.quizMax && t && t.solved) return { cls: 'done', text: parts.join(' · ') };
+    if (window.Economy.lessonDone(l, St.state)) return { cls: 'done', text: parts.join(' · ') };
     if (s && s.read) return { cls: 'started', text: parts.join(' · ') || 'прочитан' };
     return { cls: 'new', text: 'не начат' };
   }

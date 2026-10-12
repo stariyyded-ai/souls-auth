@@ -104,6 +104,8 @@
   }
   addEventListener('hashchange', () => { render(); scrollTo({ top: 0 }); });
   S.on(render);
+  // В рабочем режиме (DEMO_DATA=off) сброса демо-данных нет
+  if (!window.BOOT.demo) $('reset-demo').hidden = true;
   $('reset-demo').addEventListener('click', async () => {
     if (await confirmBox('Сбросить демо-данные?', 'Все изменения на сервере пропадут у всех: аккаунты, прогресс, загруженные лекции. Вернутся исходные примеры.', 'СБРОСИТЬ')) { S.resetDemo(); toast('Возвращаю демо-данные…'); }
   });
@@ -192,11 +194,11 @@
               return `<tr>
                 <td>${esc(u.name)}<small>${esc(u.email)}</small></td>
                 <td><select class="sel" data-role="${u.id}" aria-label="Роль: ${esc(u.name)}">${Object.entries(ROLES).map(([k, v]) => opt(k, v, u.role)).join('')}</select></td>
-                <td>${esc(S.byId('groups', u.group)?.code || '—')}</td>
+                <td>${u.role === 'student' ? `<select class="sel" data-group="${u.id}" aria-label="Группа: ${esc(u.name)}">${opt('', '—', u.group || '')}${db.groups.map(g => opt(g.id, g.code, u.group || '')).join('')}</select>` : esc(S.byId('groups', u.group)?.code || '—')}</td>
                 <td class="num">${fmt(u.xp)}<small>${level(u.xp)}</small></td>
                 <td>${u.role === 'student' ? `${bar(pct, 'hp', 'mini-bar')} <small>${Math.round(pct)}%</small>` : '<small>—</small>'}</td>
                 <td><span class="dot${live ? ' live' : ''}"></span>${ago(u.lastSeen)}</td>
-                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижение</button><button type="button" class="act danger" data-reset="${u.id}">Сброс</button></td>
+                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижение</button><button type="button" class="act" data-pass="${u.id}">Пароль</button><button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
               </tr>`; }).join('') || `<tr><td colspan="7" class="empty">Никого не нашлось. Попробуйте другой запрос или фильтр.</td></tr>`}</tbody>
           </table>
         </div>
@@ -210,14 +212,47 @@
       const u = S.byId('users', s.dataset.role);
       S.setRole(u.id, s.value); toast(`Роль «${u.name}»: ${ROLES[s.value]}.`);
     }));
+    root.querySelectorAll('[data-group]').forEach(s => s.addEventListener('change', () => {
+      const u = S.byId('users', s.dataset.group);
+      S.setGroup(u.id, s.value); toast(`«${u.name}» теперь в группе ${S.byId('groups', s.value)?.code || '«без группы»'}.`);
+    }));
     root.addEventListener('click', e => {
-      const b = e.target.closest('[data-open],[data-grant],[data-reset]'); if (!b) return;
+      const b = e.target.closest('[data-open],[data-grant],[data-reset],[data-pass],[data-del]'); if (!b) return;
       if (b.dataset.open) openUser(b.dataset.open);
       if (b.dataset.grant) grant(b.dataset.grant);
       if (b.dataset.reset) resetUser(b.dataset.reset);
+      if (b.dataset.pass) changePassword(b.dataset.pass);
+      if (b.dataset.del) removeUser(b.dataset.del);
     });
   });
 
+  // Новый пароль для того, кто забыл свой: администратор передаёт его студенту лично
+  async function changePassword(id) {
+    const u = S.byId('users', id);
+    const abc = 'abcdefghjkmnpqrstuvwxyz23456789', rnd = n => Array.from(crypto.getRandomValues(new Uint32Array(n)), x => abc[x % abc.length]).join('');
+    let pass = '';
+    const v = await modal({
+      title: 'Новый пароль',
+      body: `<p>Для <b>${esc(u.name)}</b>${u.email ? ` · ${esc(u.email)}` : ''}</p>
+        <div class="form"><div class="f full"><label for="new-pass">Пароль, не короче 6 символов</label><input id="new-pass" type="text" autocomplete="off" spellcheck="false" value="ash-${rnd(4)}-${rnd(4)}">
+        <p class="hint">Сообщите пароль студенту лично. Все его открытые входы закроются, войти можно будет только с новым паролем.</p></div></div>`,
+      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'ok', primary: true }],
+      onSubmit: val => {
+        if (val !== 'ok') return null;
+        const p = pass = $('new-pass').value;
+        if (p.length < 6) { $('new-pass').setAttribute('aria-invalid', 'true'); return 'Пароль должен быть не короче 6 символов.'; }
+        return null;
+      }
+    });
+    if (v !== 'ok') return;
+    if (await S.setPassword(id, pass)) toast(`Пароль «${u.name}» изменён.`);
+  }
+  async function removeUser(id) {
+    const u = S.byId('users', id);
+    if (await confirmBox('Удалить пользователя?', `«${esc(u.name)}» будет удалён вместе с прогрессом, покупками и входом в систему. Вернуть его нельзя. Записи в журнале останутся.`, 'УДАЛИТЬ')) {
+      if (await S.removeUser(id)) { if (sfx.death) sfx.death(); toast(`«${u.name}» удалён.`); }
+    }
+  }
   async function resetUser(id) {
     const u = S.byId('users', id);
     if (await confirmBox('Сбросить прогресс?', `У «${esc(u.name)}» обнулятся пройденные уроки и опыт. Души и достижения останутся.`, 'СБРОСИТЬ')) {
@@ -260,8 +295,8 @@
         <span class="eyebrow">Прогресс по модулям</span><div class="mod-rows">${mods}</div>
         <span class="eyebrow">Достижения</span><div class="badges">${ach}</div>
         ${tx ? `<span class="eyebrow">Последние транзакции</span><div class="table-wrap"><table class="data-table" style="min-width:0"><tbody>${tx}</tbody></table></div>` : ''}`,
-      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЕ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
-    }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); });
+      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЕ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
+    }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); if (v === 'pass') changePassword(id); });
   }
 
   /* ================= ЛОГИ ================= */

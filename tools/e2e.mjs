@@ -66,6 +66,9 @@ try {
   await login(anon, 'knight@test.io', 'pass1234');
   await anon.waitForURL(/cabinet\.html/, { timeout: 10000 });
   ok(await anon.textContent('#st-name') === 'Рыцарь Тестов', 'вход по e-mail, в кабинете своё имя');
+  const hp = await anon.textContent('#hp-val');
+  ok(/^0 \/ \d+ уроков$/.test(hp) && await anon.locator('#hist-body .empty').count() === 1 && await anon.textContent('#souls') === '0', `новичок начинает с нуля: ${hp}, история пуста, 0 душ`);
+  ok(await anon.locator('#mod-list .pip.done').count() === 0, 'в модулях новичка нет пройденных уроков');
   ok(await anon.locator('nav.topnav a[href="admin.html"]').count() === 0, 'у студента нет пункта «Админка»');
   ok((await api(anon, 'POST', 'api/admin/users/u5/reset')).status === 403, 'API админки студенту отвечает 403');
   await anon.goto(U + 'admin.html');
@@ -137,6 +140,27 @@ try {
   await api(ad, 'POST', `api/admin/users/${adb.users.find(u => u.name === 'Рыцарь Тестов').id}/role`, { role: 'admin' });
   await anon.goto(U + 'admin.html');
   ok(anon.url().endsWith('/admin.html'), 'после смены роли на сервере пользователь попадает в админку');
+  const knight = adb.users.find(u => u.name === 'Рыцарь Тестов').id;
+  await api(ad, 'POST', `api/admin/users/${knight}/role`, { role: 'student' });
+
+  // Группа, пароль и удаление из админки
+  await ad.goto(U + 'admin.html#users'); await ad.waitForTimeout(500);
+  await ad.selectOption(`[data-group="${knight}"]`, 'g3'); await ad.waitForTimeout(600);
+  ok((await api(ad, 'GET', 'api/admin/db')).body.users.find(u => u.id === knight).group === 'g3', 'администратор перевёл студента в другую группу');
+  await ad.click(`[data-pass="${knight}"]`); await ad.waitForTimeout(300);
+  await ad.fill('#new-pass', 'abc'); await ad.click('#modal-actions button:has-text("СМЕНИТЬ ПАРОЛЬ")'); await ad.waitForTimeout(300);
+  ok((await ad.textContent('#modal-note')).includes('не короче 6'), 'слишком короткий новый пароль не принимается');
+  await ad.fill('#new-pass', 'new-pass-77'); await ad.click('#modal-actions button:has-text("СМЕНИТЬ ПАРОЛЬ")'); await ad.waitForTimeout(800);
+  await anon.goto(U + 'cabinet.html');
+  ok(anon.url().endsWith('/index.html'), 'после смены пароля старый вход студента закрыт');
+  ok((await api(anon, 'POST', 'api/login', { login: 'knight@test.io', password: 'pass1234' })).status === 401, 'старый пароль больше не подходит');
+  ok((await api(anon, 'POST', 'api/login', { login: 'knight@test.io', password: 'new-pass-77' })).status === 200, 'новый пароль от администратора подходит');
+  await ad.goto(U + 'admin.html#users'); await ad.waitForTimeout(500);
+  ok(await ad.locator('[data-del="u1"]').count() === 0, 'удалить себя администратор не может');
+  await ad.click(`[data-del="${knight}"]`); await ad.waitForTimeout(300);
+  await ad.click('#modal-actions button:has-text("УДАЛИТЬ")'); await ad.waitForTimeout(800);
+  ok(!(await api(ad, 'GET', 'api/admin/db')).body.users.some(u => u.id === knight), 'пользователь удалён');
+  ok((await api(anon, 'POST', 'api/login', { login: 'knight@test.io', password: 'new-pass-77' })).status === 401, 'удалённый пользователь не может войти');
 
   /* ---------- выход ---------- */
   await st.goto(U + 'cabinet.html'); await st.waitForTimeout(400);
@@ -153,6 +177,16 @@ try {
     if (ov > 0) ok(false, `${pg}: горизонтальная прокрутка ${ov}px на телефоне`);
   }
   ok(!errs.length, 'ошибок JavaScript на страницах нет' + (errs.length ? ': ' + errs.join(' | ') : ''));
+
+  /* ---------- чистый запуск без демо-студентов ---------- */
+  const clean = mkdtempSync(path.join(tmpdir(), 'ash-clean-'));
+  await new Promise(res => spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/index.js', '--reset', '--clean'], { cwd: ROOT, env: { ...process.env, DATA_DIR: clean }, stdio: 'ignore' }).on('exit', res));
+  const { DatabaseSync } = await import('node:sqlite');
+  const cdb = new DatabaseSync(path.join(clean, 'ash.db'));
+  const n = q => cdb.prepare(q).get().n;
+  ok(n('SELECT COUNT(*) AS n FROM users') === 1 && n('SELECT COUNT(*) AS n FROM purchases') === 0 && n("SELECT COUNT(*) AS n FROM items WHERE coll = 'shop'") > 0,
+    'reset-db --clean: только администратор, без покупок, магазин и курс на месте');
+  cdb.close(); rmSync(clean, { recursive: true, force: true });
 } finally {
   await b.close();
   srv.kill();

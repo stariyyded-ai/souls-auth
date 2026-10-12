@@ -98,22 +98,33 @@ function loadSeed() {
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'js/admin-data.js'), 'utf8'), ctx);
   return JSON.parse(JSON.stringify(ctx.window.ADMIN_SEED));
 }
+// Уроки (js/content.js) и правило «урок пройден» (js/economy.js) — те же, что в браузере
+const shared = { window: {} };
+['js/economy.js', 'js/content.js'].forEach(f => vm.runInNewContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), shared));
+const LESSONS = shared.window.LESSONS, lessonDone = shared.window.Economy.lessonDone;
 
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || '123';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123123123';
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'astora123';
+// DEMO_DATA=off — рабочий режим: при создании базы нет выдуманных студентов, покупок и журнала,
+// а кнопка «Сбросить демо-данные» в админке отключена
+const DEMO = process.env.DEMO_DATA !== 'off';
 
-function seed() {
+function seed(demo = DEMO) {
   const s = loadSeed();
+  if (!demo) {
+    s.users = s.users.slice(0, 1).map(u => ({ ...u, lastSeen: now(), created: now() }));
+    s.purchases = []; s.logs = [];
+  }
   tx(() => {
     ['users', 'items', 'purchases', 'logs', 'files', 'sessions'].forEach(t => db.exec(`DELETE FROM ${t}`));
     COLLS.forEach(c => s[c].forEach(item => putItem(c, item)));
     s.users.forEach((u, i) => {
-      const admin = i === 0, demo = u.id === 'u24';
+      const admin = i === 0, student = u.id === 'u24';
       insertUser({
         id: u.id, login: admin ? ADMIN_LOGIN : null, name: u.name, email: u.email, role: u.role, profile: u,
         // Войти можно администратором и демо-студентом «Солер из Асторы», остальные — примеры для таблиц
-        pass: admin ? hashPassword(ADMIN_PASSWORD) : demo ? hashPassword(DEMO_PASSWORD) : null
+        pass: admin ? hashPassword(ADMIN_PASSWORD) : student ? hashPassword(DEMO_PASSWORD) : null
       });
     });
     s.purchases.forEach(addPurchase);
@@ -128,5 +139,5 @@ module.exports = {
   db, tx, now, uid, key, COLLS, UPLOADS,
   getUser, findLogin, nameTaken, emailTaken, insertUser, saveProfile, userOut, allUsers,
   listColl, getItem, putItem, removeItem, addLog, listLogs, addPurchase, listPurchases, seed,
-  ADMIN_LOGIN, DEMO_PASSWORD
+  ADMIN_LOGIN, DEMO_PASSWORD, DEMO, LESSONS, lessonDone
 };

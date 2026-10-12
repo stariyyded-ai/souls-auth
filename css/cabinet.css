@@ -242,3 +242,6 @@
   .bar i, .pip.current { animation: none; }
   .cab, .toast { transition: none; }
 }
+
+/* Пустая история заданий у новичка */
+#hist-body .empty { text-align: center; color: var(--muted, #a59cb3); padding: 22px 12px; }

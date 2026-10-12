@@ -54,7 +54,15 @@
     };
   }
 
+  // Урок пройден, когда квиз решён без ошибок и мини-задание сдано (то же считает сервер для админки)
+  function lessonDone(l, st) {
+    const s = st.lessons[l.id], t = l.task && st.tasks[l.task];
+    const quizOk = !(l.quiz && l.quiz.length) || (s && s.quizMax && s.quiz === s.quizMax);
+    const taskOk = !l.task || (t && t.solved);
+    return !!(s && s.read && quizOk && taskOk);
+  }
+
   const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, clock };
+  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, clock };
 })();

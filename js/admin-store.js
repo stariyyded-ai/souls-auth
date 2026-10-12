@@ -80,6 +80,25 @@
       send('POST', `api/admin/users/${userId}/achievements`, { id: achId }).then(putUser);
       return true;
     },
+    async setGroup(userId, group) {
+      const u = this.byId('users', userId); u.group = group || null; save();
+      putUser(await send('POST', `api/admin/users/${userId}/group`, { group: group || null }));
+    },
+    // Пароль виден только администратору в момент смены; сервер хранит лишь хеш
+    async setPassword(userId, password) {
+      const r = await send('POST', `api/admin/users/${userId}/password`, { password });
+      if (r) { this.log('action', `сменил пароль «${this.byId('users', userId).name}»`); save(); }
+      return !!r;
+    },
+    async removeUser(userId) {
+      const u = this.byId('users', userId);
+      const r = await send('DELETE', `api/admin/users/${userId}`);
+      if (!r) return false;
+      db.users = db.users.filter(x => x.id !== userId);
+      db.purchases = db.purchases.filter(p => p.user !== userId);
+      this.log('action', `удалил пользователя «${u.name}»`);
+      save(); return true;
+    },
     // Возвращает демо-данные на сервере для всех; после этого перечитываем страницу
     async resetDemo() {
       if (await send('POST', 'api/admin/reset-demo')) setTimeout(() => location.reload(), 900);

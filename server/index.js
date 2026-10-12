@@ -10,8 +10,10 @@ const D = require('./db');
 const A = require('./auth');
 
 if (process.argv.includes('--reset')) {
-  D.seed();
-  console.log('База пересоздана из демо-данных.');
+  // npm run reset-db — с демо-студентами; npm run reset-db -- --clean — только администратор и разделы курса
+  const clean = process.argv.includes('--clean');
+  D.seed(!clean);
+  console.log(clean ? 'База пересоздана: только администратор, группы, модули, задания, лекции и магазин.' : 'База пересоздана из демо-данных.');
   process.exit(0);
 }
 
@@ -100,7 +102,7 @@ app.get('/api/boot.js', (req, res) => {
   if (!req.user) return res.send(`window.BOOT = null; location.replace('index.html');`);
   const row = req.user;
   const boot = {
-    me: me(row), state: parseState(row), rev: row.rev,
+    me: me(row), state: parseState(row), rev: row.rev, demo: D.DEMO,
     db: row.role === 'admin' ? adminDb() : studentDb(row)
   };
   res.send(`window.BOOT = ${JSON.stringify(boot).replace(/</g, '\\u003c')};`);
@@ -160,6 +162,10 @@ function checkState(st) {
 function syncProfile(row, st) {
   const p = JSON.parse(row.profile);
   p.xp = st.xp; p.souls = st.souls; p.hidden = !!st.hidden; p.lastSeen = D.now();
+  // Прогресс по модулям для админки: сколько уроков пройдено (квиз без ошибок и мини-задание)
+  p.progress = {};
+  D.listColl('modules').forEach(m => { p.progress[m.id] = 0; });
+  D.LESSONS.forEach(l => { if (D.lessonDone(l, st)) p.progress[l.module] = (p.progress[l.module] || 0) + 1; });
   p.achievements ||= [];
   const known = new Set(D.listColl('achievements').map(a => a.id));
   Object.entries(st.ach).forEach(([id, date]) => {
@@ -212,7 +218,8 @@ app.put('/api/admin/:coll/:id', needAdmin, (req, res) => {
   D.tx(() => { D.putItem(c, it); adminLog(req, `изменил ${label(req, it)}`); });
   res.json(it);
 });
-app.delete('/api/admin/:coll/:id', needAdmin, (req, res) => {
+app.delete('/api/admin/:coll/:id', needAdmin, (req, res, next) => {
+  if (req.params.coll === 'users') return next(); // пользователей удаляет отдельный обработчик ниже
   const c = coll(req), it = D.getItem(c, req.params.id);
   if (!it) fail(404, 'Запись не найдена.');
   D.tx(() => { D.removeItem(c, it.id); adminLog(req, `удалил ${label(req, it)}`); });
@@ -260,7 +267,42 @@ app.post('/api/admin/users/:id/achievements', needAdmin, (req, res) => {
   }));
   res.json(u);
 });
+app.post('/api/admin/users/:id/group', needAdmin, (req, res) => {
+  const group = req.body?.group || null;
+  if (group && !D.getItem('groups', group)) fail(404, 'Группа не найдена.');
+  const u = D.tx(() => changeUser(req.params.id, (p, st, row) => {
+    p.group = group;
+    adminLog(req, `перевёл «${row.name}» в группу ${group ? D.getItem('groups', group).code : '«без группы»'}`);
+  }));
+  res.json(u);
+});
+// Новый пароль для забывшего: старые входы этого пользователя закрываются
+app.post('/api/admin/users/:id/password', needAdmin, (req, res) => {
+  const pass = String(req.body?.password || '');
+  if (pass.length < 6 || pass.length > 200) fail(400, 'Пароль должен быть не короче 6 символов.');
+  const row = D.getUser(req.params.id);
+  if (!row) fail(404, 'Пользователь не найден.');
+  D.tx(() => {
+    D.db.prepare('UPDATE users SET pass = ? WHERE id = ?').run(A.hashPassword(pass), row.id);
+    if (row.id !== req.user.id) D.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(row.id);
+    adminLog(req, `сменил пароль «${row.name}»`);
+  });
+  res.json({ ok: true });
+});
+// Удаление: аккаунт, входы и покупки; записи журнала остаются для истории
+app.delete('/api/admin/users/:id', needAdmin, (req, res) => {
+  if (req.params.id === req.user.id) fail(400, 'Себя удалить нельзя.');
+  const row = D.getUser(req.params.id);
+  if (!row) fail(404, 'Пользователь не найден.');
+  D.tx(() => {
+    D.db.prepare('DELETE FROM purchases WHERE user = ?').run(row.id);
+    D.db.prepare('DELETE FROM users WHERE id = ?').run(row.id);
+    adminLog(req, `удалил пользователя «${row.name}» (${row.email || 'без e-mail'})`);
+  });
+  res.json({ ok: true });
+});
 app.post('/api/admin/reset-demo', needAdmin, (req, res) => {
+  if (!D.DEMO) fail(403, 'Сброс демо-данных выключен (DEMO_DATA=off).');
   const id = req.user.id;
   D.seed();
   // Сброс стирает все сессии; администратора из демо-данных пускаем обратно сразу
