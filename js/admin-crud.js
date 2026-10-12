@@ -12,7 +12,13 @@
   const moduleOpts = () => db().modules.map(m => [m.id, m.title]);
   const courseOpts = () => db().courses.map(c => [c.id, c.title]);
   const TASK_TYPES = { layout: 'Вёрстка', mockup: 'Макет', quiz: 'Тест' };
-  const SHOP_TYPES = { cosmetic: 'Оформление', bonus: 'Бонус', merch: 'Мерч' };
+  const SHOP_TYPES = { title: 'Звание', avatar: 'Аватар', frame: 'Рамка', booster: 'Бустер', bonus: 'Бонус', merch: 'Мерч' };
+  const EFFECTS = { xp2: 'Опыт ×2', souls15: 'Души ×1,5', speed: 'Полный бонус за скорость' };
+  const artOpts = () => [['', '— не нужно —'], ...Object.entries(window.ASH_AVATARS).filter(([k]) => k !== 'knight').map(([k, a]) => [k, 'Аватар: ' + a.title]),
+    ...Object.entries(window.ASH_FRAMES).map(([k, t]) => [k, 'Рамка: ' + t])];
+  const shopArt = s => s.type === 'avatar' ? `<span class="ava sm">${window.ASH_AVATAR_SVG(s.art, 4)}</span>`
+    : s.type === 'frame' ? `<span class="ava sm" data-frame="${esc(s.art || '')}">${window.ASH_AVATAR_SVG('knight', 4)}</span>`
+    : icon(s.type === 'booster' ? 'flame' : s.type === 'title' ? 'badge' : s.type === 'bonus' ? 'key' : 'scroll', { X: '#f2d58a', Y: '#7a5f2e', O: '#e8772e', W: '#fff0b0' }, 5);
   const CONDITIONS = { manual: 'Выдаётся вручную', lessons: 'Пройдено уроков ≥ N', tasks: 'Сдано заданий ≥ N', streak: 'Заданий подряд без доработок ≥ N', module: 'Закрыто модулей на 100% ≥ N', top: 'Место в группе ≤ N' };
   const deadlinePill = d => {
     if (!d) return '—';
@@ -134,9 +140,9 @@
 
     shop: {
       title: 'Магазин', one: 'товар', create: 'НОВЫЙ ТОВАР', search: s => s.title + ' ' + s.description,
-      defaults: () => ({ title: '', type: 'cosmetic', price: 500, stock: 0, description: '', active: true }),
+      defaults: () => ({ title: '', type: 'title', rarity: 'common', art: '', effect: 'xp2', charges: 3, price: 500, stock: 0, description: '', active: true }),
       columns: [
-        ['Товар', s => `${esc(s.title)}<small>${SHOP_TYPES[s.type]}</small>`],
+        ['Товар', s => `${esc(s.title)}<small>${SHOP_TYPES[s.type] || s.type} · <span style="color:${RARITY[s.rarity || 'common'].c}">${RARITY[s.rarity || 'common'].label}</span></small>`],
         ['Цена', s => `${fmt(s.price)} душ`],
         ['Остаток', s => s.stock ? `${s.stock} шт` : '<small>без ограничений</small>'],
         ['Продано', s => { const p = db().purchases.filter(x => x.item === s.id); return `${p.length}<small>${fmt(p.reduce((a, x) => a + x.price, 0))} душ</small>`; }],
@@ -145,15 +151,22 @@
       fields: [
         { key: 'title', label: 'Название', type: 'text', required: true, full: true },
         { key: 'type', label: 'Тип', type: 'select', options: () => Object.entries(SHOP_TYPES) },
+        { key: 'rarity', label: 'Редкость', type: 'select', options: () => Object.entries(RARITY).map(([k, r]) => [k, r.label]) },
+        { key: 'art', label: 'Аватар или рамка', type: 'select', options: artOpts, hint: 'Только для типов «Аватар» и «Рамка»' },
+        { key: 'effect', label: 'Действие бустера', type: 'select', options: () => Object.entries(EFFECTS) },
+        { key: 'charges', label: 'Бустер действует, заданий', type: 'number', min: 1 },
         { key: 'price', label: 'Цена, душ', type: 'number', min: 1, required: true },
         { key: 'stock', label: 'Остаток', type: 'number', min: 0, hint: '0 — без ограничений' },
         { key: 'description', label: 'Описание', type: 'textarea', full: true },
         { key: 'active', label: 'Продажа', type: 'bool', text: 'Показывать в магазине' }
       ],
+      validate: v => (v.type === 'avatar' && !window.ASH_AVATARS[v.art]) ? 'Для аватара выберите картинку в поле «Аватар или рамка».'
+        : (v.type === 'frame' && !window.ASH_FRAMES[v.art]) ? 'Для рамки выберите рамку в поле «Аватар или рамка».' : null,
       preview: s => `
-        <div class="shop-card"><span class="ico">${icon(s.type === 'bonus' ? 'key' : s.type === 'merch' ? 'scroll' : 'crown', { X: '#f2d58a', Y: '#7a5f2e' }, 5)}</span>
-          <div><h3>${esc(s.title || 'Без названия')}</h3><div class="meta"><span>${SHOP_TYPES[s.type]}</span><span>${s.stock ? 'осталось ' + s.stock + ' шт' : 'в наличии'}</span></div></div></div>
+        <div class="shop-card"><span class="ico">${shopArt(s)}</span>
+          <div><h3>${esc(s.title || 'Без названия')}</h3><div class="meta"><span>${SHOP_TYPES[s.type]}</span><span style="color:${RARITY[s.rarity || 'common'].c}">${RARITY[s.rarity || 'common'].label}</span><span>${s.stock ? 'осталось ' + s.stock + ' шт' : 'в наличии'}</span></div></div></div>
         <div class="body">${paragraphs(s.description || 'Описание пока пустое.')}</div>
+        ${s.type === 'booster' ? `<p class="hint">${EFFECTS[s.effect]} · на ${s.charges} заданий</p>` : ''}
         <div class="reward"><span>Цена: <b>${fmt(s.price)} душ</b></span>${s.active ? '' : '<span class="pill off">скрыт от студентов</span>'}</div>`
     }
   };

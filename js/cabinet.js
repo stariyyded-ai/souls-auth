@@ -1,6 +1,8 @@
-/* Личный кабинет: рисует персонажа, уровень, полосы HP/XP, модули, достижения, курсы и историю из window.STUDENT. */
+/* Личный кабинет: рисует персонажа, уровень, полосы HP/XP, модули, достижения, курсы и историю.
+   Курс, модули и группа — из window.STUDENT, опыт, души, облик, достижения и новые задания — из Student. */
 (() => {
-  const D = window.STUDENT;
+  const St = window.Student, SS = St.state;
+  const D = { ...window.STUDENT, xp: SS.xp, souls: SS.souls, achievements: St.achievements(), history: [...SS.history, ...window.STUDENT.history] };
   const { svg, C, store, banner, sfx = {} } = window.Ash;
   const $ = id => document.getElementById(id);
   const fmt = n => n.toLocaleString('ru-RU');
@@ -18,7 +20,10 @@
     return svg(rows, pal, s);
   };
 
-  $('avatar').innerHTML = icon('avatar', { X: '#9a93a6', Y: '#0a090c', R: '#8e1b1b', P: C.ember }, 5);
+  const eq = SS.equipped;
+  $('avatar').innerHTML = window.ASH_AVATAR_SVG(eq.avatar, 5);
+  if (eq.frame) $('avatar').dataset.frame = eq.frame;
+  $('st-title').textContent = eq.title || '';
   $('soul-icon').innerHTML = icon('soul', { Y: '#7fb0ff', W: '#e8f1ff' }, 5);
 
   /* ---------- уровень и опыт ---------- */
@@ -115,7 +120,7 @@
   const signed = n => n > 0 ? `<span class="plus">+${fmt(n)}</span>` : n < 0 ? `<span class="minus">−${fmt(-n)}</span>` : '<span class="zero">—</span>';
   $('hist-body').innerHTML = D.history.map(h => `<tr data-s="${h.status}">
       <td class="date">${date(h.date)}</td>
-      <td>${esc(h.task)}<small>${esc(h.module)}</small></td>
+      <td>${esc(h.task)}<small>${esc(h.module)}${h.auto ? ' · автопроверка' : ''}</small></td>
       <td><span class="status ${h.status}">${ST[h.status]}</span></td>
       <td class="num">${signed(h.xp)}</td>
       <td class="num">${signed(h.souls)}</td>

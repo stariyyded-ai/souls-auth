@@ -66,6 +66,8 @@
   // Пункт «Админка» видит только администратор.
   const NAV = [
     ['cabinet', 'cabinet.html', 'Кабинет'],
+    ['shop', 'shop.html', 'Магазин'],
+    ['leaders', 'leaderboard.html', 'Лидеры'],
     ['admin', 'admin.html', 'Админка', 'admin']
   ];
   document.querySelectorAll('nav.topnav[data-page]').forEach(nav => {

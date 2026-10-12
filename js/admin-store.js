@@ -2,11 +2,33 @@
    Каждое изменение пишется в журнал событий (раздел «Логи»).
    Чтобы подключить сервер, достаточно заменить load/save на запросы к API. */
 (() => {
-  const KEY = 'ash:admin:v1';
+  const KEY = 'ash:admin:v2';
   const clone = o => JSON.parse(JSON.stringify(o));
   let db;
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; }
   if (!db || !db.users) db = clone(window.ADMIN_SEED);
+
+  // Подхватываем то, что демо-студент сделал на своих страницах (js/student-store.js):
+  // опыт, души, скрытие из таблицы лидеров, покупки и награды попадают в пользователя u24 и в журнал.
+  (function syncStudent() {
+    let st; try { st = JSON.parse(localStorage.getItem('ash:student:v1')); } catch (e) { st = null; }
+    const u = db.users.find(x => x.id === 'u24');
+    if (!st || !u) return;
+    u.xp = st.xp; u.souls = st.souls; u.hidden = !!st.hidden;
+    Object.entries(st.ach || {}).forEach(([id, date]) => {
+      if (db.achievements.some(a => a.id === id) && !u.achievements.some(a => a.id === id)) u.achievements.push({ id, date });
+    });
+    const known = new Set(db.logs.map(l => l.id));
+    (st.journal || []).slice().reverse().forEach(j => {
+      if (known.has(j.id)) return;
+      if (j.kind === 'purchase') {
+        db.purchases.unshift({ id: j.id, user: u.id, item: j.item, price: j.price, date: j.date });
+        db.logs.push({ id: j.id, kind: 'transaction', user: u.id, amount: j.amount, text: j.text, date: j.date });
+      } else db.logs.push({ id: j.id, kind: j.kind, user: u.id, amount: j.amount, text: j.text, date: j.date });
+    });
+    db.logs.sort((a, b) => b.date.localeCompare(a.date));
+    db.purchases.sort((a, b) => b.date.localeCompare(a.date));
+  })();
 
   const listeners = new Set();
   function save() {

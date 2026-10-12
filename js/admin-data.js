@@ -41,22 +41,24 @@ window.ADMIN_SEED = (() => {
     { id: 'a9', title: 'Хвала солнцу', icon: 'star', rarity: 'rare', condition: 'manual', value: 0, reward: 200, text: 'Помочь трём одногруппникам' }
   ];
 
-  const names = ['Солер из Асторы', 'Сигмайер из Катарины', 'Лоскутик', 'Логан Большая Шляпа', 'Григгс из Винхейма', 'Ларентий', 'Анастасия из Астраи', 'Рея из Торолунда',
-    'Петрус', 'Винс', 'Ники', 'Лотрек', 'Кротик', 'Квилана', 'Эйнгьярд', 'Сиегвард', 'Каас', 'Мельдерия', 'Ирина из Карима', 'Юрия', 'Гвиндолин', 'Шива', 'Мэй', 'Андрей'];
+  const names = ['Хранитель огня', 'Сигмайер из Катарины', 'Лоскутик', 'Логан Большая Шляпа', 'Григгс из Винхейма', 'Ларентий', 'Анастасия из Астраи', 'Рея из Торолунда',
+    'Петрус', 'Винс', 'Ники', 'Лотрек', 'Кротик', 'Квилана', 'Эйнгьярд', 'Сиегвард', 'Каас', 'Мельдерия', 'Ирина из Карима', 'Юрия', 'Гвиндолин', 'Шива', 'Мэй', 'Солер из Асторы'];
+  // u24 «Солер из Асторы» — это демо-студент из кабинета (js/student-store.js синхронизирует его опыт и души)
   const translit = s => s.toLowerCase().split(' ')[0].replace(/[а-яё]/g, c => ({ а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ы:'y',э:'e',ю:'yu',я:'ya',ъ:'',ь:'' }[c] || ''));
   const users = names.map((name, i) => {
     const role = i === 0 ? 'admin' : i < 3 ? 'teacher' : 'student';
-    const group = role === 'student' ? pick(groups).id : null;
+    const group = role === 'student' ? (i === names.length - 1 ? 'g1' : pick(groups).id) : null;
     const progress = {};
     modules.forEach((m, k) => { progress[m.id] = role === 'student' ? Math.max(0, Math.min(m.lessons, Math.round(m.lessons * (1.15 - k * 0.24) * rnd() * 1.2))) : 0; });
     const done = Object.values(progress).reduce((a, b) => a + b, 0);
     return {
       id: 'u' + (i + 1), name, email: `${translit(name)}${i + 1}@ashen.pixel`, role, group,
-      xp: role === 'student' ? done * 60 + Math.round(rnd() * 400) : 0,
+      xp: role === 'student' ? done * 95 + Math.round(rnd() * 700) : 0,
       souls: role === 'student' ? Math.round(rnd() * 40) * 100 : 0,
       lastSeen: ago(i % 5 === 4 ? 30 : 6, i % 5 === 4 ? 8 : 0),
       created: ago(60, 30),
       progress,
+      hidden: role === 'student' && i % 7 === 5,
       achievements: role === 'student' ? achievements.filter(() => rnd() < 0.35).map(a => ({ id: a.id, date: ago(30) })) : []
     };
   });
@@ -72,19 +74,39 @@ window.ADMIN_SEED = (() => {
   ];
 
   const lectures = [
-    { id: 'l1', title: 'Как браузер читает HTML', module: 'm1', minutes: 35, published: true, video: 'https://example.com/video/html', content: 'Документ разбирается сверху вниз.\nТеги образуют дерево, а дерево превращается в DOM.\n\nНа лекции разберём doctype, head и body.' },
-    { id: 'l2', title: 'Flexbox без боли', module: 'm2', minutes: 48, published: true, video: 'https://example.com/video/flex', content: 'Главная ось, поперечная ось и три свойства, которых хватает на 90% задач.' },
-    { id: 'l3', title: 'Grid и области', module: 'm2', minutes: 52, published: true, video: '', content: 'grid-template-areas позволяет нарисовать раскладку прямо в CSS.' },
-    { id: 'l4', title: 'Медиазапросы и контрольные точки', module: 'm3', minutes: 40, published: false, video: '', content: 'Черновик: собрать примеры точек перелома из реальных сайтов.' },
-    { id: 'l5', title: 'Компоненты в Figma', module: 'm4', minutes: 45, published: true, video: 'https://example.com/video/figma', content: 'Компонент, экземпляр, варианты и свойства.' }
+    { id: 'l1', title: 'Как браузер читает HTML', module: 'm1', minutes: 35, difficulty: 'base', groups: [], file: null, published: true, video: 'https://example.com/video/html', content: 'Документ разбирается сверху вниз.\nТеги образуют дерево, а дерево превращается в DOM.\n\nНа лекции разберём doctype, head и body.' },
+    { id: 'l2', title: 'Flexbox без боли', module: 'm2', minutes: 48, difficulty: 'base', groups: [], file: null, published: true, video: 'https://example.com/video/flex', content: 'Главная ось, поперечная ось и три свойства, которых хватает на 90% задач.' },
+    { id: 'l3', title: 'Grid и области', module: 'm2', minutes: 52, difficulty: 'base', groups: [], file: null, published: true, video: '', content: 'grid-template-areas позволяет нарисовать раскладку прямо в CSS.' },
+    { id: 'l4', title: 'Медиазапросы и контрольные точки', module: 'm3', minutes: 40, difficulty: 'base', groups: [], file: null, published: false, video: '', content: 'Черновик: собрать примеры точек перелома из реальных сайтов.' },
+    { id: 'l5', title: 'Компоненты в Figma', module: 'm4', minutes: 45, difficulty: 'base', groups: [], file: null, published: true, video: 'https://example.com/video/figma', content: 'Компонент, экземпляр, варианты и свойства.' }
   ];
 
+  // Магазин. Типы: title — звание, avatar — аватар, frame — рамка, booster — бустер, bonus — бонус, merch — мерч.
+  // art — какой аватар или рамка (см. js/icons.js), effect и charges — действие бустера и на сколько заданий его хватает.
   const shop = [
-    { id: 's1', title: 'Рамка аватара «Пепел»', type: 'cosmetic', price: 300, stock: 0, active: true, description: 'Золотая рамка вокруг аватара в кабинете.' },
-    { id: 's2', title: 'Продление дедлайна на сутки', type: 'bonus', price: 800, stock: 0, active: true, description: 'Сдвигает дедлайн одного задания на 24 часа.' },
-    { id: 's3', title: 'Лишняя попытка автопроверки', type: 'bonus', price: 500, stock: 0, active: true, description: 'Ещё одна попытка сверх лимита.' },
-    { id: 's4', title: 'Наклейки «Хвала солнцу»', type: 'merch', price: 1500, stock: 25, active: true, description: 'Набор из пяти наклеек, забрать у куратора.' },
-    { id: 's5', title: 'Тема кабинета «Анор Лондо»', type: 'cosmetic', price: 1200, stock: 0, active: false, description: 'Светлая золотая тема. Готовится.' }
+    { id: 's1', title: 'Рамка «Пепел»', type: 'frame', art: 'ash', rarity: 'common', price: 300, stock: 0, active: true, description: 'Золотая пепельная рамка вокруг аватара.' },
+    { id: 's6', title: 'Рамка «Лунный свет»', type: 'frame', art: 'moon', rarity: 'rare', price: 700, stock: 0, active: true, description: 'Холодное сияние лунного меча.' },
+    { id: 's7', title: 'Рамка «Тлеющий уголь»', type: 'frame', art: 'ember', rarity: 'epic', price: 1200, stock: 0, active: true, description: 'Рамка медленно тлеет, как костёр в Храме огня.' },
+    { id: 's8', title: 'Рамка «Бездна»', type: 'frame', art: 'abyss', rarity: 'epic', price: 1800, stock: 0, active: true, description: 'Тьма, которая смотрит в ответ.' },
+    { id: 's9', title: 'Рамка «Солнце Анор Лондо»', type: 'frame', art: 'sun', rarity: 'legendary', price: 2600, stock: 0, active: true, description: 'Золото и солнечный свет. Для тех, кто дошёл.' },
+    { id: 's10', title: 'Аватар «Чародей»', type: 'avatar', art: 'sorcerer', rarity: 'common', price: 400, stock: 0, active: true, description: 'Остроконечная шляпа и мантия из Винхейма.' },
+    { id: 's11', title: 'Аватар «Полый»', type: 'avatar', art: 'hollow', rarity: 'common', price: 500, stock: 0, active: true, description: 'Слишком много раз умирал на дедлайнах.' },
+    { id: 's12', title: 'Аватар «Слизень»', type: 'avatar', art: 'slug', rarity: 'common', price: 300, stock: 0, active: true, description: 'Тот самый, что проходит в дверь регистрации.' },
+    { id: 's13', title: 'Аватар «Луковый рыцарь»', type: 'avatar', art: 'onion', rarity: 'rare', price: 700, stock: 0, active: true, description: 'Хм-м-м... Любит подумать над задачей.' },
+    { id: 's14', title: 'Аватар «Ворон»', type: 'avatar', art: 'crow', rarity: 'epic', price: 1200, stock: 0, active: true, description: 'Унесёт вас из Северного прибежища.' },
+    { id: 's15', title: 'Аватар «Хранительница огня»', type: 'avatar', art: 'firekeeper', rarity: 'legendary', price: 2500, stock: 0, active: true, description: 'Маска и капюшон хранительницы.' },
+    { id: 's16', title: 'Звание «Негорящий»', type: 'title', rarity: 'common', price: 200, stock: 0, active: true, description: 'Показывается под именем в кабинете и в таблице лидеров.' },
+    { id: 's17', title: 'Звание «Рыцарь семантики»', type: 'title', rarity: 'rare', price: 600, stock: 0, active: true, description: 'Для тех, кто не верстает на div.' },
+    { id: 's18', title: 'Звание «Повелитель Flexbox»', type: 'title', rarity: 'rare', price: 900, stock: 0, active: true, description: 'justify-content подчиняется вам.' },
+    { id: 's19', title: 'Звание «Прочитавший спецификацию»', type: 'title', rarity: 'epic', price: 1500, stock: 0, active: true, description: 'Таких почти не осталось.' },
+    { id: 's20', title: 'Звание «Лорд пикселя»', type: 'title', rarity: 'legendary', price: 3000, stock: 0, active: true, description: 'Высший титул Пепельного Пикселя.' },
+    { id: 's21', title: 'Эстус опыта', type: 'booster', effect: 'xp2', charges: 3, rarity: 'rare', price: 600, stock: 0, active: true, description: 'Опыт ×2 за следующие 3 решённых задания.' },
+    { id: 's22', title: 'Кольцо жадности', type: 'booster', effect: 'souls15', charges: 3, rarity: 'rare', price: 500, stock: 0, active: true, description: 'Души ×1,5 за следующие 3 решённых задания.' },
+    { id: 's23', title: 'Зелёный цветок', type: 'booster', effect: 'speed', charges: 1, rarity: 'common', price: 400, stock: 0, active: true, description: 'Бонус за скорость засчитывается полностью, сколько бы вы ни решали. Одно задание.' },
+    { id: 's2', title: 'Продление дедлайна на сутки', type: 'bonus', rarity: 'rare', price: 800, stock: 0, active: true, description: 'Сдвигает дедлайн одного задания на 24 часа. Покажите покупку куратору.' },
+    { id: 's3', title: 'Лишняя попытка автопроверки', type: 'bonus', rarity: 'common', price: 500, stock: 0, active: true, description: 'Ещё одна попытка сверх лимита.' },
+    { id: 's4', title: 'Наклейки «Хвала солнцу»', type: 'merch', rarity: 'epic', price: 1500, stock: 25, active: true, description: 'Набор из пяти наклеек, забрать у куратора.' },
+    { id: 's5', title: 'Тема кабинета «Анор Лондо»', type: 'bonus', rarity: 'legendary', price: 1200, stock: 0, active: false, description: 'Светлая золотая тема. Готовится.' }
   ];
 
   const students = users.filter(u => u.role === 'student');
@@ -93,7 +115,7 @@ window.ADMIN_SEED = (() => {
     return { id: 'p' + (i + 1), user: u.id, item: it.id, price: it.price, date: ago(10) };
   }).sort((a, b) => b.date.localeCompare(a.date));
 
-  const actionTexts = ['вошёл в систему', 'сдал задание «Сетка галереи на Grid»', 'открыл лекцию «Flexbox без боли»', 'сменил пароль', 'купил «Рамка аватара «Пепел»»', 'прошёл урок «Медиазапросы»', 'получил достижение «Первый костёр»', 'вышел из системы'];
+  const actionTexts = ['вошёл в систему', 'сдал задание «Сетка галереи на Grid»', 'открыл лекцию «Flexbox без боли»', 'сменил пароль', 'купил «Рамка «Пепел»»', 'прошёл урок «Медиазапросы»', 'получил достижение «Первый костёр»', 'вышел из системы'];
   const errorTexts = ['Тест «шапка на телефоне» не прошёл: меню перекрывает логотип при 360px', 'HTML не валиден: незакрытый тег <section> в строке 42', 'Таймаут проверки: страница грузилась дольше 10 секунд', 'Не найден файл index.html в архиве', 'Найден float, хотя по условию нельзя', 'Контраст текста 2.9:1 при нужных 4.5:1'];
   const logs = [];
   for (let i = 0; i < 40; i++) { const u = pick(users); logs.push({ id: 'e' + i, kind: 'action', user: u.id, text: pick(actionTexts), date: ago(7) }); }

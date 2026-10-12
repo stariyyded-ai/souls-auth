@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Магазин · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" data-page="shop" aria-label="Разделы сайта"></nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <main class="page out" id="panel">
+      <div class="page-head">
+        <h1>Магазин Андрэ</h1>
+        <p class="lead">Души, заработанные на заданиях и уроках, можно потратить на звания, аватары, рамки и бустеры. Звания, аватары и рамки покупаются один раз и надеваются в любой момент.</p>
+      </div>
+
+      <section class="plate shop-hero" aria-label="Ваш персонаж и баланс">
+        <span id="me-ava"></span>
+        <div class="me">
+          <p class="eyebrow">Так вас видят другие</p>
+          <p class="nm" id="me-name"></p>
+          <span class="title-tag" id="me-title"></span>
+        </div>
+        <div class="purse">
+          <span class="soul" id="soul-icon"></span>
+          <div>
+            <p class="eyebrow">Баланс</p>
+            <p class="souls"><span id="souls">0</span> <small>душ</small></p>
+          </div>
+        </div>
+        <div class="boosts" id="boosts"></div>
+      </section>
+
+      <section class="plate" aria-labelledby="goods-title">
+        <div class="plate-head">
+          <h2 id="goods-title">Товары</h2>
+          <div class="chips" role="group" aria-label="Тип товара" id="type-filter">
+            <button type="button" class="chip on" data-t="all">Все</button>
+            <button type="button" class="chip" data-t="title">Звания</button>
+            <button type="button" class="chip" data-t="avatar">Аватары</button>
+            <button type="button" class="chip" data-t="frame">Рамки</button>
+            <button type="button" class="chip" data-t="booster">Бустеры</button>
+            <button type="button" class="chip" data-t="bonus">Бонусы</button>
+          </div>
+        </div>
+        <ul class="shop-grid" id="shop-grid"></ul>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">заходи ещё, негорящий</span>
+      <span>Покупки сохраняются в этом браузере и видны в админке. v0.4 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>ПРЕДМЕТ ПОЛУЧЕН</span></div>
+  <p class="toast" id="toast" role="status"></p>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/student-store.js"></script>
+  <script src="js/admin-data.js"></script>
+  <script src="js/admin-store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/shop.js"></script>
+</body>
+</html>

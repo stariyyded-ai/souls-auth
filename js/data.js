@@ -39,16 +39,23 @@ window.STUDENT = {
 
   // Редкость: common, rare, epic, legendary. Без даты — ещё не получено.
   achievements: [
-    { icon: 'flame', title: 'Первый костёр', text: 'Пройти первый урок', rarity: 'common', date: '2026-09-02' },
-    { icon: 'scroll', title: 'Летописец', text: 'Сдать 10 заданий', rarity: 'common', date: '2026-09-21' },
-    { icon: 'sword', title: 'Клинок Flexbox', text: 'Сдать вёрстку на флексах без доработок', rarity: 'rare', date: '2026-09-28' },
-    { icon: 'shield', title: 'Несокрушимый', text: 'Пять заданий подряд с первого раза', rarity: 'epic', date: '2026-10-05' },
-    { icon: 'key', title: 'Ключ от склепа', text: 'Закрыть модуль «Основы HTML» на 100%', rarity: 'rare', date: '2026-09-19' },
-    { icon: 'skull', title: 'Вы погибли', text: 'Получить первую доработку и не сдаться', rarity: 'common', date: '2026-09-10' },
-    { icon: 'crown', title: 'Лорд вёрстки', text: 'Войти в тройку лучших группы', rarity: 'legendary', date: '2026-10-11' },
-    { icon: 'ring', title: 'Знак тьмы', text: 'Сдать задание после полуночи', rarity: 'epic', date: null },
-    { icon: 'star', title: 'Хвала солнцу', text: 'Помочь трём одногруппникам', rarity: 'rare', date: null },
-    { icon: 'slug', title: 'Друг слизня', text: 'Зарегистрироваться через дверь', rarity: 'common', date: '2026-09-01' }
+    { id: 'a1', icon: 'flame', title: 'Первый костёр', text: 'Пройти первый урок', rarity: 'common', date: '2026-09-02' },
+    { id: 'a2', icon: 'scroll', title: 'Летописец', text: 'Сдать 10 заданий', rarity: 'common', date: '2026-09-21' },
+    { id: 'a3', icon: 'sword', title: 'Клинок Flexbox', text: 'Сдать вёрстку на флексах без доработок', rarity: 'rare', date: '2026-09-28' },
+    { id: 'a4', icon: 'shield', title: 'Несокрушимый', text: 'Пять заданий подряд с первого раза', rarity: 'epic', date: '2026-10-05' },
+    { id: 'a5', icon: 'key', title: 'Ключ от склепа', text: 'Закрыть модуль «Основы HTML» на 100%', rarity: 'rare', date: '2026-09-19' },
+    { id: 'a6', icon: 'skull', title: 'Вы погибли', text: 'Получить первую доработку и не сдаться', rarity: 'common', date: '2026-09-10' },
+    { id: 'a7', icon: 'crown', title: 'Лорд вёрстки', text: 'Войти в тройку лучших группы', rarity: 'legendary', date: '2026-10-11' },
+    { id: 'a8', icon: 'ring', title: 'Знак тьмы', text: 'Сдать задание после полуночи', rarity: 'epic', date: null },
+    { id: 'a9', icon: 'star', title: 'Хвала солнцу', text: 'Помочь трём одногруппникам', rarity: 'rare', date: null },
+    { id: 'a10', icon: 'slug', title: 'Друг слизня', text: 'Зарегистрироваться через дверь', rarity: 'common', date: '2026-09-01' },
+    // Выдаются автоматически (js/student-store.js), reward — души за получение
+    { id: 'first-task', icon: 'sword', title: 'Первая кровь', text: 'Решить первое задание с автопроверкой', rarity: 'common', date: null, reward: 50 },
+    { id: 'five-tasks', icon: 'crown', title: 'Пять костров', text: 'Решить 5 заданий с автопроверкой', rarity: 'epic', date: null, reward: 300 },
+    { id: 'clean', icon: 'shield', title: 'Чистый клинок', text: 'Пройти все проверки качества кода', rarity: 'rare', date: null, reward: 150 },
+    { id: 'speed', icon: 'star', title: 'Быстрее Арториаса', text: 'Получить полный бонус за скорость', rarity: 'rare', date: null, reward: 150 },
+    { id: 'scholar', icon: 'scroll', title: 'Книжный червь', text: 'Пройти квиз урока без ошибок', rarity: 'rare', date: null, reward: 100 },
+    { id: 'shopper', icon: 'key', title: 'Клиент Андрэ', text: 'Купить что-нибудь в магазине', rarity: 'common', date: null, reward: 30 }
   ],
 
   // Статусы: accepted — принято, revision — на доработке, failed — не сдано, review — на проверке

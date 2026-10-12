@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Таблица лидеров · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" data-page="leaders" aria-label="Разделы сайта"></nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <main class="page out" id="panel">
+      <div class="page-head">
+        <h1>Таблица лидеров</h1>
+        <p class="lead">Места считаются по опыту: он копится за решённые задания, бонусы за чистый код и скорость, квизы уроков. Если не хотите соревноваться, скройте себя: опыт и награды останутся.</p>
+      </div>
+
+      <section class="lb-hero" aria-label="Ваше место">
+        <div class="plate me-card" id="me-card"></div>
+        <div class="plate sw">
+          <label class="switch" for="show-me">
+            <input type="checkbox" id="show-me" checked>
+            <span><b>Показывать меня в таблице</b>Если выключить, другие студенты не увидят ваше имя и место. Вы по-прежнему видите своё место только для себя.</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="plate" aria-labelledby="lb-title">
+        <div class="plate-head">
+          <h2 id="lb-title">Рейтинг</h2>
+          <p class="plate-sub" id="lb-sub"></p>
+          <div class="chips" role="group" aria-label="Кого показывать" id="lb-filter">
+            <button type="button" class="chip on" data-g="all">Все группы</button>
+            <button type="button" class="chip" data-g="mine">Моя группа</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="lb-table">
+            <thead><tr><th scope="col" class="pl">#</th><th scope="col">Игрок</th><th scope="col">Группа</th><th scope="col">Уровень</th><th scope="col" class="num">Опыт</th></tr></thead>
+            <tbody id="lb-body"></tbody>
+          </table>
+        </div>
+        <p class="lb-note" id="lb-hidden"></p>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">слава тем, кто дошёл</span>
+      <span>Скрыться из таблицы можно в любой момент. v0.4 · Эпоха огня</span>
+    </footer>
+  </div>
+
+    <p class="toast" id="toast" role="status"></p>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/student-store.js"></script>
+  <script src="js/admin-data.js"></script>
+  <script src="js/admin-store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/leaderboard.js"></script>
+</body>
+</html>
