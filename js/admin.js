@@ -104,6 +104,31 @@
   }
   addEventListener('hashchange', () => { render(); scrollTo({ top: 0 }); });
   S.on(render);
+  // Свой пароль: нужен текущий, новый — не короче 8 символов; другие входы администратора закроются
+  $('my-pass').addEventListener('click', async () => {
+    let vals = null;
+    const v = await modal({
+      title: 'Сменить мой пароль',
+      body: `<div class="form">
+        <div class="f full"><label for="mp-cur">Текущий пароль</label><input id="mp-cur" type="password" autocomplete="current-password"></div>
+        <div class="f"><label for="mp-new">Новый пароль</label><input id="mp-new" type="password" autocomplete="new-password"></div>
+        <div class="f"><label for="mp-new2">Повтор</label><input id="mp-new2" type="password" autocomplete="new-password"></div>
+        <p class="hint full">Не короче 8 символов. На других устройствах администратору придётся войти заново.</p></div>`,
+      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'СМЕНИТЬ', value: 'ok', primary: true }],
+      onSubmit: val => {
+        if (val !== 'ok') return null;
+        vals = { current: $('mp-cur').value, password: $('mp-new').value };
+        if (!vals.current) return 'Введите текущий пароль.';
+        if (vals.password.length < 8) return 'Новый пароль должен быть не короче 8 символов.';
+        if (vals.password !== $('mp-new2').value) return 'Новые пароли не совпадают.';
+        return null;
+      }
+    });
+    if (v !== 'ok') return;
+    try { await window.Ash.api('POST', 'api/me/password', vals); toast('Пароль изменён. Запомните его: восстановить можно только командой на сервере.'); if (sfx.lit) sfx.lit(); }
+    catch (e) { toast('Пароль не изменён: ' + e.message); if (sfx.error) sfx.error(); }
+  });
+
   // В рабочем режиме (DEMO_DATA=off) сброса демо-данных нет
   if (!window.BOOT.demo) $('reset-demo').hidden = true;
   $('reset-demo').addEventListener('click', async () => {
@@ -198,7 +223,7 @@
                 <td class="num">${fmt(u.xp)}<small>${level(u.xp)}</small></td>
                 <td>${u.role === 'student' ? `${bar(pct, 'hp', 'mini-bar')} <small>${Math.round(pct)}%</small>` : '<small>—</small>'}</td>
                 <td><span class="dot${live ? ' live' : ''}"></span>${ago(u.lastSeen)}</td>
-                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижение</button><button type="button" class="act" data-pass="${u.id}">Пароль</button><button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
+                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижение</button><button type="button" class="act" data-pass="${u.id}">Пароль</button>${u.role === 'student' ? `<button type="button" class="act" data-courses="${u.id}">Курсы</button>` : ''}<button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
               </tr>`; }).join('') || `<tr><td colspan="7" class="empty">Никого не нашлось. Попробуйте другой запрос или фильтр.</td></tr>`}</tbody>
           </table>
         </div>
@@ -217,7 +242,8 @@
       S.setGroup(u.id, s.value); toast(`«${u.name}» теперь в группе ${S.byId('groups', s.value)?.code || '«без группы»'}.`);
     }));
     root.addEventListener('click', e => {
-      const b = e.target.closest('[data-open],[data-grant],[data-reset],[data-pass],[data-del]'); if (!b) return;
+      const b = e.target.closest('[data-open],[data-grant],[data-reset],[data-pass],[data-del],[data-courses]'); if (!b) return;
+      if (b.dataset.courses) userCourses(b.dataset.courses);
       if (b.dataset.open) openUser(b.dataset.open);
       if (b.dataset.grant) grant(b.dataset.grant);
       if (b.dataset.reset) resetUser(b.dataset.reset);
@@ -246,6 +272,23 @@
     });
     if (v !== 'ok') return;
     if (await S.setPassword(id, pass)) toast(`Пароль «${u.name}» изменён.`);
+  }
+  // Курсы лично студенту, вдобавок к курсам его группы
+  async function userCourses(id) {
+    const u = S.byId('users', id), g = S.byId('groups', u.group);
+    const viaGroup = new Set(g?.courses || []), mine = new Set(u.courses || []);
+    const v = await modal({
+      title: 'Доступ к курсам',
+      body: `<p>Для <b>${esc(u.name)}</b>${g ? ` · группа ${esc(g.code)}` : ''}</p>
+        <div class="form"><div class="f full"><span class="lbl" id="uc-l">Открытые курсы</span><div class="checks" role="group" aria-labelledby="uc-l">${S.db.courses.map(c => viaGroup.has(c.id)
+          ? `<label><input type="checkbox" checked disabled> ${esc(c.title)} <small class="hint">через группу</small></label>`
+          : `<label><input type="checkbox" name="uc" value="${c.id}"${mine.has(c.id) ? ' checked' : ''}> ${esc(c.title)}</label>`).join('')}</div>
+        <span class="hint">Курсы группы меняются в разделе «Группы».</span></div></div>`,
+      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'СОХРАНИТЬ', value: 'ok', primary: true }]
+    });
+    if (v !== 'ok') return;
+    const list = [...document.querySelectorAll('#modal-body input[name=uc]:checked')].map(i => i.value);
+    await S.setCourses(id, list); toast(`Курсы «${u.name}» сохранены.`);
   }
   async function removeUser(id) {
     const u = S.byId('users', id);
@@ -295,8 +338,8 @@
         <span class="eyebrow">Прогресс по модулям</span><div class="mod-rows">${mods}</div>
         <span class="eyebrow">Достижения</span><div class="badges">${ach}</div>
         ${tx ? `<span class="eyebrow">Последние транзакции</span><div class="table-wrap"><table class="data-table" style="min-width:0"><tbody>${tx}</tbody></table></div>` : ''}`,
-      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЕ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
-    }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); if (v === 'pass') changePassword(id); });
+      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'КУРСЫ', value: 'courses', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЕ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
+    }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); if (v === 'pass') changePassword(id); if (v === 'courses') userCourses(id); });
   }
 
   /* ================= ЛОГИ ================= */

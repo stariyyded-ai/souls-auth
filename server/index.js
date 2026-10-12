@@ -69,7 +69,7 @@ app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next
 const parseState = row => row.state ? JSON.parse(row.state) : null;
 function me(row) {
   const u = D.userOut(row);
-  return { id: u.id, name: u.name, email: u.email, role: u.role, group: u.group || null, xp: u.xp || 0, souls: u.souls || 0, hidden: !!u.hidden, achievements: u.achievements || [] };
+  return { id: u.id, name: u.name, email: u.email, role: u.role, group: u.group || null, xp: u.xp || 0, souls: u.souls || 0, hidden: !!u.hidden, achievements: u.achievements || [], courses: u.courses || [] };
 }
 function adminDb() {
   const out = {};
@@ -81,7 +81,10 @@ function adminDb() {
 function studentDb(row) {
   const self = D.userOut(row);
   const out = {};
-  ['courses', 'modules', 'groups', 'achievements'].forEach(c => { out[c] = D.listColl(c); });
+  ['modules', 'achievements'].forEach(c => { out[c] = D.listColl(c); });
+  // Код регистрации группы студентам не показываем
+  out.groups = D.listColl('groups').map(({ invite, ...g }) => g);
+  out.courses = D.listColl('courses').filter(c => c.published !== false);
   out.shop = D.listColl('shop').filter(s => s.active);
   out.lectures = D.listColl('lectures').filter(l => lectureOpen(l, self));
   out.tasks = [];
@@ -132,14 +135,18 @@ app.post('/api/register', (req, res) => {
   if (pass.length < 4 || pass.length > 200) fail(400, 'Пароль должен быть не короче 4 символов.');
   if (D.nameTaken(name) || D.key(name) === D.key(D.ADMIN_LOGIN)) fail(409, 'Это имя уже занято. Выберите другое.');
   if (D.emailTaken(email)) fail(409, 'Этот e-mail уже зарегистрирован. Войдите.');
+  if (b.consent !== true) fail(400, 'Без согласия на обработку персональных данных регистрация невозможна.');
+  // Код группы выдаёт преподаватель: без него посторонний не зарегистрируется, а студент сразу попадает в свою группу
+  const grp = D.groupByInvite(b.code);
+  if (!grp) { A.failed('reg:' + req.ip); fail(400, 'Неверный код группы. Уточните его у преподавателя.'); }
+  const inGroup = D.allUsers().filter(u => u.group === grp.id && u.role === 'student').length;
+  if (grp.quota && inGroup >= grp.quota) fail(409, `Группа ${grp.code} уже заполнена. Напишите преподавателю.`);
   A.failed('reg:' + req.ip);
   const id = D.uid('u'), created = D.now();
   const progress = {}; D.listColl('modules').forEach(m => { progress[m.id] = 0; });
-  // Новичок попадает в первую группу; перевести в другую можно в админке
-  const group = D.listColl('groups')[0]?.id || null;
-  const profile = { id, name, email, role: 'student', group, xp: 0, souls: 0, lastSeen: created, created, progress, hidden: false, achievements: [] };
+  const profile = { id, name, email, role: 'student', group: grp.id, xp: 0, souls: 0, lastSeen: created, created, progress, hidden: false, achievements: [], courses: [], consentAt: created };
   D.insertUser({ id, name, email, pass: A.hashPassword(pass), profile });
-  D.addLog({ kind: 'action', user: id, text: 'зарегистрировался' });
+  D.addLog({ kind: 'action', user: id, text: `зарегистрировался в группе ${grp.code}, дал согласие на обработку персональных данных` });
   res.status(201).json({ id, name });
 });
 
@@ -150,14 +157,6 @@ app.post('/api/logout', (req, res) => {
 });
 
 /* ---------- состояние студента ---------- */
-// Страница присылает своё состояние целиком вместе с номером версии.
-// Если версия устарела (админ сбросил прогресс или выдал награду), сервер вернёт свежее состояние.
-function checkState(st) {
-  if (!st || typeof st !== 'object' || st.v !== 1) fail(400, 'Неверный формат состояния.');
-  for (const k of ['xp', 'souls']) if (!Number.isFinite(st[k]) || st[k] < 0) fail(400, 'Неверный формат состояния.');
-  for (const k of ['ach', 'tasks', 'lessons', 'inv', 'equipped', 'boosters']) if (!st[k] || typeof st[k] !== 'object') fail(400, 'Неверный формат состояния.');
-  for (const k of ['history', 'journal']) if (!Array.isArray(st[k])) fail(400, 'Неверный формат состояния.');
-}
 // То, что видно админке: опыт, души, скрытие, достижения; покупки и награды — в журнал
 function syncProfile(row, st) {
   const p = JSON.parse(row.profile);
@@ -183,17 +182,59 @@ function syncProfile(row, st) {
   });
   return p;
 }
-app.put('/api/me/state', needUser, (req, res) => {
-  const { state, rev } = req.body || {};
-  const row = D.getUser(req.user.id);
-  if (rev !== row.rev) return res.status(409).json({ error: 'Данные изменились.', state: parseState(row), rev: row.rev, me: me(row) });
-  checkState(state);
-  const next = D.tx(() => {
-    const p = syncProfile(row, state);
-    D.db.prepare('UPDATE users SET state = ?, profile = ?, rev = rev + 1 WHERE id = ?').run(JSON.stringify(state), JSON.stringify(p), row.id);
-    return row.rev + 1;
+// Действия студента: сервер применяет их сам по тем же правилам (js/student-logic.js),
+// но с ценами из базы, заданиями и ответами квизов с сервера и по своим часам
+function gameEnv() {
+  const G = D.GAME;
+  return {
+    now: D.now, uid: D.uid, achievements: G.ACHIEVEMENTS, Economy: G.Economy,
+    shopItem: id => { const it = D.getItem('shop', String(id)); return it && it.active ? it : null; },
+    sold: id => D.db.prepare('SELECT COUNT(*) AS n FROM purchases WHERE item = ?').get(String(id)).n,
+    task: id => G.TASKS.find(t => t.id === id),
+    lesson: id => D.LESSONS.find(l => l.id === id),
+    moduleTitle: id => D.getItem('modules', String(id))?.title
+  };
+}
+app.post('/api/me/actions', needUser, (req, res) => {
+  const actions = req.body?.actions;
+  if (!Array.isArray(actions) || !actions.length || actions.length > 50) fail(400, 'Нет действий.');
+  const out = D.tx(() => {
+    const row = D.getUser(req.user.id);
+    const st = parseState(row) || D.GAME.Logic.fresh(me(row));
+    const env = gameEnv();
+    const results = actions.map(a => {
+      try { return D.GAME.Logic.apply(st, a, env); } catch (e) { return { ok: false, msg: 'Действие не принято.' }; }
+    });
+    const p = syncProfile(row, st);
+    D.db.prepare('UPDATE users SET state = ?, profile = ?, rev = rev + 1 WHERE id = ?').run(JSON.stringify(st), JSON.stringify(p), row.id);
+    return { state: st, results: results.map(r => ({ ok: r.ok !== false, msg: r.msg })) };
   });
-  res.json({ rev: next });
+  res.json(out);
+});
+
+// Свой пароль: нужен текущий; остальные входы этого пользователя закрываются
+app.post('/api/me/password', needUser, (req, res) => {
+  const { current, password } = req.body || {};
+  if (!A.verifyPassword(String(current || ''), req.user.pass)) fail(400, 'Текущий пароль указан неверно.');
+  const pass = String(password || '');
+  if (pass.length < 8 || pass.length > 200) fail(400, 'Новый пароль должен быть не короче 8 символов.');
+  D.tx(() => {
+    D.db.prepare('UPDATE users SET pass = ? WHERE id = ?').run(A.hashPassword(pass), req.user.id);
+    const token = A.parseCookies(req.headers.cookie)[A.COOKIE];
+    D.db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(req.user.id, A.sha(token));
+    D.addLog({ kind: 'action', user: req.user.id, text: 'сменил свой пароль' });
+  });
+  res.json({ ok: true });
+});
+
+// Студент просит открыть курс: запрос попадает в журнал админки (не чаще раза в сутки на курс)
+app.post('/api/me/course-request', needUser, (req, res) => {
+  const c = D.getItem('courses', String(req.body?.course || ''));
+  if (!c || c.published === false) fail(404, 'Курс не найден.');
+  const text = `просит открыть курс «${c.title}»`;
+  const recent = D.db.prepare('SELECT 1 FROM logs WHERE user = ? AND date > ? AND data LIKE ?').get(req.user.id, new Date(Date.now() - 864e5).toISOString(), `%${text.replace(/[%_]/g, '')}%`);
+  if (!recent) D.addLog({ kind: 'action', user: req.user.id, text });
+  res.json({ ok: true });
 });
 
 /* ---------- админка ---------- */
@@ -202,11 +243,19 @@ const label = (req, it) => `${String(req.body?.label || 'запись')} «${it.
 const adminLog = (req, text, extra = {}) => D.addLog({ kind: 'action', user: req.user.id, text, ...extra });
 
 app.get('/api/admin/db', needAdmin, (req, res) => res.json(adminDb()));
+// Код регистрации группы: без пробелов, большими буквами, у каждой группы свой; пустой — регистрация в группу закрыта
+function checkInvite(g) {
+  if (g.invite === undefined || g.invite === null) g.invite = D.inviteCode();
+  g.invite = String(g.invite).trim().toUpperCase().replace(/\s+/g, '');
+  if (g.invite && g.invite.replace(/-/g, '').length < 4) fail(400, 'Код регистрации — хотя бы 4 символа.');
+  if (g.invite && D.listColl('groups').some(x => x.id !== g.id && D.groupByInvite(g.invite)?.id === x.id)) fail(409, 'Такой код регистрации уже у другой группы.');
+}
 
 app.post('/api/admin/:coll', needAdmin, (req, res) => {
   const c = coll(req), it = req.body?.item;
   if (!it || typeof it !== 'object' || typeof it.id !== 'string' || !it.id) fail(400, 'Нет данных.');
   if (D.getItem(c, it.id)) fail(409, 'Такая запись уже есть.');
+  if (c === 'groups') checkInvite(it);
   D.tx(() => { D.putItem(c, it); adminLog(req, `создал ${label(req, it)}`); });
   res.status(201).json(it);
 });
@@ -215,6 +264,7 @@ app.put('/api/admin/:coll/:id', needAdmin, (req, res) => {
   if (!D.getItem(c, req.params.id)) fail(404, 'Запись не найдена.');
   if (!it || typeof it !== 'object') fail(400, 'Нет данных.');
   it.id = req.params.id;
+  if (c === 'groups') checkInvite(it);
   D.tx(() => { D.putItem(c, it); adminLog(req, `изменил ${label(req, it)}`); });
   res.json(it);
 });
@@ -224,6 +274,7 @@ app.delete('/api/admin/:coll/:id', needAdmin, (req, res, next) => {
   if (!it) fail(404, 'Запись не найдена.');
   D.tx(() => { D.removeItem(c, it.id); adminLog(req, `удалил ${label(req, it)}`); });
   if (c === 'lectures' && it.file?.id) removeFile(it.file.id);
+  if (c === 'groups') D.allUsers().filter(u => u.group === it.id).forEach(u => changeUser(u.id, p => { p.group = null; }));
   res.json({ ok: true });
 });
 
@@ -273,6 +324,16 @@ app.post('/api/admin/users/:id/group', needAdmin, (req, res) => {
   const u = D.tx(() => changeUser(req.params.id, (p, st, row) => {
     p.group = group;
     adminLog(req, `перевёл «${row.name}» в группу ${group ? D.getItem('groups', group).code : '«без группы»'}`);
+  }));
+  res.json(u);
+});
+// Доступ к курсам лично студенту (вдобавок к курсам его группы)
+app.post('/api/admin/users/:id/courses', needAdmin, (req, res) => {
+  const list = req.body?.courses;
+  if (!Array.isArray(list) || list.some(id => !D.getItem('courses', String(id)))) fail(400, 'Неверный список курсов.');
+  const u = D.tx(() => changeUser(req.params.id, (p, st, row) => {
+    p.courses = [...new Set(list.map(String))];
+    adminLog(req, `открыл «${row.name}» курсы: ${p.courses.map(id => D.getItem('courses', id).title).join(', ') || 'только курсы группы'}`);
   }));
   res.json(u);
 });

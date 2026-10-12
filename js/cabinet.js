@@ -73,7 +73,6 @@
   const done = all.filter(l => l[1] === 'done').length;
   $('hp-val').textContent = `${done} / ${all.length} уроков`;
   setBar($('hp-bar'), done, all.length, `${done} из ${all.length} уроков`);
-  $('course-name').textContent = D.course;
 
   const STATUS_L = { done: 'пройден', current: 'в работе', open: 'доступен', locked: 'закрыт' };
   $('mod-list').innerHTML = modules.map((m, i) => {
@@ -115,23 +114,29 @@
     <div><p class="eyebrow">Группа</p><p class="big">${esc(g.code)}</p></div>
     <div><p class="eyebrow">Место в группе</p><p class="big">${g.rank} / ${g.members}</p></div>
     <div><p class="eyebrow">Куратор</p><p>${esc(g.curator)}</p></div>`;
-  const levelIndex = t => lv.findIndex(l => l.title === t);
-  $('course-list').innerHTML = D.courses.map((c, i) => {
-    const locked = c.status === 'locked' && levelIndex(c.need) > cur;
-    const status = c.status === 'locked' && !locked ? 'open' : c.status;
-    let right = '';
-    if (status === 'active') right = `<span class="tagline active">ИДЁТ · ${all.length ? Math.round(done / all.length * 100) : 0}%</span>`;
-    else if (status === 'open') right = `<button type="button" class="btn" data-enroll="${i}">ЗАПИСАТЬСЯ</button>`;
-    else right = `<span class="tagline locked">НУЖЕН УРОВЕНЬ «${esc(c.need).toUpperCase()}»</span>`;
-    return `<li class="course ${status}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text)}${c.hours ? ` · ${c.hours} ч` : ''}</p></div>${right}</li>`;
-  }).join('');
-  $('course-list').addEventListener('click', e => {
-    const b = e.target.closest('[data-enroll]'); if (!b) return;
-    const c = D.courses[b.dataset.enroll];
-    b.disabled = true; b.textContent = 'ВЫ ЗАПИСАНЫ';
-    if (sfx.lit) sfx.lit();
-    banner('bn-lit');
-    toast(`Вы записаны на курс «${c.title}». Он появится в модулях после старта.`);
+  // Курсы — из админки. Открыт курс, если администратор дал доступ группе студента или ему лично;
+  // закрытый можно только попросить открыть, запрос попадает в журнал админки
+  const access = new Set([...(myGroup?.courses || []), ...(B.me.courses || [])]);
+  const courses = B.db.courses.slice().sort((a, b) => access.has(b.id) - access.has(a.id));
+  const current = courses.find(c => access.has(c.id));
+  $('course-name').textContent = current ? current.title : 'курс ещё не открыт';
+  $('course-list').innerHTML = courses.map(c => {
+    const open = access.has(c.id);
+    const right = c === current ? `<span class="tagline active">ИДЁТ · ${all.length ? Math.round(done / all.length * 100) : 0}%</span>`
+      : open ? '<span class="tagline active">ОТКРЫТ</span>'
+      : `<button type="button" class="btn" data-ask="${c.id}">ПОПРОСИТЬ ДОСТУП</button>`;
+    return `<li class="course ${open ? 'active' : 'locked'}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}${open ? '' : ' · откроет преподаватель'}</p></div>${right}</li>`;
+  }).join('') || '<li class="course locked"><div class="course-info"><p class="course-text">Курсов пока нет.</p></div></li>';
+  $('course-list').addEventListener('click', async e => {
+    const b = e.target.closest('[data-ask]'); if (!b) return;
+    const c = B.db.courses.find(x => x.id === b.dataset.ask);
+    b.disabled = true; b.textContent = 'ОТПРАВЛЯЮ…';
+    try {
+      await window.Ash.api('POST', 'api/me/course-request', { course: c.id });
+      b.textContent = 'ЗАПРОС ОТПРАВЛЕН';
+      if (sfx.click) sfx.click();
+      toast(`Преподаватель увидит, что вы просите открыть «${c.title}».`);
+    } catch (err) { b.disabled = false; b.textContent = 'ПОПРОСИТЬ ДОСТУП'; toast('Не отправилось: ' + err.message); }
   });
 
   /* ---------- история заданий ---------- */

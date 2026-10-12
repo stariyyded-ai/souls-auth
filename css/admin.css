@@ -195,3 +195,6 @@
 .adm .bar i { animation: none; }
 .form .file-now { margin: 0 0 8px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .form input[type=file] { font: 14px var(--font-ui); color: var(--bone); }
+
+/* Код регистрации группы */
+code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: var(--gold); letter-spacing: 0.08em; white-space: nowrap; }

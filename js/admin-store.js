@@ -90,6 +90,10 @@
       if (r) { this.log('action', `сменил пароль «${this.byId('users', userId).name}»`); save(); }
       return !!r;
     },
+    async setCourses(userId, courses) {
+      const u = this.byId('users', userId); u.courses = courses; save();
+      putUser(await send('POST', `api/admin/users/${userId}/courses`, { courses }));
+    },
     async removeUser(userId) {
       const u = this.byId('users', userId);
       const r = await send('DELETE', `api/admin/users/${userId}`);

@@ -98,10 +98,13 @@ function loadSeed() {
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'js/admin-data.js'), 'utf8'), ctx);
   return JSON.parse(JSON.stringify(ctx.window.ADMIN_SEED));
 }
-// Уроки (js/content.js) и правило «урок пройден» (js/economy.js) — те же, что в браузере
+// Уроки, задания, достижения и правила экономики — те же файлы, что работают в браузере
 const shared = { window: {} };
-['js/economy.js', 'js/content.js'].forEach(f => vm.runInNewContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), shared));
-const LESSONS = shared.window.LESSONS, lessonDone = shared.window.Economy.lessonDone;
+['js/economy.js', 'js/content.js', 'js/data.js', 'js/tasks-data.js', 'js/student-logic.js']
+  .forEach(f => vm.runInNewContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), shared, { filename: f }));
+const W = shared.window;
+const LESSONS = W.LESSONS, lessonDone = W.Economy.lessonDone;
+const GAME = { Economy: W.Economy, Logic: W.StudentLogic, TASKS: W.TASKS, ACHIEVEMENTS: W.STUDENT.achievements };
 
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || '123';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123123123';
@@ -131,13 +134,24 @@ function seed(demo = DEMO) {
     s.logs.forEach(addLog);
     db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('seeded', now());
   });
+  ensureInvites();
   fs.readdirSync(UPLOADS).forEach(f => fs.rmSync(path.join(UPLOADS, f), { force: true }));
 }
+// Код для регистрации в группе: студент вводит его при регистрации и сразу попадает в свою группу
+const CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const inviteCode = () => { const b = require('node:crypto').randomBytes(8); const c = [...b].map(x => CODE_ABC[x % CODE_ABC.length]).join(''); return c.slice(0, 4) + '-' + c.slice(4); };
+const inviteKey = s => String(s || '').trim().toUpperCase().replace(/[\s-]/g, '');
+function ensureInvites() {
+  listColl('groups').forEach(g => { if (g.invite === undefined) putItem('groups', { ...g, invite: inviteCode() }); });
+}
+const groupByInvite = code => { const k = inviteKey(code); return k ? listColl('groups').find(g => g.invite && inviteKey(g.invite) === k) : null; };
+
 if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) seed();
+ensureInvites();
 
 module.exports = {
   db, tx, now, uid, key, COLLS, UPLOADS,
   getUser, findLogin, nameTaken, emailTaken, insertUser, saveProfile, userOut, allUsers,
   listColl, getItem, putItem, removeItem, addLog, listLogs, addPurchase, listPurchases, seed,
-  ADMIN_LOGIN, DEMO_PASSWORD, DEMO, LESSONS, lessonDone
+  ADMIN_LOGIN, DEMO_PASSWORD, DEMO, LESSONS, lessonDone, GAME, inviteCode, groupByInvite, ROOT
 };

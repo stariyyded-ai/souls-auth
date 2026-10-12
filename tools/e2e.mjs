@@ -32,6 +32,9 @@ async function login(p, name, pass) {
   await p.fill('#l-name', name); await p.fill('#l-pass', pass);
   await p.click('#b-login');
 }
+// Код регистрации группы читаем прямо из базы теста
+const { DatabaseSync } = await import('node:sqlite');
+const invite = gid => { const d = new DatabaseSync(path.join(DATA, 'ash.db')); const g = JSON.parse(d.prepare("SELECT data FROM items WHERE coll = 'groups' AND id = ?").get(gid).data); d.close(); return g.invite; };
 const api = (p, method, url, body) => p.evaluate(([m, u, bd]) => fetch(u, { method: m, headers: { 'X-Ash': '1', 'Content-Type': 'application/json' }, body: bd && JSON.stringify(bd) }).then(async r => ({ status: r.status, body: await r.json().catch(() => null) })), [method, url, body]);
 
 try {
@@ -50,16 +53,22 @@ try {
   ok((await anon.textContent('#n-login')).includes('Неверное'), 'неверный пароль: «ВЫ ПОГИБЛИ» и сообщение');
 
   /* ---------- регистрация ---------- */
-  await anon.goto(U + 'register.html');
-  await anon.fill('#r-name', 'Рыцарь Тестов'); await anon.fill('#r-mail', 'knight@test.io');
-  await anon.fill('#r-pass', 'pass1234'); await anon.fill('#r-pass2', 'pass1234'); await anon.check('#r-oath');
-  await anon.click('#b-reg');
+  const fillReg = async (name, mail, code, consent = true) => {
+    await anon.goto(U + 'register.html');
+    await anon.fill('#r-name', name); await anon.fill('#r-mail', mail); await anon.fill('#r-code', code);
+    await anon.fill('#r-pass', 'pass1234'); await anon.fill('#r-pass2', 'pass1234'); await anon.check('#r-oath');
+    if (consent) await anon.check('#r-consent');
+    await anon.click('#b-reg');
+  };
+  await fillReg('Рыцарь Тестов', 'knight@test.io', invite('g1'), false); await anon.waitForTimeout(400);
+  ok((await anon.textContent('#n-reg')).includes('согласия'), 'без согласия на обработку данных регистрации нет');
+  ok((await api(anon, 'POST', 'api/register', { name: 'Хитрец', email: 'h@x.io', password: 'pass1234', code: invite('g1') })).status === 400, 'сервер тоже требует согласие');
+  await fillReg('Рыцарь Тестов', 'knight@test.io', 'AAAA-BBBB'); await anon.waitForTimeout(500);
+  ok((await anon.textContent('#n-reg')).includes('Неверный код группы'), 'с чужим кодом группы регистрации нет');
+  await fillReg('Рыцарь Тестов', 'knight@test.io', invite('g1').toLowerCase().replace('-', ' '));
   await anon.waitForURL(/index\.html/, { timeout: 10000 });
   ok(await anon.inputValue('#l-name') === 'Рыцарь Тестов', 'после регистрации имя подставлено во вход');
-  await anon.goto(U + 'register.html');
-  await anon.fill('#r-name', 'рыцарь тестов'); await anon.fill('#r-mail', 'other@test.io');
-  await anon.fill('#r-pass', 'pass1234'); await anon.fill('#r-pass2', 'pass1234'); await anon.check('#r-oath');
-  await anon.click('#b-reg'); await anon.waitForTimeout(500);
+  await fillReg('рыцарь тестов', 'other@test.io', invite('g1')); await anon.waitForTimeout(500);
   ok((await anon.textContent('#n-reg')).includes('занято'), 'занятое имя (другой регистр) не пускает');
 
   /* ---------- новый студент ---------- */
@@ -69,6 +78,21 @@ try {
   const hp = await anon.textContent('#hp-val');
   ok(/^0 \/ \d+ уроков$/.test(hp) && await anon.locator('#hist-body .empty').count() === 1 && await anon.textContent('#souls') === '0', `новичок начинает с нуля: ${hp}, история пуста, 0 душ`);
   ok(await anon.locator('#mod-list .pip.done').count() === 0, 'в модулях новичка нет пройденных уроков');
+  ok(await anon.textContent('#st-group') === 'Группа ВД-21 · Веб-дизайн, 2 курс', 'по коду студент попал в свою группу');
+  // Курсы: открыты курсы группы (ВД-21: c1, c2), остальные — только по запросу
+  ok(await anon.locator('#course-list .course.active').count() === 2 && await anon.locator('#course-list [data-ask]').count() === 3, 'в кабинете открыты только курсы группы');
+  await anon.click('[data-ask="c4"]'); await anon.waitForTimeout(500);
+  ok(await anon.textContent('[data-ask="c4"]') === 'ЗАПРОС ОТПРАВЛЕН', 'студент попросил открыть курс');
+
+  /* ---------- защита от накрутки: сервер считает сам ---------- */
+  const act = (...actions) => api(anon, 'POST', 'api/me/actions', { actions });
+  ok((await api(anon, 'PUT', 'api/me/state', { state: { v: 1, xp: 99999, souls: 99999 }, rev: 0 })).status === 404, 'прислать своё состояние целиком больше нельзя');
+  const buy = await act({ type: 'buy', item: 's20' });
+  ok(buy.body.results[0].ok === false && buy.body.state.souls === 0, 'купить без душ нельзя, даже в обход страницы');
+  const fake = await act({ type: 'task', task: 't01', report: { func: [{ ok: true }], quality: [] }, code: { html: '', css: '' } });
+  ok(fake.body.results[0].ok === false && fake.body.state.xp === 0, 'поддельный отчёт проверки не принят');
+  const q = await act({ type: 'read', lesson: 'html-structure' }, { type: 'quiz', lesson: 'html-structure', answers: [9, 9, 9] });
+  ok(q.body.state.xp === 0, 'неверные ответы квиза ничего не дают: ответы сверяет сервер');
   ok(await anon.locator('nav.topnav a[href="admin.html"]').count() === 0, 'у студента нет пункта «Админка»');
   ok((await api(anon, 'POST', 'api/admin/users/u5/reset')).status === 403, 'API админки студенту отвечает 403');
   await anon.goto(U + 'admin.html');
@@ -100,6 +124,19 @@ try {
   const adb = (await api(ad, 'GET', 'api/admin/db')).body;
   ok(adb.users.some(u => u.name === 'Рыцарь Тестов'), 'новый студент виден в пользователях');
   ok(adb.purchases.some(p => p.user === 'u24' && p.item === 's12'), 'покупка студента видна в админке');
+  ok(adb.logs.some(l => l.text === 'просит открыть курс «Продвинутый JavaScript»'), 'запрос на курс виден в журнале админки');
+  const kid = adb.users.find(u => u.name === 'Рыцарь Тестов').id;
+  ok(adb.users.find(u => u.id === kid).consentAt && adb.groups.every(g => g.invite), 'согласие записано, у групп есть коды');
+  await api(ad, 'POST', `api/admin/users/${kid}/courses`, { courses: ['c4'] });
+  await anon.goto(U + 'cabinet.html'); await anon.waitForTimeout(500);
+  ok(await anon.locator('#course-list .course.active').count() === 3, 'администратор открыл курс лично студенту');
+  const stDb = await anon.evaluate(() => window.BOOT.db.groups);
+  ok(stDb.every(g => !('invite' in g)), 'коды групп студенту не видны');
+  ok((await api(ad, 'POST', 'api/me/password', { current: 'wrong', password: 'new-admin-pass' })).status === 400, 'свой пароль не меняется без текущего');
+  ok((await api(ad, 'POST', 'api/me/password', { current: '123123123', password: 'new-admin-pass' })).status === 200
+    && (await api(anon, 'POST', 'api/login', { login: '123', password: 'new-admin-pass' })).status === 200, 'администратор сменил свой пароль');
+  await api(ad, 'POST', 'api/me/password', { current: 'new-admin-pass', password: '123123123' });
+  await login(anon, 'knight@test.io', 'pass1234'); await anon.waitForURL(/cabinet\.html/, { timeout: 10000 });
   // Создание и удаление записи в разделе админки сохраняются на сервере и попадают в журнал
   await ad.evaluate(() => window.AdminStore.create('achievements', { title: 'Тестовое', icon: 'star', rarity: 'common', condition: 'manual', value: 0, reward: 10, text: 'проверка' }, 'достижение'));
   await ad.waitForTimeout(600); await ad.reload(); await ad.waitForTimeout(400);
@@ -131,7 +168,8 @@ try {
   await st.goto(U + 'tasks.html'); await st.waitForTimeout(600);
   const r = await api(ad, 'POST', 'api/admin/users/u24/reset');
   ok(r.status === 200 && r.body.xp === 0, 'администратор сбросил прогресс студента');
-  await st.evaluate(() => window.Student.setHidden(true)); await st.waitForTimeout(2600);
+  await st.evaluate(() => window.Student.setHidden(true)); await st.waitForTimeout(1500);
+  ok(await st.evaluate(() => window.Student.state.xp) === 0, 'открытая страница студента получила состояние после сброса');
   const me3 = (await api(st, 'GET', 'api/me')).body;
   ok(me3.state.xp === 0 && !me3.state.tasks.t01, 'после сброса страница студента не затёрла сервер старыми данными');
   ok((await api(ad, 'POST', 'api/admin/users/u1/role', { role: 'student' })).status === 400, 'администратор не может снять роль с себя');

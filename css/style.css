@@ -42,7 +42,7 @@ body {
 }
 .top { display: flex; align-items: center; gap: 12px; padding-inline: clamp(0px, 3vw, 40px); }
 .logo-name { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.08em; }
-.center { display: grid; place-items: center; padding-block: 24px; }
+.center { display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding-block: 24px; }
 .foot {
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px;
   padding-inline: clamp(0px, 3vw, 40px);
@@ -214,3 +214,9 @@ a.btn { text-decoration: none; box-sizing: border-box; }
 .sound[aria-pressed="false"] .ico { background: var(--stone); box-shadow: none; }
 
 [hidden] { display: none !important; }
+
+/* Регистрация: подсказка к коду группы и согласие на обработку данных */
+.field .hint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.check.consent { align-items: flex-start; font-size: 14px; line-height: 1.45; }
+.check.consent input { flex: none; margin-top: 2px; }
+.check.consent a { color: var(--gold); }

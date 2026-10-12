@@ -32,12 +32,16 @@
   const paragraphs = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
 
   /* ---------- схемы разделов ---------- */
+  // Код регистрации группы: 8 знаков без похожих букв и цифр, например K7QX-M2PA
+  const newInvite = () => { const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; const c = Array.from(crypto.getRandomValues(new Uint32Array(8)), x => abc[x % abc.length]).join(''); return c.slice(0, 4) + '-' + c.slice(4); };
+
   const SCHEMAS = {
     groups: {
       title: 'Группы', one: 'группу', create: 'НОВАЯ ГРУППА', search: g => g.code + ' ' + g.title + ' ' + g.curator,
-      defaults: () => ({ code: '', title: '', curator: '', quota: 20, deadline: '', courses: [], modules: [] }),
+      defaults: () => ({ code: '', title: '', curator: '', quota: 20, deadline: '', courses: [], modules: [], invite: newInvite() }),
       columns: [
         ['Группа', g => `${esc(g.code)}<small>${esc(g.title)}</small>`],
+        ['Код регистрации', g => g.invite ? `<code class="invite">${esc(g.invite)}</code><small>сообщите студентам группы</small>` : '<span class="pill off">закрыта</span>'],
         ['Куратор', g => esc(g.curator)],
         ['Студенты / квота', g => { const n = db().users.filter(u => u.group === g.id).length; const pct = g.quota ? n / g.quota * 100 : 0; return `${n} / ${g.quota}${n > g.quota ? ' <span class="pill late">сверх квоты</span>' : ''}<small>${bar(Math.min(100, pct), 'xp', 'mini-bar')}</small>`; }],
         ['Курсы и модули', g => `${g.courses.map(c => esc(titleOf('courses', c))).join(', ') || '—'}<small>${g.modules.length} модулей: ${g.modules.map(m => esc(titleOf('modules', m))).join(', ')}</small>`],
@@ -48,6 +52,7 @@
         { key: 'title', label: 'Название', type: 'text', required: true },
         { key: 'curator', label: 'Куратор', type: 'text', required: true },
         { key: 'quota', label: 'Квота студентов', type: 'number', min: 1, required: true },
+        { key: 'invite', label: 'Код регистрации', type: 'text', hint: 'Студент вводит его при регистрации и попадает в эту группу. Пусто — регистрация в группу закрыта. Сменили код — старый перестаёт работать.' },
         { key: 'deadline', label: 'Дедлайн по программе', type: 'date' },
         { key: 'courses', label: 'Курсы', type: 'multi', options: courseOpts, full: true },
         { key: 'modules', label: 'Модули', type: 'multi', options: moduleOpts, full: true }
@@ -55,6 +60,24 @@
       validate: (v, id) => db().groups.some(g => g.code.trim().toLowerCase() === v.code.trim().toLowerCase() && g.id !== id) ? 'Группа с таким кодом уже есть.' : null,
       beforeRemove: g => { const n = db().users.filter(u => u.group === g.id).length; return n ? `В группе ${n} студентов, они останутся без группы.` : ''; },
       afterRemove: g => db().users.forEach(u => { if (u.group === g.id) u.group = null; })
+    },
+
+    courses: {
+      title: 'Курсы', one: 'курс', create: 'НОВЫЙ КУРС', search: c => c.title + ' ' + (c.text || ''),
+      defaults: () => ({ title: '', text: '', hours: 0, published: true }),
+      columns: [
+        ['Курс', c => `${esc(c.title)}<small>${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}</small>`],
+        ['Открыт группам', c => esc(db().groups.filter(g => (g.courses || []).includes(c.id)).map(g => g.code).join(', ') || '—')],
+        ['Открыт лично', c => { const n = db().users.filter(u => (u.courses || []).includes(c.id)).length; return n ? `${n} студ.` : '—'; }],
+        ['Видимость', c => c.published !== false ? '<span class="pill on">в кабинете</span>' : '<span class="pill off">скрыт</span>']
+      ],
+      fields: [
+        { key: 'title', label: 'Название', type: 'text', required: true, full: true },
+        { key: 'text', label: 'Короткое описание', type: 'text', full: true },
+        { key: 'hours', label: 'Длительность, часов', type: 'number', min: 0 },
+        { key: 'published', label: 'Видимость', type: 'bool', text: 'Показывать в кабинете студента', hint: 'Открыть курс можно группе (раздел «Группы») или студенту лично (карточка пользователя → «Курсы»).' }
+      ],
+      beforeRemove: c => { const n = db().groups.filter(g => (g.courses || []).includes(c.id)).length; return n ? `Курс открыт ${n} группам, у них он пропадёт.` : ''; }
     },
 
     tasks: {

@@ -7,7 +7,6 @@
   const { svg, banner, sfx = {} } = window.Ash;
   const ICONS = window.ASH_ICONS;
   const MECH_ICON = { fix: 'sword', assemble: 'scroll', optimize: 'flame', adaptive: 'ring', a11y: 'shield' };
-  const moduleTitle = id => (window.STUDENT.modules[Number(String(id).slice(1)) - 1] || {}).title || 'Задания';
   const maxPoints = t => Math.round(t.points * (1 + E.CLEAN_SHARE + E.SPEED_SHARE));
   const icon = (key, s = 3) => svg(ICONS[key], { X: '#f2d58a', Y: '#7a5f2e', O: '#e8772e', W: '#fff0b0' }, s);
   const boostsHTML = () => {
@@ -173,14 +172,14 @@
     if (!task) return;
     const btn = $('run'); btn.disabled = true; btn.textContent = 'ПРОВЕРЯЮ…';
     const html = ed.html.getValue(), css = ed.css.getValue();
-    const seconds = (Date.now() - startedAt) / 1000;
     let rep;
     try { rep = await R.run(task, html, css); } finally { btn.disabled = false; btn.textContent = 'ПРОВЕРИТЬ'; }
     lastReport = rep;
     renderChecks(rep);
-    const effects = St.activeBoosters().map(b => b.effect);
-    const sc = E.score(task, rep, seconds, effects);
-    const res = St.recordTask(task, sc, { html, css }, moduleTitle(task.module));
+    // Очки считает Student (и затем сервер) по отчёту проверки и времени с открытия задания
+    const res = St.recordTask(task, rep, { html, css });
+    if (res.ok === false) { toast(res.msg); return; }
+    const sc = res.sc;
     renderResult(sc, res, rep);
     if (sc.solved) { if (sfx.lit) sfx.lit(); banner('bn-lit'); }
     else { if (sfx.death) sfx.death(); banner('bn-dead'); }

@@ -101,7 +101,7 @@
         const ex = fs.querySelector('.explain'); ex.hidden = false;
         ex.innerHTML = `<b>${right ? 'Верно.' : 'Неверно.'}</b> ${window.marked.parseInline(q.explain || '')}`;
       });
-      const res = St.recordQuiz(l.id, l.title, ok, l.quiz.length);
+      const res = St.recordQuiz(l.id, answers);
       $('quiz-note').textContent = `Верно ${ok} из ${l.quiz.length}.` + (res.gain ? ` +${res.gain} XP и +${res.gain} душ.` : ok === l.quiz.length ? '' : ' Попробуйте ещё раз: награда за новые верные ответы.');
       if (ok === l.quiz.length) { if (sfx.lit) sfx.lit(); banner('bn-lit'); } else if (sfx.error) sfx.error();
       announce(res.got);

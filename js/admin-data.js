@@ -8,12 +8,13 @@ window.ADMIN_SEED = (() => {
   const ago = (maxDays, minDays = 0) => new Date(now - (minDays + rnd() * (maxDays - minDays)) * DAY).toISOString();
   const inDays = d => new Date(now + d * DAY).toISOString().slice(0, 10);
 
+  // Курсы: студент видит опубликованные, а открыт курс, только если администратор дал доступ его группе или лично ему
   const courses = [
-    { id: 'c1', title: 'Веб-дизайн: основы' },
-    { id: 'c2', title: 'UI-анимация' },
-    { id: 'c3', title: 'Типографика в интерфейсах' },
-    { id: 'c4', title: 'Продвинутый JavaScript' },
-    { id: 'c5', title: 'Дизайн-системы' }
+    { id: 'c1', title: 'Веб-дизайн: основы', text: 'HTML, CSS и адаптивная вёрстка', hours: 72, published: true },
+    { id: 'c2', title: 'UI-анимация', text: 'Микроанимации, переходы, easing', hours: 24, published: true },
+    { id: 'c3', title: 'Типографика в интерфейсах', text: 'Шрифтовые пары, ритм, сетка', hours: 16, published: true },
+    { id: 'c4', title: 'Продвинутый JavaScript', text: 'Состояние, компоненты, API', hours: 40, published: true },
+    { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true }
   ];
   const modules = [
     { id: 'm1', title: 'Основы HTML', lessons: 8 },

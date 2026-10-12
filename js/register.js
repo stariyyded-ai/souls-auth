@@ -8,9 +8,11 @@
   function check() {
     if (!val('r-name').trim()) return ['r-name', 'Дай персонажу имя.'];
     if (!/^\S+@\S+\.\S+$/.test(val('r-mail').trim())) return ['r-mail', 'Проверь e-mail: в нём не хватает @ или домена.'];
+    if (!val('r-code').trim()) return ['r-code', 'Введите код группы. Его выдаёт преподаватель.'];
     if (val('r-pass').length < 4) return ['r-pass', 'Пароль должен быть не короче 4 символов.'];
     if (val('r-pass') !== val('r-pass2')) return ['r-pass2', 'Пароли не совпадают.'];
     if (!document.getElementById('r-oath').checked) return ['r-oath', 'Без клятвы ковенант не примет.'];
+    if (!document.getElementById('r-consent').checked) return ['r-consent', 'Без согласия на обработку персональных данных зарегистрироваться нельзя.'];
     return null;
   }
 
@@ -25,7 +27,7 @@
     busy = true;
 
     // Сначала сервер: имя или e-mail могут быть заняты
-    try { await api('POST', 'api/register', { name: val('r-name').trim(), email: val('r-mail').trim(), password: val('r-pass') }); }
+    try { await api('POST', 'api/register', { name: val('r-name').trim(), email: val('r-mail').trim(), code: val('r-code').trim(), password: val('r-pass'), consent: document.getElementById('r-consent').checked }); }
     catch (err) { sfx.error(); note.textContent = err.message; busy = false; return; }
 
     const btn = document.getElementById('b-reg');
