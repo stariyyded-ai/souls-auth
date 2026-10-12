@@ -48,6 +48,6 @@
     sfx.lit();
     banner('bn-lit');
     await wait(reduce ? 300 : 1400);
-    location.href = 'home.html';
+    location.href = 'cabinet.html';
   });
 })();

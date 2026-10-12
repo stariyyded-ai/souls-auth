@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Личный кабинет · Пепельный Пиксель</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Pixelify+Sans:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cabinet.css">
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+
+  <div class="stage">
+    <header class="top">
+      <span id="logoFlame"></span>
+      <span class="logo-name">ПЕПЕЛЬНЫЙ ПИКСЕЛЬ</span>
+      <nav class="topnav" aria-label="Разделы">
+        <a href="home.html" data-fade>Главная</a>
+        <a href="cabinet.html" class="on" aria-current="page">Кабинет</a>
+        <a href="#courses">Курсы</a>
+      </nav>
+      <button type="button" class="sound" id="sound-toggle" aria-pressed="true"><span class="ico" aria-hidden="true"></span><span class="label">ЗВУК ВКЛ</span></button>
+      <a class="exit" href="index.html" data-fade>Выйти</a>
+    </header>
+
+    <main class="cab out" id="panel">
+
+      <!-- Персонаж: имя, группа, уровень, полосы HP/XP, души -->
+      <section class="plate hero" aria-labelledby="st-name">
+        <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-br"></span><span class="corner c-bl"></span>
+        <div class="who">
+          <div class="avatar" id="avatar"></div>
+          <div class="who-text">
+            <p class="eyebrow">Личный кабинет</p>
+            <h1 id="st-name">Солер из Асторы</h1>
+            <p class="group" id="st-group"></p>
+          </div>
+        </div>
+
+        <div class="rank">
+          <div class="rank-head">
+            <span class="badge" id="rank-badge"></span>
+            <div>
+              <p class="eyebrow">Текущий уровень</p>
+              <p class="rank-title" id="rank-title">Джун</p>
+            </div>
+            <p class="rank-next" id="rank-next"></p>
+          </div>
+          <ol class="ladder" id="ladder" aria-label="Уровни"></ol>
+        </div>
+
+        <div class="bars">
+          <div class="stat">
+            <div class="stat-head"><span class="stat-key hp">HP</span><span>Прогресс курса</span><span class="stat-val" id="hp-val"></span></div>
+            <div class="bar hp" role="progressbar" aria-label="Прогресс курса" id="hp-bar"><i></i></div>
+          </div>
+          <div class="stat">
+            <div class="stat-head"><span class="stat-key xp">XP</span><span>Опыт до следующего уровня</span><span class="stat-val" id="xp-val"></span></div>
+            <div class="bar xp" role="progressbar" aria-label="Опыт до следующего уровня" id="xp-bar"><i></i></div>
+          </div>
+        </div>
+
+        <div class="purse">
+          <span class="soul" id="soul-icon"></span>
+          <div>
+            <p class="eyebrow">Баланс очков</p>
+            <p class="souls"><span id="souls">3 450</span> <small>душ</small></p>
+          </div>
+          <p class="week" id="souls-week"></p>
+        </div>
+      </section>
+
+      <!-- Прогресс по модулям -->
+      <section class="plate mods" aria-labelledby="mods-title">
+        <div class="plate-head">
+          <h2 id="mods-title">Модули курса</h2>
+          <p class="plate-sub" id="course-name"></p>
+        </div>
+        <ul class="mod-list" id="mod-list"></ul>
+        <p class="legend">
+          <span><i class="pip done"></i>пройден</span>
+          <span><i class="pip current"></i>в работе</span>
+          <span><i class="pip open"></i>доступен</span>
+          <span><i class="pip locked"></i>закрыт</span>
+        </p>
+      </section>
+
+      <!-- Достижения -->
+      <section class="plate ach" aria-labelledby="ach-title">
+        <div class="plate-head">
+          <h2 id="ach-title">Достижения</h2>
+          <p class="plate-sub" id="ach-count"></p>
+          <div class="chips" role="group" aria-label="Фильтр по редкости" id="ach-filter">
+            <button type="button" class="chip on" data-r="all">Все</button>
+            <button type="button" class="chip" data-r="legendary">Легендарные</button>
+            <button type="button" class="chip" data-r="epic">Эпические</button>
+            <button type="button" class="chip" data-r="rare">Редкие</button>
+            <button type="button" class="chip" data-r="common">Обычные</button>
+          </div>
+        </div>
+        <ul class="ach-grid" id="ach-grid"></ul>
+      </section>
+
+      <!-- Курсы и группа -->
+      <section class="plate courses" id="courses" aria-labelledby="courses-title">
+        <div class="plate-head">
+          <h2 id="courses-title">Курсы</h2>
+        </div>
+        <div class="group-card" id="group-card"></div>
+        <ul class="course-list" id="course-list"></ul>
+      </section>
+
+      <!-- История заданий -->
+      <section class="plate hist" aria-labelledby="hist-title">
+        <div class="plate-head">
+          <h2 id="hist-title">История заданий</h2>
+          <div class="chips" role="group" aria-label="Фильтр по статусу" id="hist-filter">
+            <button type="button" class="chip on" data-s="all">Все</button>
+            <button type="button" class="chip" data-s="accepted">Принято</button>
+            <button type="button" class="chip" data-s="review">На проверке</button>
+            <button type="button" class="chip" data-s="revision">Доработка</button>
+            <button type="button" class="chip" data-s="failed">Не сдано</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="hist-table">
+            <thead><tr><th scope="col">Дата</th><th scope="col">Задание</th><th scope="col">Статус</th><th scope="col" class="num">Опыт</th><th scope="col" class="num">Души</th></tr></thead>
+            <tbody id="hist-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span class="msg">хвала солнцу</span>
+      <span>Данные в кабинете пока примерные. v0.2 · Эпоха огня</span>
+    </footer>
+  </div>
+
+  <div class="banner lit" id="bn-lit"><span>КУРС ВЫБРАН</span></div>
+  <p class="toast" id="toast" role="status"></p>
+
+  <script src="js/common.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/cabinet.js"></script>
+</body>
+</html>

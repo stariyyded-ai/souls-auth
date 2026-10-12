@@ -211,3 +211,5 @@ a.btn { text-decoration: none; box-sizing: border-box; }
 .sound .ico { width: 10px; height: 10px; background: var(--ember-hi); box-shadow: 0 0 8px var(--ember); }
 .sound[aria-pressed="false"] { color: var(--muted); }
 .sound[aria-pressed="false"] .ico { background: var(--stone); box-shadow: none; }
+
+[hidden] { display: none !important; }
