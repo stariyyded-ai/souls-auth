@@ -26,7 +26,7 @@
     shopItem: id => B.db.shop.find(s => s.id === id),
     sold: id => B.db.purchases.filter(p => p.item === id).length,
     task: id => (window.TASKS || []).find(t => t.id === id),
-    lesson: id => (window.LESSONS || []).find(l => l.id === id),
+    lesson: id => (window.LESSONS || []).find(l => l.id === id && L.lessonAccess(l, grp, ME.role) === 'open'),
     moduleTitle: id => B.db.modules.find(m => m.id === id)?.title
   };
 

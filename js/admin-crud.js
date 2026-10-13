@@ -59,7 +59,10 @@
       ],
       validate: (v, id) => db().groups.some(g => g.code.trim().toLowerCase() === v.code.trim().toLowerCase() && g.id !== id) ? 'Группа с таким кодом уже есть.' : null,
       beforeRemove: g => { const n = db().users.filter(u => u.group === g.id).length; return n ? `В группе ${n} студентов, они останутся без группы.` : ''; },
-      afterRemove: g => db().users.forEach(u => { if (u.group === g.id) u.group = null; })
+      afterRemove: g => db().users.forEach(u => { if (u.group === g.id) u.group = null; }),
+      // Новая группа начинает без уроков: преподаватель добавляет их в разделе «Уроки групп»
+      hidden: () => ({ lessons: [], lessonsOpen: [] }),
+      extra: { label: 'Уроки', run: id => { A.state.lessons = { ...(A.state.lessons || {}), group: id }; location.hash = 'lessons'; } }
     },
 
     courses: {
@@ -166,7 +169,8 @@
           <p class="ach-meta"><span class="ach-rarity">${RARITY[a.rarity].label}</span><span class="ach-date">+${fmt(a.reward)} душ</span></p>
         </li></ul>
         <p class="hint">${CONDITIONS[a.condition].replace('N', a.value)}</p>`,
-      afterRemove: a => db().users.forEach(u => { u.achievements = u.achievements.filter(x => x.id !== a.id); })
+      afterRemove: a => db().users.forEach(u => { u.achievements = u.achievements.filter(x => x.id !== a.id); }),
+      extra: { label: 'Выдать', run: id => A.grantMany(id) }
     },
 
     shop: {
@@ -280,7 +284,7 @@
       } catch (e) { A.toast('Не удалось сохранить файл: ' + e.message); return; }
     }
     if (id) { S.update(coll, id, values, schema.one); A.toast('Сохранено.'); }
-    else { S.create(coll, values, schema.one); A.toast(`Создано: ${values.title || values.code}.`); }
+    else { S.create(coll, { ...(schema.hidden ? schema.hidden() : {}), ...values }, schema.one); A.toast(`Создано: ${values.title || values.code}.`); }
   }
   async function showPreview(coll, item) {
     await A.modal({ title: 'Предпросмотр', body: `<span class="preview-label">Так увидит студент</span><div class="preview">${SCHEMAS[coll].preview(item)}</div>`, actions: [{ label: 'НАЗАД', value: 'close', primary: true }] });
@@ -311,7 +315,7 @@
             <table class="data-table">
               <thead><tr>${schema.columns.map(c => `<th>${c[0]}</th>`).join('')}<th class="acts"><span class="sr">Действия</span></th></tr></thead>
               <tbody>${list.map(x => `<tr>${schema.columns.map(c => `<td>${c[1](x)}</td>`).join('')}
-                <td class="acts">${schema.preview ? `<button type="button" class="act" data-pv="${x.id}">Просмотр</button>` : ''}<button type="button" class="act" data-ed="${x.id}">Изменить</button><button type="button" class="act danger" data-rm="${x.id}">Удалить</button></td></tr>`).join('')
+                <td class="acts">${schema.extra ? `<button type="button" class="act" data-x="${x.id}">${schema.extra.label}</button>` : ''}${schema.preview ? `<button type="button" class="act" data-pv="${x.id}">Просмотр</button>` : ''}<button type="button" class="act" data-ed="${x.id}">Изменить</button><button type="button" class="act danger" data-rm="${x.id}">Удалить</button></td></tr>`).join('')
                 || `<tr><td colspan="${schema.columns.length + 1}" class="empty">${all.length ? 'Ничего не нашлось.' : `Пока пусто. Нажмите «${schema.create}».`}</td></tr>`}</tbody>
             </table>
           </div>
@@ -319,7 +323,8 @@
       document.getElementById('c-new').addEventListener('click', () => edit(coll));
       document.getElementById('c-q-' + coll).addEventListener('input', e => { st.q = e.target.value; A.render(); });
       root.addEventListener('click', e => {
-        const b = e.target.closest('[data-pv],[data-ed],[data-rm]'); if (!b) return;
+        const b = e.target.closest('[data-pv],[data-ed],[data-rm],[data-x]'); if (!b) return;
+        if (b.dataset.x) schema.extra.run(b.dataset.x);
         if (b.dataset.pv) showPreview(coll, S.byId(coll, b.dataset.pv));
         if (b.dataset.ed) edit(coll, b.dataset.ed);
         if (b.dataset.rm) remove(coll, b.dataset.rm);

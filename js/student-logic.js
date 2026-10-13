@@ -21,6 +21,21 @@
     };
   }
 
+  /* Доступ к уроку для студента группы.
+     Преподаватель добавляет группе уроки (group.lessons) и разрешает их проходить (group.lessonsOpen):
+     'open' — можно проходить, 'wait' — урок виден, но ждёт разрешения, 'hidden' — уроку группе не добавлен.
+     У групп, которые ещё не настраивали в разделе «Уроки групп», действует старое правило: урок открыт,
+     если в его описании не указаны группы или указана группа студента. Администратору открыто всё. */
+  function lessonAccess(lesson, group, role) {
+    if (role === 'admin') return 'open';
+    if (!group || !Array.isArray(group.lessons)) {
+      const only = lesson.groups || [];
+      return !only.length || (group && only.includes(group.code)) ? 'open' : 'wait';
+    }
+    if (!group.lessons.includes(lesson.id)) return 'hidden';
+    return (group.lessonsOpen || []).includes(lesson.id) ? 'open' : 'wait';
+  }
+
   const activeBoosters = st => Object.entries(st.boosters).filter(([, b]) => b.charges > 0).map(([id, b]) => ({ id, ...b }));
   const isEquipped = (st, item) => {
     const e = st.equipped;
@@ -169,5 +184,5 @@
     }
   }
 
-  window.StudentLogic = { fresh, apply, once, titleOf, activeBoosters, isEquipped };
+  window.StudentLogic = { fresh, apply, once, titleOf, activeBoosters, isEquipped, lessonAccess };
 })();

@@ -69,16 +69,37 @@
       this.log('action', `сбросил прогресс «${u.name}»`); save();
       putUser(await send('POST', `api/admin/users/${userId}/reset`));
     },
-    grantAchievement(userId, achId) {
-      const u = this.byId('users', userId), a = this.byId('achievements', achId);
-      if (u.achievements.some(x => x.id === achId)) return false;
-      u.achievements.push({ id: achId, date: new Date().toISOString() });
-      u.souls += a.reward || 0;
-      this.log('action', `выдал достижение «${a.title}» игроку «${u.name}»`);
-      if (a.reward) this.log('transaction', `Награда за достижение «${a.title}»`, { user: userId, amount: a.reward });
-      save();
-      send('POST', `api/admin/users/${userId}/achievements`, { id: achId }).then(putUser);
-      return true;
+    // Достижения: несколько одному игроку или одно нескольким; журнал и души берём с сервера
+    async grantAchievements(userId, ids) {
+      const r = await send('POST', `api/admin/users/${userId}/achievements`, { ids });
+      if (r) await reload();
+      return !!r;
+    },
+    async grantToUsers(achId, users) {
+      const r = await send('POST', `api/admin/achievements/${encodeURIComponent(achId)}/grant`, { users });
+      if (r) await reload();
+      return !!r;
+    },
+    /* ---------- заявки на курсы ---------- */
+    pending() { return (db.requests || []).filter(r => r.status === 'pending'); },
+    async decideRequest(id, verdict) {
+      const r = await send('POST', `api/admin/requests/${encodeURIComponent(id)}/${verdict}`);
+      if (!r) return false;
+      db.requests = db.requests.map(x => x.id === id ? r.request : x);
+      if (r.user) putUser(r.user);
+      const it = r.request, c = this.byId('courses', it.course), u = this.byId('users', it.user);
+      this.log('action', verdict === 'approve' ? `открыл «${u?.name}» курс «${c?.title}» по заявке` : `отклонил заявку «${u?.name}» на курс «${c?.title}»`);
+      save(); return true;
+    },
+    // Проверка новых заявок, пока админка открыта; возвращает заявки, которых раньше не было
+    async pollRequests() {
+      let list; try { list = await Ash.api('GET', 'api/admin/requests'); } catch (e) { return []; }
+      const known = new Set((db.requests || []).map(r => r.id));
+      const fresh = list.filter(r => !known.has(r.id));
+      const changed = fresh.length || list.some(r => (db.requests || []).find(x => x.id === r.id)?.status !== r.status);
+      db.requests = list;
+      if (fresh.length) await reload(); else if (changed) save();
+      return fresh;
     },
     async setGroup(userId, group) {
       const u = this.byId('users', userId); u.group = group || null; save();

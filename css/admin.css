@@ -198,3 +198,15 @@
 
 /* Код регистрации группы */
 code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: var(--gold); letter-spacing: 0.08em; white-space: nowrap; }
+
+/* Счётчик новых заявок в меню */
+.nav-badge { display: inline-block; min-width: 20px; margin-left: 6px; padding: 0 6px; background: var(--ember); color: var(--void); font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+.side-nav a.on .nav-badge { background: var(--void); color: var(--gold-hi); }
+
+/* Уроки групп */
+.lg-mod { margin-top: 18px; }
+.lg-mod-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.lg-mod-head h2 { margin: 0 auto 0 0; font-size: 18px; }
+.lg-legacy { color: var(--ember-hi); }
+.lg-tools .btn { width: auto; min-height: 0; padding: 8px 14px; font-size: 12px; }
+.lg-mod .data-table th:nth-child(n+2), .lg-mod .data-table td:nth-child(n+2) { width: 170px; }

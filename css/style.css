@@ -217,6 +217,5 @@ a.btn { text-decoration: none; box-sizing: border-box; }
 
 /* Регистрация: подсказка к коду группы и согласие на обработку данных */
 .field .hint { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
-.check.consent { align-items: flex-start; font-size: 14px; line-height: 1.45; }
-.check.consent input { flex: none; margin-top: 2px; }
-.check.consent a { color: var(--gold); }
+.privacy-note { margin-top: 10px; text-align: center; }
+.privacy-note a { color: var(--gold); }

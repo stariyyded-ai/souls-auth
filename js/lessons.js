@@ -11,13 +11,17 @@
   const myGroup = window.STUDENT.group.code;
   const myGroupId = A.db.groups.find(g => g.code === myGroup)?.id;
   const LEVELS = { easy: 'Лёгкая', base: 'Средняя', hard: 'Сложная' };
-  const open = l => !l.groups.length || l.groups.includes(myGroup);
+  // Какие уроки видны и можно ли их проходить, решает преподаватель в разделе «Уроки групп» (js/student-logic.js)
+  const group = A.db.groups.find(g => g.id === window.BOOT.me.group);
+  const access = l => window.StudentLogic.lessonAccess(l, group, window.BOOT.me.role);
+  const open = l => access(l) === 'open';
+  const VISIBLE = LESSONS.filter(l => access(l) !== 'hidden');
   const modTitle = id => MODULES.find(m => m.id === id)?.title || '';
   let blobUrl = null;
 
   /* ---------- список ---------- */
   function lessonStatus(l) {
-    if (!open(l)) return { cls: 'locked', text: `только для групп ${l.groups.join(', ')}` };
+    if (!open(l)) return { cls: 'locked', text: 'откроется, когда преподаватель разрешит' };
     const s = St.lessonState(l.id), t = St.taskState(l.task);
     const parts = [];
     if (s && s.quizMax) parts.push(`квиз ${s.quiz} из ${s.quizMax}`);
@@ -30,9 +34,9 @@
   const lectures = () => A.db.lectures.filter(l => l.published && (window.Ash.isAdmin() || !l.groups || !l.groups.length || l.groups.includes(myGroupId)));
 
   function renderList() {
-    const used = MODULES.filter(m => LESSONS.some(l => l.module === m.id));
-    $('modules').innerHTML = used.map((m, i) => {
-      const ls = LESSONS.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
+    const used = MODULES.filter(m => VISIBLE.some(l => l.module === m.id));
+    $('modules').innerHTML = !used.length ? '<section class="plate"><p class="empty">Преподаватель ещё не добавил уроки вашей группе.</p></section>' : used.map((m, i) => {
+      const ls = VISIBLE.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
       const done = ls.filter(l => lessonStatus(l).cls === 'done').length;
       return `<section class="plate module" aria-labelledby="mod-${m.id}">
         <div class="plate-head"><span class="mod-n">${m.id.slice(1)}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
@@ -60,10 +64,10 @@
   function renderLesson(l) {
     $('ls-crumb').textContent = `Модуль ${l.module.slice(1)} · ${modTitle(l.module)} · урок ${l.lesson}`;
     $('ls-title').textContent = l.title;
-    $('ls-meta').innerHTML = `<span>Сложность: ${esc(l.difficulty)}</span><span>${l.minutes} мин</span><span>Группы: ${l.groups.length ? esc(l.groups.join(', ')) : 'все'}</span>`;
+    $('ls-meta').innerHTML = `<span>Сложность: ${esc(l.difficulty)}</span><span>${l.minutes} мин</span>`;
     document.title = `${l.title} · Уроки · Пепельный Пиксель`;
     if (!open(l)) {
-      $('ls-body').innerHTML = `<p>Этот урок открыт только для групп ${esc(l.groups.join(', '))}. Ваша группа — ${esc(myGroup)}.</p>`;
+      $('ls-body').innerHTML = `<p>Этот урок откроется, когда преподаватель разрешит его проходить.</p>`;
       document.querySelector('.quiz').hidden = true; document.querySelector('.mini').hidden = true; $('ls-nav').innerHTML = '';
       return;
     }
@@ -168,7 +172,7 @@
   }
   function route() {
     const h = decodeURIComponent(location.hash.slice(1));
-    const lesson = LESSONS.find(l => l.id === h);
+    const lesson = VISIBLE.find(l => l.id === h);
     const lecture = h.startsWith('lecture-') && lectures().find(l => l.id === h.slice(8));
     if (lesson) { show('lesson-view'); renderLesson(lesson); window.scrollTo(0, 0); $('ls-title').focus({ preventScroll: true }); }
     else if (lecture) { show('mat-view'); renderLecture(lecture); window.scrollTo(0, 0); $('mt-title').focus({ preventScroll: true }); }

@@ -30,11 +30,8 @@
           <form id="f-reg" novalidate>
             <div class="field">
               <label for="r-name">Имя персонажа</label>
-              <div class="input"><span class="dia ember"></span><input id="r-name" name="name" autocomplete="nickname" placeholder="Сигмайер из Катарины"></div>
-            </div>
-            <div class="field">
-              <label for="r-mail">E-mail</label>
-              <div class="input"><span class="dia ember"></span><input id="r-mail" name="email" type="email" autocomplete="email" placeholder="onion@catarina.io"></div>
+              <div class="input"><span class="dia ember"></span><input id="r-name" name="name" autocomplete="username" placeholder="Сигмайер из Катарины" aria-describedby="r-name-hint"></div>
+              <p class="hint" id="r-name-hint">Придумайте игровое имя, по нему вы будете входить. Настоящие имя и фамилию не пишите: они сайту не нужны.</p>
             </div>
             <div class="field">
               <label for="r-code">Код группы</label>
@@ -53,7 +50,6 @@
             </div>
             <div class="opts">
               <label class="check"><input id="r-oath" name="oath" type="checkbox"> Принимаю клятву ковенанта</label>
-              <label class="check consent"><input id="r-consent" name="consent" type="checkbox"> <span>Даю согласие на обработку персональных данных (имя, e-mail, учебный прогресс) по <a href="privacy.html" target="_blank" rel="noopener">политике конфиденциальности</a></span></label>
             </div>
             <button class="btn reg" id="b-reg" type="submit">
               <span class="label">ЗАРЕГИСТРИРОВАТЬСЯ</span>
@@ -62,6 +58,7 @@
               <span class="door"></span>
             </button>
             <p class="note" id="n-reg" role="status"></p>
+            <p class="hint privacy-note">Мы не спрашиваем e-mail, телефон и настоящее имя. <a href="privacy.html" target="_blank" rel="noopener">Что хранит сайт</a></p>
           </form>
           <p class="alt">Уже есть персонаж? <a href="index.html" data-fade>Войти</a></p>
         </div>

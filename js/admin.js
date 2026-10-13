@@ -159,7 +159,7 @@
     const recent = db.purchases.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
     root.innerHTML = `
-      <div class="view-head"><h1>Дашборд</h1><span class="count">сводка по платформе</span></div>
+      <div class="view-head"><h1>Дашборд</h1><span class="count">сводка по платформе${S.pending().length ? ` · <a href="#requests">новых заявок на курсы: ${S.pending().length}</a>` : ''}</span></div>
       <div class="tiles">
         <div class="tile good"><span class="eyebrow">Активны за 7 дней</span><p class="big">${active.length}</p><p class="small">из ${students.length} студентов</p></div>
         <div class="tile"><span class="eyebrow">Групп</span><p class="big">${db.groups.length}</p><p class="small">${db.courses.length} курсов, ${db.modules.length} модулей</p></div>
@@ -193,7 +193,7 @@
     st.q ??= ''; st.role ??= 'all'; st.group ??= 'all'; st.sort ??= 'xp';
     const q = st.q.trim().toLowerCase();
     let list = db.users.filter(u =>
-      (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+      (!q || u.name.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)) &&
       (st.role === 'all' || u.role === st.role) &&
       (st.group === 'all' || (st.group === 'none' ? !u.group : u.group === st.group)));
     const sorters = { xp: (a, b) => b.xp - a.xp, name: (a, b) => a.name.localeCompare(b.name, 'ru'), seen: (a, b) => b.lastSeen.localeCompare(a.lastSeen), souls: (a, b) => b.souls - a.souls };
@@ -205,7 +205,7 @@
       <div class="view-head"><h1>Пользователи</h1><span class="count">найдено ${list.length} из ${db.users.length}</span></div>
       <section class="plate">
         <div class="toolbar">
-          <input class="sel search" id="u-q" type="search" placeholder="Поиск по имени или e-mail" aria-label="Поиск по имени или e-mail" value="${esc(st.q)}">
+          <input class="sel search" id="u-q" type="search" placeholder="Поиск по имени" aria-label="Поиск по имени" value="${esc(st.q)}">
           <select id="u-role" aria-label="Роль">${opt('all', 'Все роли', st.role)}${Object.entries(ROLES).map(([k, v]) => opt(k, v, st.role)).join('')}</select>
           <select id="u-group" aria-label="Группа">${opt('all', 'Все группы', st.group)}${db.groups.map(g => opt(g.id, g.code, st.group)).join('')}${opt('none', 'Без группы', st.group)}</select>
           <select id="u-sort" aria-label="Сортировка">${opt('xp', 'По опыту', st.sort)}${opt('souls', 'По душам', st.sort)}${opt('seen', 'По активности', st.sort)}${opt('name', 'По имени', st.sort)}</select>
@@ -217,13 +217,13 @@
               const pct = total ? userDone(u) / total * 100 : 0;
               const live = Date.now() - new Date(u.lastSeen) < 864e5;
               return `<tr>
-                <td>${esc(u.name)}<small>${esc(u.email)}</small></td>
+                <td>${esc(u.name)}${u.email ? `<small>${esc(u.email)}</small>` : ''}</td>
                 <td><select class="sel" data-role="${u.id}" aria-label="Роль: ${esc(u.name)}">${Object.entries(ROLES).map(([k, v]) => opt(k, v, u.role)).join('')}</select></td>
                 <td>${u.role === 'student' ? `<select class="sel" data-group="${u.id}" aria-label="Группа: ${esc(u.name)}">${opt('', '—', u.group || '')}${db.groups.map(g => opt(g.id, g.code, u.group || '')).join('')}</select>` : esc(S.byId('groups', u.group)?.code || '—')}</td>
                 <td class="num">${fmt(u.xp)}<small>${level(u.xp)}</small></td>
                 <td>${u.role === 'student' ? `${bar(pct, 'hp', 'mini-bar')} <small>${Math.round(pct)}%</small>` : '<small>—</small>'}</td>
                 <td><span class="dot${live ? ' live' : ''}"></span>${ago(u.lastSeen)}</td>
-                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижение</button><button type="button" class="act" data-pass="${u.id}">Пароль</button>${u.role === 'student' ? `<button type="button" class="act" data-courses="${u.id}">Курсы</button>` : ''}<button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
+                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижения</button><button type="button" class="act" data-pass="${u.id}">Пароль</button>${u.role === 'student' ? `<button type="button" class="act" data-courses="${u.id}">Курсы</button>` : ''}<button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
               </tr>`; }).join('') || `<tr><td colspan="7" class="empty">Никого не нашлось. Попробуйте другой запрос или фильтр.</td></tr>`}</tbody>
           </table>
         </div>
@@ -302,22 +302,58 @@
       S.resetProgress(id); if (sfx.death) sfx.death(); toast(`Прогресс «${u.name}» сброшен.`);
     }
   }
+  // Несколько достижений сразу: отмечаем галочками, уже полученные не показываем
   async function grant(id) {
     const u = S.byId('users', id);
     const has = new Set(u.achievements.map(a => a.id));
     const free = S.db.achievements.filter(a => !has.has(a.id));
     if (!free.length) { toast(`У «${u.name}» уже есть все достижения.`); return; }
+    let ids = [];
     const v = await modal({
-      title: 'Выдать достижение',
-      body: `<p>Кому: <b>${esc(u.name)}</b></p><div class="form"><div class="f full"><span class="lbl">Достижение</span><div class="checks" role="radiogroup">${free.map((a, i) =>
-        `<label><input type="radio" name="ach" value="${a.id}"${i === 0 ? ' checked' : ''}> ${achIcon(a, 3)} ${esc(a.title)} <small class="hint">${RARITY[a.rarity].label}, +${fmt(a.reward)} душ</small></label>`).join('')}</div></div></div>`,
-      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'ВЫДАТЬ', value: 'ok', primary: true }]
+      title: 'Выдать достижения',
+      body: `<p>Кому: <b>${esc(u.name)}</b>. Отметьте одно или несколько.</p><div class="form"><div class="f full"><span class="lbl" id="ga-l">Достижения</span><div class="checks" role="group" aria-labelledby="ga-l">${free.map(a =>
+        `<label><input type="checkbox" name="ach" value="${a.id}"> ${achIcon(a, 3)} ${esc(a.title)} <small class="hint">${RARITY[a.rarity].label}, +${fmt(a.reward)} душ</small></label>`).join('')}</div></div></div>`,
+      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'ВЫДАТЬ', value: 'ok', primary: true }],
+      onSubmit: val => {
+        if (val !== 'ok') return null;
+        ids = [...document.querySelectorAll('#modal-body input[name=ach]:checked')].map(i => i.value);
+        return ids.length ? null : 'Отметьте хотя бы одно достижение.';
+      }
     });
     if (v !== 'ok') return;
-    const achId = document.querySelector('#modal-body input[name=ach]:checked')?.value;
-    const a = S.byId('achievements', achId);
-    if (a && S.grantAchievement(id, achId)) { if (sfx.lit) sfx.lit(); toast(`«${u.name}» получает «${a.title}».`); }
+    if (await S.grantAchievements(id, ids)) {
+      if (sfx.lit) sfx.lit();
+      toast(ids.length === 1 ? `«${u.name}» получает «${S.byId('achievements', ids[0]).title}».` : `«${u.name}» получает ${ids.length} достижения.`);
+    }
   }
+  // Одно достижение сразу нескольким игрокам: из раздела «Достижения»
+  async function grantMany(achId) {
+    const a = S.byId('achievements', achId);
+    const students = S.db.users.filter(u => u.role === 'student').sort((x, y) => x.name.localeCompare(y.name, 'ru'));
+    const has = u => u.achievements.some(x => x.id === achId);
+    let users = [];
+    const v = await modal({
+      title: 'Выдать достижение',
+      body: `<p>${achIcon(a, 3)} <b>${esc(a.title)}</b> · +${fmt(a.reward)} душ</p>
+        <div class="toolbar"><select class="sel" id="gm-group" aria-label="Отметить группу"><option value="">Отметить всю группу…</option>${S.db.groups.map(g => `<option value="${g.id}">${esc(g.code)}</option>`).join('')}</select></div>
+        <div class="form"><div class="f full"><span class="lbl" id="gm-l">Кому</span><div class="checks" role="group" aria-labelledby="gm-l">${students.map(u => has(u)
+          ? `<label><input type="checkbox" checked disabled> ${esc(u.name)} <small class="hint">уже есть</small></label>`
+          : `<label><input type="checkbox" name="gu" value="${u.id}" data-g="${u.group || ''}"> ${esc(u.name)} <small class="hint">${esc(S.byId('groups', u.group)?.code || 'без группы')}</small></label>`).join('') || '<p class="hint">Студентов пока нет.</p>'}</div></div></div>`,
+      actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'ВЫДАТЬ', value: 'ok', primary: true }],
+      onSubmit: val => {
+        if (val !== 'ok') return null;
+        users = [...document.querySelectorAll('#modal-body input[name=gu]:checked')].map(i => i.value);
+        return users.length ? null : 'Отметьте хотя бы одного студента.';
+      }
+    });
+    if (v !== 'ok') return;
+    if (await S.grantToUsers(achId, users)) { if (sfx.lit) sfx.lit(); toast(`«${a.title}» получили ${users.length} чел.`); }
+  }
+  // Выбор группы в окне выдачи отмечает всех её студентов
+  document.addEventListener('change', e => {
+    if (e.target.id !== 'gm-group' || !e.target.value) return;
+    document.querySelectorAll(`#modal-body input[name=gu][data-g="${e.target.value}"]`).forEach(i => { i.checked = true; });
+  });
   function openUser(id) {
     const u = S.byId('users', id), g = S.byId('groups', u.group);
     const mods = S.db.modules.map(m => { const d = u.progress[m.id] || 0; return `<div class="mod-row"><span>${esc(m.title)}</span><span class="stat-val">${d} / ${m.lessons}</span>${bar(d / m.lessons * 100)}</div>`; }).join('');
@@ -328,7 +364,7 @@
       title: u.name,
       body: `
         <div class="u-head"><div class="avatar">${icon('avatar', { X: '#9a93a6', Y: '#0a090c', R: '#8e1b1b', P: C.ember }, 4)}</div>
-          <div><p>${esc(u.email)}</p><p class="hint">${ROLES[u.role]} · ${esc(g ? g.code + ', ' + g.title : 'без группы')}</p></div></div>
+          <div><p>${esc(u.email || 'вход по имени персонажа')}</p><p class="hint">${ROLES[u.role]} · ${esc(g ? g.code + ', ' + g.title : 'без группы')}</p></div></div>
         <div class="kv">
           <div><span class="eyebrow">Уровень</span><p>${level(u.xp)}</p></div>
           <div><span class="eyebrow">Опыт</span><p>${fmt(u.xp)} XP</p></div>
@@ -338,7 +374,7 @@
         <span class="eyebrow">Прогресс по модулям</span><div class="mod-rows">${mods}</div>
         <span class="eyebrow">Достижения</span><div class="badges">${ach}</div>
         ${tx ? `<span class="eyebrow">Последние транзакции</span><div class="table-wrap"><table class="data-table" style="min-width:0"><tbody>${tx}</tbody></table></div>` : ''}`,
-      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'КУРСЫ', value: 'courses', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЕ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
+      actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'КУРСЫ', value: 'courses', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЯ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
     }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); if (v === 'pass') changePassword(id); if (v === 'courses') userCourses(id); });
   }
 
@@ -382,6 +418,6 @@
   });
 
   // Общие функции для admin-crud.js
-  window.Admin = { register, render, modal, confirmBox, toast, esc, fmt, dateStr, daysLeft, achIcon, icon, bar, state, userName, RARITY, ROLES };
+  window.Admin = { register, render, modal, confirmBox, toast, esc, fmt, dateStr, timeStr, ago, daysLeft, achIcon, icon, bar, state, userName, grantMany, userCourses, RARITY, ROLES };
   document.addEventListener('DOMContentLoaded', render);
 })();

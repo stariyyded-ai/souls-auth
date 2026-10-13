@@ -125,7 +125,7 @@ function seed(demo = DEMO) {
     s.users.forEach((u, i) => {
       const admin = i === 0, student = u.id === 'u24';
       insertUser({
-        id: u.id, login: admin ? ADMIN_LOGIN : null, name: u.name, email: u.email, role: u.role, profile: u,
+        id: u.id, login: admin ? ADMIN_LOGIN : null, name: u.name, role: u.role, profile: { ...u, email: undefined },
         // Войти можно администратором и демо-студентом «Солер из Асторы», остальные — примеры для таблиц
         pass: admin ? hashPassword(ADMIN_PASSWORD) : student ? hashPassword(DEMO_PASSWORD) : null
       });
@@ -146,8 +146,19 @@ function ensureInvites() {
 }
 const groupByInvite = code => { const k = inviteKey(code); return k ? listColl('groups').find(g => g.invite && inviteKey(g.invite) === k) : null; };
 
+// Сайт больше не хранит e-mail: убираем его у тех, кто зарегистрировался раньше (войти можно по имени персонажа)
+function dropEmails() {
+  const rows = db.prepare('SELECT id, profile FROM users WHERE email IS NOT NULL OR profile LIKE \'%"email"%\'').all();
+  if (!rows.length) return;
+  tx(() => rows.forEach(r => {
+    const p = JSON.parse(r.profile); delete p.email; delete p.consentAt;
+    db.prepare('UPDATE users SET email = NULL, email_key = NULL, profile = ? WHERE id = ?').run(JSON.stringify(p), r.id);
+  }));
+}
+
 if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) seed();
 ensureInvites();
+dropEmails();
 
 module.exports = {
   db, tx, now, uid, key, COLLS, UPLOADS,

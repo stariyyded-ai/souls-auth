@@ -19,7 +19,7 @@
   }
 
   document.getElementById('forgot').addEventListener('click', () => {
-    note.textContent = 'Пароль не вернуть. Но можно попросить новый на почту.';
+    note.textContent = 'Пароль не вернуть, но преподаватель выдаст новый. Напишите ему.';
   });
 
   let busy = false;
@@ -31,7 +31,7 @@
     note.textContent = '';
     sfx.click();
 
-    if (!name) { sfx.error(); note.textContent = 'Введи имя персонажа или e-mail.'; nameInput.focus(); return; }
+    if (!name) { sfx.error(); note.textContent = 'Введи имя персонажа.'; nameInput.focus(); return; }
     busy = true;
     if (pass.length < 4) {
       sfx.death();

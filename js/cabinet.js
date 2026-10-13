@@ -58,14 +58,16 @@
   /* ---------- курс и модули ---------- */
   // Модули группы из админки; в каждом — опубликованные уроки, остальные места модуля пока закрыты
   const myGroup = B.db.groups.find(g => g.id === B.me.group);
+  const lessonAccess = l => window.StudentLogic.lessonAccess(l, myGroup, B.me.role);
   const lessonState = l => {
-    if (l.groups && l.groups.length && !l.groups.includes(D.group.code)) return 'locked';
+    if (lessonAccess(l) !== 'open') return 'locked';
     if (E.lessonDone(l, SS)) return 'done';
     return SS.lessons[l.id]?.read ? 'current' : 'open';
   };
   const modules = B.db.modules.filter(m => !myGroup || !myGroup.modules || myGroup.modules.includes(m.id)).map(m => {
-    const real = window.LESSONS.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
-    const planned = Math.max(m.lessons || 0, real.length);
+    const real = window.LESSONS.filter(l => l.module === m.id && lessonAccess(l) !== 'hidden').sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
+    // Группе, которой преподаватель сам набрал уроки, пустые места модуля не показываем
+    const planned = Array.isArray(myGroup?.lessons) ? real.length : Math.max(m.lessons || 0, real.length);
     for (let k = real.length; k < planned; k++) real.push([`Урок ${k + 1} ещё не опубликован`, 'locked']);
     return { title: m.title, lessons: real };
   }).filter(m => m.lessons.length);
@@ -115,17 +117,20 @@
     <div><p class="eyebrow">Место в группе</p><p class="big">${g.rank} / ${g.members}</p></div>
     <div><p class="eyebrow">Куратор</p><p>${esc(g.curator)}</p></div>`;
   // Курсы — из админки. Открыт курс, если администратор дал доступ группе студента или ему лично;
-  // закрытый можно только попросить открыть, запрос попадает в журнал админки
+  // закрытый можно попросить открыть: заявка приходит администратору в раздел «Заявки»
   const access = new Set([...(myGroup?.courses || []), ...(B.me.courses || [])]);
   const courses = B.db.courses.slice().sort((a, b) => access.has(b.id) - access.has(a.id));
   const current = courses.find(c => access.has(c.id));
   $('course-name').textContent = current ? current.title : 'курс ещё не открыт';
   $('course-list').innerHTML = courses.map(c => {
     const open = access.has(c.id);
+    const req = (B.db.requests || []).find(r => r.course === c.id); // последняя заявка на этот курс
     const right = c === current ? `<span class="tagline active">ИДЁТ · ${all.length ? Math.round(done / all.length * 100) : 0}%</span>`
       : open ? '<span class="tagline active">ОТКРЫТ</span>'
-      : `<button type="button" class="btn" data-ask="${c.id}">ПОПРОСИТЬ ДОСТУП</button>`;
-    return `<li class="course ${open ? 'active' : 'locked'}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}${open ? '' : ' · откроет преподаватель'}</p></div>${right}</li>`;
+      : req?.status === 'pending' ? '<button type="button" class="btn" disabled>ЗАЯВКА ОТПРАВЛЕНА</button>'
+      : `<button type="button" class="btn" data-ask="${c.id}">${req?.status === 'declined' ? 'ПОПРОСИТЬ СНОВА' : 'ПОПРОСИТЬ ДОСТУП'}</button>`;
+    const note = open ? '' : req?.status === 'pending' ? ' · ждёт ответа преподавателя' : req?.status === 'declined' ? ' · преподаватель пока отклонил заявку' : ' · откроет преподаватель';
+    return `<li class="course ${open ? 'active' : 'locked'}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}${note}</p></div>${right}</li>`;
   }).join('') || '<li class="course locked"><div class="course-info"><p class="course-text">Курсов пока нет.</p></div></li>';
   $('course-list').addEventListener('click', async e => {
     const b = e.target.closest('[data-ask]'); if (!b) return;
@@ -133,9 +138,9 @@
     b.disabled = true; b.textContent = 'ОТПРАВЛЯЮ…';
     try {
       await window.Ash.api('POST', 'api/me/course-request', { course: c.id });
-      b.textContent = 'ЗАПРОС ОТПРАВЛЕН';
+      b.textContent = 'ЗАЯВКА ОТПРАВЛЕНА';
       if (sfx.click) sfx.click();
-      toast(`Преподаватель увидит, что вы просите открыть «${c.title}».`);
+      toast(`Заявка отправлена. Преподаватель получит её в админке и откроет «${c.title}».`);
     } catch (err) { b.disabled = false; b.textContent = 'ПОПРОСИТЬ ДОСТУП'; toast('Не отправилось: ' + err.message); }
   });
 
