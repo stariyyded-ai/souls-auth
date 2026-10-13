@@ -80,6 +80,29 @@
       if (r) await reload();
       return !!r;
     },
+    /* ---------- уроки и темы ---------- */
+    // Урок: новый — POST, изменённый — PUT; после ответа перечитываем базу, чтобы обновился общий список уроков
+    async saveLesson(item, isNew) {
+      const r = await send(isNew ? 'POST' : 'PUT', isNew ? 'api/admin/lessons' : `api/admin/lessons/${encodeURIComponent(item.id)}`, { item, label: 'урок' });
+      if (r) await reload();
+      return !!r;
+    },
+    async dropLesson(id) {
+      const r = await send('DELETE', `api/admin/lessons/${encodeURIComponent(id)}`, { label: 'урок' });
+      if (r) await reload();
+      return !!r;
+    },
+    async saveModule(item, isNew) {
+      const r = await send(isNew ? 'POST' : 'PUT', isNew ? 'api/admin/modules' : `api/admin/modules/${encodeURIComponent(item.id)}`, { item, label: 'тему' });
+      if (r) await reload();
+      return !!r;
+    },
+    async dropModule(id) {
+      const r = await send('DELETE', `api/admin/modules/${encodeURIComponent(id)}`, { label: 'тему' });
+      if (r) await reload();
+      return !!r;
+    },
+    uid,
     /* ---------- заявки на курсы ---------- */
     pending() { return (db.requests || []).filter(r => r.status === 'pending'); },
     async decideRequest(id, verdict) {

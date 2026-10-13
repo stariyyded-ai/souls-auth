@@ -206,6 +206,37 @@ try {
   await ad.goto(U + 'admin.html#groups'); await ad.waitForTimeout(300);
   await ad.click('[data-x="g2"]'); await ad.waitForTimeout(300);
   ok(ad.url().endsWith('#lessons') && await ad.inputValue('#lg-group') === 'g2', 'из раздела «Группы» кнопка «Уроки» ведёт к урокам группы');
+
+  // Новая тема и свой урок с квизом из админки
+  await ad.selectOption('#lg-group', 'g1'); await ad.waitForTimeout(200);
+  await ad.click('#lg-new-mod'); await ad.fill('#mo-title', 'Анимации'); await ad.click('#modal-actions button:has-text("СОЗДАТЬ")'); await ad.waitForTimeout(800);
+  const mod = (await api(ad, 'GET', 'api/admin/db')).body.modules.find(m => m.title === 'Анимации');
+  ok(mod, 'администратор создал тему');
+  await ad.click(`[data-new-les="${mod.id}"]`); await ad.waitForTimeout(300);
+  await ad.fill('#le-title', 'Переходы и transition'); await ad.fill('#le-md', '## Плавно\n\nСвойство `transition` делает смену стилей плавной.');
+  await ad.click('#le-pv'); ok((await ad.innerHTML('#le-preview')).includes('<h2'), 'предпросмотр текста урока как у студента');
+  await ad.click('#le-qadd'); await ad.fill('#le-quiz .le-qt', 'Что делает transition?'); await ad.fill('#le-quiz .le-qo', 'Ничего\nПлавно меняет стили'); await ad.fill('#le-quiz .le-qa', '2');
+  await ad.click('#modal-actions button:has-text("СОЗДАТЬ")'); await ad.waitForTimeout(900);
+  const les = (await api(ad, 'GET', 'api/admin/db')).body.lessonList.find(l => l.title === 'Переходы и transition');
+  ok(les && les.custom && les.module === mod.id && les.quiz[0].answer === 1, 'администратор создал урок с квизом');
+  await ad.check(`[data-add="${les.id}"]`); await ad.waitForTimeout(400); await ad.check(`[data-open="${les.id}"]`); await ad.waitForTimeout(700);
+  await anon.goto(U + 'lessons.html'); await anon.waitForTimeout(500);
+  ok((await anon.textContent('#modules')).includes('Анимации') && (await anon.textContent('#modules')).includes('Переходы и transition'), 'студент видит новую тему и урок');
+  await anon.goto(U + 'lessons.html#' + les.id); await anon.waitForTimeout(500);
+  ok((await anon.textContent('#ls-body')).includes('делает смену стилей плавной') && await anon.locator('.mini').isHidden(), 'урок открывается, без мини-задания блок скрыт');
+  const xp0 = (await api(anon, 'GET', 'api/me')).body.state.xp;
+  await anon.check('input[name=q0][value="1"]'); await anon.click('#quiz-form button[type=submit]'); await anon.waitForTimeout(1200);
+  const meL = (await api(anon, 'GET', 'api/me')).body;
+  const prog = (await api(ad, 'GET', 'api/admin/db')).body.users.find(u => u.id === kid).progress[mod.id];
+  ok(meL.state.xp === xp0 + 20 && prog === 1, `квиз нового урока засчитан сервером, урок пройден (+${meL.state.xp - xp0} XP, пройдено ${prog})`);
+  // Изменить урок курса и вернуть как было
+  const base = (await api(ad, 'GET', 'api/admin/db')).body.lessonList.find(l => l.builtin);
+  await ad.click(`[data-ed-les="${base.id}"]`); await ad.waitForTimeout(300);
+  await ad.fill('#le-title', 'Изменённый урок'); await ad.click('#modal-actions button:has-text("СОХРАНИТЬ")'); await ad.waitForTimeout(900);
+  ok((await api(ad, 'GET', 'api/admin/db')).body.lessonList.find(l => l.id === base.id).title === 'Изменённый урок', 'урок курса изменён');
+  await ad.click(`[data-revert="${base.id}"]`); await ad.click('#modal-actions button:has-text("ВЕРНУТЬ")'); await ad.waitForTimeout(900);
+  ok((await api(ad, 'GET', 'api/admin/db')).body.lessonList.find(l => l.id === base.id).title === base.title, 'урок курса возвращён как было');
+  ok((await api(ad, 'DELETE', `api/admin/modules/${mod.id}`, { label: 'тему' })).status === 409, 'тему с уроками удалить нельзя');
   const stDb = await anon.evaluate(() => window.BOOT.db.groups);
   ok(stDb.every(g => !('invite' in g)), 'коды групп студенту не видны');
   ok((await api(ad, 'POST', 'api/me/password', { current: 'wrong', password: 'new-admin-pass' })).status === 400, 'свой пароль не меняется без текущего');

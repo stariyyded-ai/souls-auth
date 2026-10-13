@@ -64,10 +64,12 @@
     if (E.lessonDone(l, SS)) return 'done';
     return SS.lessons[l.id]?.read ? 'current' : 'open';
   };
-  const modules = B.db.modules.filter(m => !myGroup || !myGroup.modules || myGroup.modules.includes(m.id)).map(m => {
+  // У группы с набранными уроками показываем темы, где есть её уроки; у прочих — модули группы
+  const configured = Array.isArray(myGroup?.lessons);
+  const modules = B.db.modules.filter(m => configured || !myGroup || !myGroup.modules || myGroup.modules.includes(m.id)).map(m => {
     const real = window.LESSONS.filter(l => l.module === m.id && lessonAccess(l) !== 'hidden').sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
     // Группе, которой преподаватель сам набрал уроки, пустые места модуля не показываем
-    const planned = Array.isArray(myGroup?.lessons) ? real.length : Math.max(m.lessons || 0, real.length);
+    const planned = configured ? real.length : Math.max(m.lessons || 0, real.length);
     for (let k = real.length; k < planned; k++) real.push([`Урок ${k + 1} ещё не опубликован`, 'locked']);
     return { title: m.title, lessons: real };
   }).filter(m => m.lessons.length);

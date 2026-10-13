@@ -78,12 +78,14 @@ function me(row) {
 function adminDb() {
   const out = {};
   D.COLLS.forEach(c => { out[c] = D.listColl(c); });
-  return { ...out, users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), lessonList: lessonList() };
+  return { ...out, users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), lessonList: lessonList(), taskList: taskList() };
 }
 // Заявки студентов на доступ к курсу: новые сверху
 const listRequests = () => D.listColl('requests').sort((a, b) => b.date.localeCompare(a.date));
 // Уроки для раздела «Уроки групп» в админке: без текста и ответов
-const lessonList = () => D.LESSONS.map(l => ({ id: l.id, title: l.title, module: l.module, lesson: l.lesson, groups: l.groups || [] }));
+// Администратору — уроки целиком, чтобы их можно было править; задания — для выбора мини-задания
+const lessonList = () => D.allLessons();
+const taskList = () => D.GAME.TASKS.map(t => ({ id: t.id, title: t.title }));
 // Студент видит только то, что ему положено: опубликованные лекции своей группы,
 // других игроков без e-mail, а скрывшихся из таблицы лидеров — без имени и опыта
 function studentDb(row) {
@@ -102,6 +104,7 @@ function studentDb(row) {
   out.purchases = D.listPurchases().map(p => ({ id: p.id, item: p.item, user: p.user === self.id ? p.user : null }));
   out.logs = [];
   out.requests = listRequests().filter(r => r.user === self.id);
+  out.lessons = D.listColl('lessons'); // правки и новые уроки; страница сливает их с js/content.js
   return out;
 }
 function lectureOpen(l, user) {
@@ -172,7 +175,7 @@ function syncProfile(row, st) {
   // Прогресс по модулям для админки: сколько уроков пройдено (квиз без ошибок и мини-задание)
   p.progress = {};
   D.listColl('modules').forEach(m => { p.progress[m.id] = 0; });
-  D.LESSONS.forEach(l => { if (D.lessonDone(l, st)) p.progress[l.module] = (p.progress[l.module] || 0) + 1; });
+  D.allLessons().forEach(l => { if (D.lessonDone(l, st)) p.progress[l.module] = (p.progress[l.module] || 0) + 1; });
   p.achievements ||= [];
   const known = new Set(D.listColl('achievements').map(a => a.id));
   Object.entries(st.ach).forEach(([id, date]) => {
@@ -200,7 +203,7 @@ function gameEnv(row) {
     sold: id => D.db.prepare('SELECT COUNT(*) AS n FROM purchases WHERE item = ?').get(String(id)).n,
     task: id => G.TASKS.find(t => t.id === id),
     // Урок, который группе не добавлен или ещё не разрешён, для сервера не существует: квиз и отметки не засчитываются
-    lesson: id => D.LESSONS.find(l => l.id === id && G.Logic.lessonAccess(l, grp, u.role) === 'open'),
+    lesson: id => D.allLessons().find(l => l.id === id && G.Logic.lessonAccess(l, grp, u.role) === 'open'),
     moduleTitle: id => D.getItem('modules', String(id))?.title
   };
 }
@@ -301,13 +304,43 @@ function checkInvite(g) {
   if (g.invite && D.listColl('groups').some(x => x.id !== g.id && D.groupByInvite(g.invite)?.id === x.id)) fail(409, 'Такой код регистрации уже у другой группы.');
 }
 
+/* Урок, который администратор создал или изменил. Изменённый урок из content/lessons хранится под тем же id
+   и заменяет исходный; { id, removed: true } прячет исходный урок. */
+const str = (v, max) => typeof v === 'string' && v.length <= max;
+function checkLesson(it) {
+  if (it.removed === true) { if (!D.LESSONS.some(l => l.id === it.id)) fail(400, 'Скрыть можно только урок из курса.'); return; }
+  it.title = String(it.title || '').trim();
+  if (it.title.length < 2 || it.title.length > 120) fail(400, 'Название урока — от 2 до 120 символов.');
+  if (!D.getItem('modules', String(it.module))) fail(400, 'Выберите тему урока.');
+  it.lesson = Math.max(1, Math.min(99, parseInt(it.lesson, 10) || 1));
+  it.minutes = Math.max(1, Math.min(600, parseInt(it.minutes, 10) || 30));
+  if (!str(it.difficulty, 30)) it.difficulty = 'Лёгкий';
+  if (!str(it.markdown, 200000)) fail(400, 'Текст урока слишком длинный.');
+  if (it.task && !D.GAME.TASKS.some(t => t.id === it.task)) fail(400, 'Нет такого мини-задания.');
+  it.task = it.task || null;
+  if (!Array.isArray(it.quiz) || it.quiz.length > 30) fail(400, 'Квиз: до 30 вопросов.');
+  it.quiz.forEach((q, i) => {
+    if (!str(q.q, 2000) || !q.q.trim()) fail(400, `Вопрос ${i + 1}: нет текста.`);
+    if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 8 || !q.options.every(o => str(o, 500) && o.trim())) fail(400, `Вопрос ${i + 1}: нужно от 2 до 8 вариантов ответа.`);
+    if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.options.length) fail(400, `Вопрос ${i + 1}: отметьте верный ответ.`);
+    if (q.explain !== undefined && !str(q.explain, 2000)) fail(400, `Вопрос ${i + 1}: пояснение слишком длинное.`);
+  });
+  it.groups = [];
+  delete it.file;
+}
+function checkModule(m) {
+  m.title = String(m.title || '').trim();
+  if (m.title.length < 2 || m.title.length > 80) fail(400, 'Название темы — от 2 до 80 символов.');
+  m.lessons = Math.max(0, Math.min(99, parseInt(m.lessons, 10) || 0));
+}
+
 // Уроки группы: только существующие; разрешить можно только добавленный урок. Новая группа начинает без уроков.
 function checkLessons(g, old) {
   if (g.lessons === undefined && old) { if (old.lessons !== undefined) { g.lessons = old.lessons; g.lessonsOpen = old.lessonsOpen; } return; }
   if (g.lessons === undefined) g.lessons = [];
-  const known = new Set(D.LESSONS.map(l => l.id));
-  if (!Array.isArray(g.lessons) || g.lessons.some(id => !known.has(id))) fail(400, 'Неверный список уроков.');
-  g.lessons = [...new Set(g.lessons)];
+  const known = new Set(D.allLessons().map(l => l.id));
+  if (!Array.isArray(g.lessons)) fail(400, 'Неверный список уроков.');
+  g.lessons = [...new Set(g.lessons)].filter(id => known.has(id)); // удалённые уроки просто выпадают из списка
   g.lessonsOpen = (Array.isArray(g.lessonsOpen) ? g.lessonsOpen : []).filter(id => g.lessons.includes(id));
 }
 app.post('/api/admin/:coll', needAdmin, (req, res) => {
@@ -315,6 +348,8 @@ app.post('/api/admin/:coll', needAdmin, (req, res) => {
   if (!it || typeof it !== 'object' || typeof it.id !== 'string' || !it.id) fail(400, 'Нет данных.');
   if (D.getItem(c, it.id)) fail(409, 'Такая запись уже есть.');
   if (c === 'groups') { checkInvite(it); checkLessons(it); }
+  if (c === 'lessons') checkLesson(it);
+  if (c === 'modules') checkModule(it);
   D.tx(() => { D.putItem(c, it); adminLog(req, `создал ${label(req, it)}`); });
   res.status(201).json(it);
 });
@@ -324,6 +359,8 @@ app.put('/api/admin/:coll/:id', needAdmin, (req, res) => {
   if (!it || typeof it !== 'object') fail(400, 'Нет данных.');
   it.id = req.params.id;
   if (c === 'groups') { checkInvite(it); checkLessons(it, D.getItem(c, it.id)); }
+  if (c === 'lessons') checkLesson(it);
+  if (c === 'modules') checkModule(it);
   D.tx(() => { D.putItem(c, it); adminLog(req, `изменил ${label(req, it)}`); });
   res.json(it);
 });
@@ -331,6 +368,7 @@ app.delete('/api/admin/:coll/:id', needAdmin, (req, res, next) => {
   if (req.params.coll === 'users') return next(); // пользователей удаляет отдельный обработчик ниже
   const c = coll(req), it = D.getItem(c, req.params.id);
   if (!it) fail(404, 'Запись не найдена.');
+  if (c === 'modules' && D.allLessons().some(l => l.module === it.id)) fail(409, 'В теме есть уроки. Сначала удалите их или перенесите в другую тему.');
   D.tx(() => { D.removeItem(c, it.id); adminLog(req, `удалил ${label(req, it)}`); });
   if (c === 'lectures' && it.file?.id) removeFile(it.file.id);
   if (c === 'groups') D.allUsers().filter(u => u.group === it.id).forEach(u => changeUser(u.id, p => { p.group = null; }));

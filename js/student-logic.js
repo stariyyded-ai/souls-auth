@@ -36,6 +36,19 @@
     return (group.lessonsOpen || []).includes(lesson.id) ? 'open' : 'wait';
   }
 
+  /* Уроки курса: встроенные (js/content.js) плюс правки администратора (коллекция lessons на сервере).
+     Запись с id встроенного урока заменяет его, { id, removed: true } прячет, остальные — новые уроки.
+     builtin — урок из курса, edited — изменён администратором, custom — создан администратором. */
+  function mergeLessons(builtins, overrides) {
+    const map = new Map(builtins.map(l => [l.id, { ...l, builtin: true }]));
+    (overrides || []).forEach(o => {
+      if (o.removed) { const b = map.get(o.id); if (b) b.removed = true; return; }
+      const b = map.get(o.id);
+      map.set(o.id, b ? { ...b, ...o, builtin: true, edited: true } : { groups: [], quiz: [], ...o, custom: true });
+    });
+    return [...map.values()].filter(l => !l.removed);
+  }
+
   const activeBoosters = st => Object.entries(st.boosters).filter(([, b]) => b.charges > 0).map(([id, b]) => ({ id, ...b }));
   const isEquipped = (st, item) => {
     const e = st.equipped;
@@ -186,5 +199,5 @@
     }
   }
 
-  window.StudentLogic = { fresh, apply, once, titleOf, activeBoosters, isEquipped, lessonAccess };
+  window.StudentLogic = { fresh, apply, once, titleOf, activeBoosters, isEquipped, lessonAccess, mergeLessons };
 })();

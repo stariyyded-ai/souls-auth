@@ -61,22 +61,27 @@
         </div>
 
         <div class="ws">
+          <!-- Условие сверху на всю ширину, под ним редактор и предпросмотр рядом -->
           <section class="plate brief" aria-label="Условие">
-            <p class="story" id="t-story"></p>
-            <div><h2 class="h3">Условие</h2><p id="t-goal"></p></div>
-            <p class="meta" id="t-meta"></p>
-            <div>
-              <h2 class="h3">Чек-лист требований</h2>
-              <ul class="checks" id="t-checks"></ul>
+            <div class="brief-main">
+              <p class="story" id="t-story"></p>
+              <div><h2 class="h3">Условие</h2><p id="t-goal"></p></div>
+              <p class="meta" id="t-meta"></p>
+              <div id="frag-box" hidden>
+                <h2 class="h3">Фрагменты</h2>
+                <p class="hint">Поставь курсор в нужное место и нажми на фрагмент. Ловушки портят оценку.</p>
+                <div class="frags" id="frags"></div>
+              </div>
             </div>
-            <details class="quality" open>
-              <summary><span class="h3">Качество кода</span> <small>бонус за чистоту</small></summary>
-              <ul class="checks" id="t-quality"></ul>
-            </details>
-            <div id="frag-box" hidden>
-              <h2 class="h3">Фрагменты</h2>
-              <p class="hint">Поставь курсор в нужное место и нажми на фрагмент. Ловушки портят оценку.</p>
-              <div class="frags" id="frags"></div>
+            <div class="brief-checks">
+              <div>
+                <h2 class="h3">Чек-лист требований</h2>
+                <ul class="checks" id="t-checks"></ul>
+              </div>
+              <details class="quality">
+                <summary><span class="h3">Качество кода</span> <small>бонус за чистоту, нажмите, чтобы раскрыть</small></summary>
+                <ul class="checks" id="t-quality"></ul>
+              </details>
             </div>
           </section>
 
@@ -92,6 +97,9 @@
               <button type="button" class="btn" id="run">ПРОВЕРИТЬ</button>
               <button type="button" class="link" id="restart">Начать заново</button>
             </div>
+          </section>
+
+          <section class="plate preview-box" aria-label="Предпросмотр">
             <div class="preview-head">
               <span class="eyebrow">Предпросмотр</span>
               <div class="chips" role="group" aria-label="Ширина предпросмотра" id="pv-size">

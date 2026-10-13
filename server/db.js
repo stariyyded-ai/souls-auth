@@ -13,7 +13,7 @@ const { hashPassword } = require('./auth');
 const ROOT = path.join(__dirname, '..');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const UPLOADS = path.join(DATA_DIR, 'uploads');
-const COLLS = ['courses', 'modules', 'groups', 'achievements', 'tasks', 'lectures', 'shop'];
+const COLLS = ['courses', 'modules', 'groups', 'achievements', 'tasks', 'lectures', 'shop', 'lessons'];
 
 fs.mkdirSync(UPLOADS, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'ash.db'));
@@ -104,6 +104,8 @@ const shared = { window: {} };
   .forEach(f => vm.runInNewContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), shared, { filename: f }));
 const W = shared.window;
 const LESSONS = W.LESSONS, lessonDone = W.Economy.lessonDone;
+// Уроки из content/lessons плюс то, что администратор создал или изменил в разделе «Уроки групп» (коллекция lessons)
+const allLessons = () => JSON.parse(JSON.stringify(W.StudentLogic.mergeLessons(LESSONS, listColl('lessons'))));
 const GAME = { Economy: W.Economy, Logic: W.StudentLogic, TASKS: W.TASKS, ACHIEVEMENTS: W.STUDENT.achievements };
 
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || '123';
@@ -121,7 +123,7 @@ function seed(demo = DEMO) {
   }
   tx(() => {
     ['users', 'items', 'purchases', 'logs', 'files', 'sessions'].forEach(t => db.exec(`DELETE FROM ${t}`));
-    COLLS.forEach(c => s[c].forEach(item => putItem(c, item)));
+    COLLS.forEach(c => (s[c] || []).forEach(item => putItem(c, item)));
     s.users.forEach((u, i) => {
       const admin = i === 0, student = u.id === 'u24';
       insertUser({
@@ -175,5 +177,5 @@ module.exports = {
   db, tx, now, uid, key, COLLS, UPLOADS,
   getUser, findLogin, nameTaken, emailTaken, insertUser, saveProfile, userOut, allUsers,
   listColl, getItem, putItem, removeItem, addLog, listLogs, addPurchase, listPurchases, seed,
-  ADMIN_LOGIN, DEMO_PASSWORD, DEMO, LESSONS, lessonDone, GAME, inviteCode, groupByInvite, ROOT
+  ADMIN_LOGIN, DEMO_PASSWORD, DEMO, LESSONS, allLessons, lessonDone, GAME, inviteCode, groupByInvite, ROOT
 };

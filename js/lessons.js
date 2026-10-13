@@ -7,7 +7,9 @@
   const St = window.Student, A = window.AdminStore, Files = window.AshFiles;
   const LESSONS = window.LESSONS, TASKS = window.TASKS, MECH = window.TASK_MECHANICS;
   const { banner, sfx = {} } = window.Ash;
-  const MODULES = window.STUDENT.modules.map((m, i) => ({ id: 'm' + (i + 1), title: m.title }));
+  // Темы — из админки, в том порядке, в каком они там идут; номер темы — её место в списке
+  const MODULES = A.db.modules.map((m, i) => ({ id: m.id, title: m.title, n: i + 1 }));
+  const modN = id => MODULES.find(m => m.id === id)?.n || '';
   const myGroup = window.STUDENT.group.code;
   const myGroupId = A.db.groups.find(g => g.code === myGroup)?.id;
   const LEVELS = { easy: 'Лёгкая', base: 'Средняя', hard: 'Сложная' };
@@ -39,7 +41,7 @@
       const ls = VISIBLE.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
       const done = ls.filter(l => lessonStatus(l).cls === 'done').length;
       return `<section class="plate module" aria-labelledby="mod-${m.id}">
-        <div class="plate-head"><span class="mod-n">${m.id.slice(1)}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
+        <div class="plate-head"><span class="mod-n">${m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
         <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${done / ls.length * 100}%"></i></div>
         <ol class="lesson-list">${ls.map(l => {
           const s = lessonStatus(l), task = TASKS.find(t => t.id === l.task);
@@ -62,7 +64,7 @@
 
   /* ---------- урок ---------- */
   function renderLesson(l) {
-    $('ls-crumb').textContent = `Модуль ${l.module.slice(1)} · ${modTitle(l.module)} · урок ${l.lesson}`;
+    $('ls-crumb').textContent = `Тема ${modN(l.module)} · ${modTitle(l.module)} · урок ${l.lesson}`;
     $('ls-title').textContent = l.title;
     $('ls-meta').innerHTML = `<span>Сложность: ${esc(l.difficulty)}</span><span>${l.minutes} мин</span>`;
     document.title = `${l.title} · Уроки · Пепельный Пиксель`;
@@ -71,14 +73,15 @@
       document.querySelector('.quiz').hidden = true; document.querySelector('.mini').hidden = true; $('ls-nav').innerHTML = '';
       return;
     }
-    document.querySelector('.quiz').hidden = false; document.querySelector('.mini').hidden = false;
+    // Квиз и мини-задание у урока из админки могут отсутствовать
+    document.querySelector('.quiz').hidden = !(l.quiz && l.quiz.length); document.querySelector('.mini').hidden = !l.task;
     St.markRead(l.id);
     $('ls-body').innerHTML = window.marked.parse(l.markdown);
     $('ls-body').querySelectorAll('table').forEach(t => { const w = document.createElement('div'); w.className = 'table-wrap'; t.replaceWith(w); w.appendChild(t); });
     $('ls-body').querySelectorAll('pre').forEach(p => { p.tabIndex = 0; p.setAttribute('aria-label', 'Пример кода'); });
-    renderQuiz(l);
+    if (l.quiz && l.quiz.length) renderQuiz(l);
     renderMini(l);
-    const list = LESSONS.filter(open);
+    const list = VISIBLE.filter(open).sort((a, b) => (modN(a.module) || 99) - (modN(b.module) || 99) || a.lesson - b.lesson);
     const i = list.indexOf(l), prev = list[i - 1], next = list[i + 1];
     $('ls-nav').innerHTML = `${prev ? `<a href="#${prev.id}" class="prev">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="#${next.id}" class="next">${esc(next.title)} →</a>` : ''}`;
   }

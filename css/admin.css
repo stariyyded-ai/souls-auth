@@ -211,3 +211,17 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
 .lg-tools .btn { width: auto; min-height: 0; padding: 8px 14px; font-size: 12px; }
 .lg-mod .data-table th:nth-child(n+2), .lg-mod .data-table td:nth-child(n+2) { width: 170px; }
 .theme-pick label { gap: 10px; }
+
+/* Редактор урока */
+.modal.wide { width: min(960px, calc(100% - 32px)); }
+.le-q { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 12px; border: 2px solid var(--stone); background: rgba(0,0,0,0.25); }
+.le-q legend { padding: 0 6px; color: var(--gold); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+.le-q textarea.le-qt { min-height: 52px; }
+.le-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.le-row label { display: inline-flex; align-items: center; gap: 8px; }
+.le-row .le-qa { width: 72px; }
+.le-preview { margin-top: 10px; padding: 14px 16px; max-height: 420px; overflow: auto; border: 2px dashed var(--stone); background: rgba(0,0,0,0.3); line-height: 1.55; }
+.le-preview pre { overflow-x: auto; padding: 10px; background: #0d0b10; }
+.lg-hidden { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lg-hidden li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lg-mod .empty { color: var(--muted); }

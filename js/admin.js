@@ -33,7 +33,9 @@
   const LEVELS = [{ title: 'Новичок', xp: 0 }, { title: 'Джун', xp: 1000 }, { title: 'Мидл', xp: 3000 }, { title: 'Сеньор', xp: 6000 }];
   const level = xp => LEVELS.filter(l => xp >= l.xp).pop().title;
   const userName = id => (S.byId('users', id) || { name: 'Удалённый пользователь' }).name;
-  const totalLessons = () => S.db.modules.reduce((a, m) => a + m.lessons, 0);
+  // Уроков в теме: сколько запланировано или сколько уже есть, если больше (не меньше одного, чтобы делить)
+  const modCount = m => Math.max(1, m.lessons || 0, (S.db.lessonList || []).filter(l => l.module === m.id).length);
+  const totalLessons = () => S.db.modules.reduce((a, m) => a + modCount(m), 0);
   const userDone = u => Object.values(u.progress || {}).reduce((a, b) => a + b, 0);
   const bar = (pct, cls = 'hp', extra = '') => `<span class="bar ${cls} ${extra}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="--w:${pct}%"></i></span>`;
 
@@ -45,10 +47,11 @@
   }
 
   /* ---------- модальное окно ----------
-     modal({ title, body, actions: [{ label, value, kind, primary }], onSubmit }) → Promise со значением нажатой кнопки.
-     onSubmit(value) может вернуть строку ошибки — тогда окно не закроется. */
+     modal({ title, body, actions: [{ label, value, kind, primary }], onSubmit, onOpen, wide }) → Promise со значением нажатой кнопки.
+     onSubmit(value) может вернуть строку ошибки — тогда окно не закроется; onOpen() — после того, как окно нарисовано; wide — широкое окно. */
   const dlg = $('modal');
-  function modal({ title, body, actions = [{ label: 'ЗАКРЫТЬ', value: 'close' }], onSubmit }) {
+  function modal({ title, body, actions = [{ label: 'ЗАКРЫТЬ', value: 'close' }], onSubmit, onOpen, wide }) {
+    dlg.classList.toggle('wide', !!wide);
     $('modal-title').textContent = title;
     $('modal-body').innerHTML = body;
     $('modal-note').textContent = '';
@@ -73,6 +76,7 @@
       function cleanup() { dlg.removeEventListener('click', onClick); $('modal-form').removeEventListener('submit', onSub); dlg.removeEventListener('cancel', onCancel); }
       dlg.addEventListener('click', onClick); $('modal-form').addEventListener('submit', onSub); dlg.addEventListener('cancel', onCancel);
       dlg.showModal();
+      if (onOpen) onOpen();
       const first = $('modal-body').querySelector('input:not([type=checkbox]):not([type=radio]), select, textarea');
       if (first) first.focus();
     });
@@ -152,7 +156,7 @@
     // Средний прогресс по модулям среди студентов групп, где модуль назначен
     const modStats = db.modules.map(m => {
       const inGroups = students.filter(u => (S.byId('groups', u.group)?.modules || []).includes(m.id));
-      const avg = inGroups.length ? inGroups.reduce((a, u) => a + (u.progress[m.id] || 0) / m.lessons, 0) / inGroups.length * 100 : 0;
+      const avg = inGroups.length ? inGroups.reduce((a, u) => a + (u.progress[m.id] || 0) / modCount(m), 0) / inGroups.length * 100 : 0;
       return { m, avg, n: inGroups.length };
     });
     const top = [...students].sort((a, b) => b.xp - a.xp).slice(0, 5);
@@ -356,7 +360,7 @@
   });
   function openUser(id) {
     const u = S.byId('users', id), g = S.byId('groups', u.group);
-    const mods = S.db.modules.map(m => { const d = u.progress[m.id] || 0; return `<div class="mod-row"><span>${esc(m.title)}</span><span class="stat-val">${d} / ${m.lessons}</span>${bar(d / m.lessons * 100)}</div>`; }).join('');
+    const mods = S.db.modules.map(m => { const d = u.progress[m.id] || 0; return `<div class="mod-row"><span>${esc(m.title)}</span><span class="stat-val">${d} / ${modCount(m)}</span>${bar(d / modCount(m) * 100)}</div>`; }).join('');
     const ach = u.achievements.map(x => { const a = S.byId('achievements', x.id); if (!a) return ''; return `<span style="--r:${RARITY[a.rarity].c}">${achIcon(a, 3)}${esc(a.title)} <small class="hint">${dateStr(x.date)}</small></span>`; }).join('') || '<p class="hint">Пока нет достижений.</p>';
     const tx = S.db.logs.filter(l => l.kind === 'transaction' && l.user === id).slice(0, 5)
       .map(l => `<tr><td class="date">${timeStr(l.date)}</td><td>${esc(l.text)}</td><td class="num ${l.amount < 0 ? 'minus' : 'plus'}">${l.amount > 0 ? '+' : '−'}${fmt(Math.abs(l.amount))}</td></tr>`).join('');
