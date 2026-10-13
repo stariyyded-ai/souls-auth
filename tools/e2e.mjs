@@ -54,6 +54,13 @@ try {
   const cssRes = css && await anon.request.get(U + css[1], { headers: { 'Accept-Encoding': 'gzip' } });
   ok(cssRes && /immutable/.test(cssRes.headers()['cache-control']) && cssRes.headers()['content-encoding'] === 'gzip', 'стили сжаты и кэшируются надолго');
 
+  /* ---------- глазик у пароля ---------- */
+  await anon.goto(U + 'index.html'); await anon.fill('#l-pass', 'secret');
+  await anon.click('#l-pass + .eye');
+  ok(await anon.getAttribute('#l-pass', 'type') === 'text' && await anon.getAttribute('#l-pass + .eye', 'aria-pressed') === 'true', 'глазик показывает пароль');
+  await anon.click('#l-pass + .eye');
+  ok(await anon.getAttribute('#l-pass', 'type') === 'password', 'и снова прячет');
+
   /* ---------- неверный пароль ---------- */
   await login(anon, '123', 'wrong-pass');
   await anon.waitForFunction(() => document.getElementById('n-login').textContent.length > 0, null, { timeout: 8000 });
@@ -116,6 +123,13 @@ try {
   await st.reload(); await st.waitForTimeout(500);
   const me1 = (await api(st, 'GET', 'api/me')).body;
   ok(me1.state.inv.s12 === 1 && me1.state.souls === souls0 - 300 + 30 && me1.state.equipped.avatar === 'slug', 'покупка аватара сохранилась на сервере и надета (−300 душ, +30 за достижение «Клиент Андрэ»)');
+  // Фон «Привал у костра»: покупка меняет сцену сразу и на всех страницах
+  await st.goto(U + 'shop.html'); await st.waitForTimeout(500);
+  await st.click('[data-buy="s24"]'); await st.click('[data-buy="s24"]'); await st.waitForTimeout(1200);
+  ok(await st.evaluate(() => window.AshScene.name) === 'day', 'купленный фон сразу виден на странице');
+  await st.goto(U + 'cabinet.html'); await st.waitForTimeout(400);
+  ok(await st.evaluate(() => window.BOOT.me.theme === 'day' && document.documentElement.dataset.scene === 'day'), 'фон сохранился на сервере и стоит в кабинете');
+  ok((await api(st, 'POST', 'api/me/theme', { theme: 'autumn' })).status === 403, 'студент не может поставить фон бесплатно');
   await st.goto(U + 'tasks.html#t01'); await st.waitForTimeout(900);
   await st.addScriptTag({ url: U + 'tools/solutions.js' });
   await st.evaluate(() => { const s = TASK_SOLUTIONS.t01(TASKS[0]); const cms = document.querySelectorAll('.CodeMirror'); cms[0].CodeMirror.setValue(s.html); cms[1].CodeMirror.setValue(s.css); });
@@ -129,6 +143,9 @@ try {
   await login(ad, '123', '123123123');
   await ad.waitForURL(/admin\.html/, { timeout: 10000 });
   ok(await ad.locator('nav.topnav a[href="admin.html"]').count() === 1, 'администратор попадает в админку, пункт меню есть');
+  ok((await api(ad, 'POST', 'api/me/theme', { theme: 'autumn' })).status === 200, 'администратор меняет фон бесплатно');
+  await ad.reload(); await ad.waitForTimeout(300);
+  ok(await ad.evaluate(() => window.AshScene.name) === 'autumn', 'фон администратора сохранился');
   const adb = (await api(ad, 'GET', 'api/admin/db')).body;
   ok(adb.users.some(u => u.name === 'Рыцарь Тестов'), 'новый студент виден в пользователях');
   ok(adb.purchases.some(p => p.user === 'u24' && p.item === 's12'), 'покупка студента видна в админке');

@@ -4,7 +4,7 @@
   const St = window.Student, A = window.AdminStore;
   const { svg, banner, sfx = {} } = window.Ash;
   const RARITY = window.ASH_RARITY, ICONS = window.ASH_ICONS;
-  const TYPES = { title: 'Звание', avatar: 'Аватар', frame: 'Рамка', booster: 'Бустер', bonus: 'Бонус', merch: 'Мерч' };
+  const TYPES = { theme: 'Фон', title: 'Звание', avatar: 'Аватар', frame: 'Рамка', booster: 'Бустер', bonus: 'Бонус', merch: 'Мерч' };
   const ORDER = Object.keys(TYPES);
   const RORDER = ['common', 'rare', 'epic', 'legendary'];
   let filter = 'all';
@@ -20,6 +20,7 @@
     if (s.type === 'avatar') return avatar(s.art, st.equipped.frame, 'sm');
     if (s.type === 'frame') return avatar(st.equipped.avatar, s.art, 'sm');
     if (s.type === 'title') return '<span class="ttl" aria-hidden="true">«»</span>';
+    if (s.type === 'theme') return `<span class="theme-swatch" data-art="${esc(s.art || '')}" aria-hidden="true"></span>`;
     const key = s.type === 'booster' ? 'flame' : s.type === 'bonus' ? 'key' : 'scroll';
     return svg(ICONS[key], { X: RARITY[s.rarity || 'common'].c, Y: '#2a2010', O: '#e8772e', W: '#fff0b0' }, 5);
   }
@@ -80,7 +81,7 @@
       if (!res.ok) { toast(res.msg); if (sfx.error) sfx.error(); render(); return; }
       if (sfx.lit) sfx.lit();
       banner('bn-lit');
-      toast(St.once(s) ? `«${s.title}» куплено и надето.` : s.type === 'booster' ? `Бустер «${s.title}» сработает на следующих решённых заданиях.` : `«${s.title}» куплено. Покажите покупку куратору.`);
+      toast(s.type === 'theme' ? `Фон «${s.title}» куплен и уже на всех страницах.` : St.once(s) ? `«${s.title}» куплено и надето.` : s.type === 'booster' ? `Бустер «${s.title}» сработает на следующих решённых заданиях.` : `«${s.title}» куплено. Покажите покупку куратору.`);
       announce(res.got);
       render();
       document.querySelector(`[data-off="${s.type}"],[data-buy="${s.id}"]`)?.focus();

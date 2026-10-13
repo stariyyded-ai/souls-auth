@@ -6,7 +6,7 @@
    apply(st, action, env) меняет состояние st и возвращает результат для страницы.
    env: now(), uid(p), achievements, Economy, shopItem(id), sold(id), task(id), lesson(id), moduleTitle(id) */
 (() => {
-  const ONCE = ['title', 'avatar', 'frame'];
+  const ONCE = ['title', 'avatar', 'frame', 'theme'];
   const once = item => ONCE.includes(item.type);
   const titleOf = item => item.title.replace(/^Звание «|»$/g, '');
   const MAX_CODE = 100000;
@@ -17,7 +17,7 @@
     (me.achievements || []).forEach(a => { ach[a.id] = a.date; });
     return {
       v: 1, xp: me.xp || 0, souls: me.souls || 0, ach, history: [], tasks: {}, lessons: {},
-      inv: {}, equipped: { title: null, avatar: 'knight', frame: null }, boosters: {}, hidden: !!me.hidden, journal: []
+      inv: {}, equipped: { title: null, avatar: 'knight', frame: null, theme: null }, boosters: {}, hidden: !!me.hidden, journal: []
     };
   }
 
@@ -39,7 +39,8 @@
   const activeBoosters = st => Object.entries(st.boosters).filter(([, b]) => b.charges > 0).map(([id, b]) => ({ id, ...b }));
   const isEquipped = (st, item) => {
     const e = st.equipped;
-    return (item.type === 'title' && e.title === titleOf(item)) || (item.type === 'avatar' && e.avatar === item.art) || (item.type === 'frame' && e.frame === item.art);
+    return (item.type === 'title' && e.title === titleOf(item)) || (item.type === 'avatar' && e.avatar === item.art) || (item.type === 'frame' && e.frame === item.art)
+      || (item.type === 'theme' && e.theme === item.art);
   };
 
   function apply(st, a, env) {
@@ -95,7 +96,7 @@
         wear(item); return { ok: true };
       }
       case 'unequip': {
-        if (!['title', 'avatar', 'frame'].includes(a.slot)) return fail('Нет такого места.');
+        if (!ONCE.includes(a.slot)) return fail('Нет такого места.');
         st.equipped[a.slot] = a.slot === 'avatar' ? 'knight' : null; return { ok: true };
       }
 
@@ -181,6 +182,7 @@
       if (item.type === 'title') st.equipped.title = titleOf(item);
       if (item.type === 'avatar') st.equipped.avatar = item.art;
       if (item.type === 'frame') st.equipped.frame = item.art;
+      if (item.type === 'theme') st.equipped.theme = item.art; // фон всех страниц: day или autumn (js/scene.js)
     }
   }
 

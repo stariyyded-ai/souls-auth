@@ -37,7 +37,11 @@
   function replaceState(next) {
     Object.keys(st).forEach(k => delete st[k]);
     Object.assign(st, next);
+    scene();
   }
+  // Купленный и надетый фон сразу виден на странице
+  // (у администратора фон свой, бесплатный, его не трогаем)
+  const scene = () => { if (window.AshScene && ME.role !== 'admin') window.AshScene.set(st.equipped.theme || 'night'); };
   async function flush() {
     clearTimeout(timer); timer = null;
     if (sending || !queue.length) return;
@@ -75,6 +79,7 @@
     if (res.ok !== false) {
       queue.push(action);
       if (!timer && !sending) timer = setTimeout(flush, 300);
+      scene();
       listeners.forEach(fn => fn(st));
     }
     return res;

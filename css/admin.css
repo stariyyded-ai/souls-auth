@@ -210,3 +210,4 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
 .lg-legacy { color: var(--ember-hi); }
 .lg-tools .btn { width: auto; min-height: 0; padding: 8px 14px; font-size: 12px; }
 .lg-mod .data-table th:nth-child(n+2), .lg-mod .data-table td:nth-child(n+2) { width: 170px; }
+.theme-pick label { gap: 10px; }

@@ -117,5 +117,29 @@
     go(a.getAttribute('href'));
   }));
 
+  // Глазик у поля пароля: показать или скрыть то, что введено
+  const EYE = {
+    open: 'M3 1h6v1H3zM1 2h2v1H1zM9 2h2v1H9zM0 3h1v2H0zM11 3h1v2h-1zM1 5h2v1H1zM9 5h2v1H9zM3 6h6v1H3zM5 2h2v1H5zM4 3h4v2H4zM5 5h2v1H5z',
+    shut: 'M0 3h1v1H0zM11 3h1v1h-1zM1 4h2v1H1zM9 4h2v1H9zM3 5h6v1H3zM2 6h1v1H2zM5 6h2v1H5zM9 6h1v1H9z'
+  };
+  document.querySelectorAll('.input input[type=password]').forEach(inp => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'eye';
+    const draw = () => {
+      const shown = inp.type === 'text';
+      b.setAttribute('aria-label', shown ? 'Скрыть пароль' : 'Показать пароль');
+      b.setAttribute('aria-pressed', String(shown)); b.title = b.getAttribute('aria-label');
+      b.innerHTML = `<svg viewBox="0 0 12 8" width="24" height="16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="${shown ? EYE.shut : EYE.open}"/></svg>`;
+    };
+    b.addEventListener('click', () => {
+      const pos = inp.selectionStart;
+      inp.type = inp.type === 'password' ? 'text' : 'password'; draw();
+      inp.focus(); if (pos != null) try { inp.setSelectionRange(pos, pos); } catch (e) {}
+    });
+    // Перед отправкой формы пароль снова прячем, чтобы браузер не запомнил его как обычный текст
+    inp.form?.addEventListener('submit', () => { inp.type = 'password'; draw(); }, true);
+    draw(); inp.after(b);
+  });
+
   window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, isAdmin, api, notice, me, svg, S, C });
 })();

@@ -70,8 +70,10 @@ app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next
 /* ---------- данные для страниц ---------- */
 const parseState = row => row.state ? JSON.parse(row.state) : null;
 function me(row) {
-  const u = D.userOut(row);
-  return { id: u.id, name: u.name, role: u.role, group: u.group || null, xp: u.xp || 0, souls: u.souls || 0, hidden: !!u.hidden, achievements: u.achievements || [], courses: u.courses || [] };
+  const u = D.userOut(row), st = parseState(row);
+  // Фон страниц: студент надевает купленный в магазине, администратор выбирает сам бесплатно
+  const theme = u.role === 'admin' ? u.theme || null : st?.equipped?.theme || null;
+  return { id: u.id, name: u.name, theme, role: u.role, group: u.group || null, xp: u.xp || 0, souls: u.souls || 0, hidden: !!u.hidden, achievements: u.achievements || [], courses: u.courses || [] };
 }
 function adminDb() {
   const out = {};
@@ -232,6 +234,17 @@ app.post('/api/me/password', needUser, (req, res) => {
     D.addLog({ kind: 'action', user: req.user.id, text: 'сменил свой пароль' });
   });
   res.json({ ok: true });
+});
+
+// Фон для администратора: бесплатно и любой; студенту фон надевается через магазин
+const THEMES = ['night', 'day', 'autumn'];
+app.post('/api/me/theme', needUser, (req, res) => {
+  if (req.user.role !== 'admin') fail(403, 'Фон покупается в магазине.');
+  const theme = String(req.body?.theme || 'night');
+  if (!THEMES.includes(theme)) fail(400, 'Нет такого фона.');
+  const p = JSON.parse(req.user.profile); p.theme = theme === 'night' ? null : theme;
+  D.saveProfile(req.user.id, p);
+  res.json({ theme });
 });
 
 // Студент просит открыть курс: заявка приходит администратору в раздел «Заявки»; одна ожидающая заявка на курс

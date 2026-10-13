@@ -156,8 +156,19 @@ function dropEmails() {
   }));
 }
 
+// Фоны «Привал у костра» и «Осенний привал» появились позже: в уже созданную базу добавляем их один раз
+function ensureThemes() {
+  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('themes')) return;
+  const have = new Set(listColl('shop').map(s => s.id));
+  tx(() => {
+    loadSeed().shop.filter(s => s.type === 'theme' && !have.has(s.id)).forEach(s => putItem('shop', s));
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('themes', now());
+  });
+}
+
 if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) seed();
 ensureInvites();
+ensureThemes();
 dropEmails();
 
 module.exports = {
