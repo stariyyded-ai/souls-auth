@@ -336,6 +336,47 @@
   }
   function audioOff() { if (ac) { try { ac.close(); } catch (e) { } ac = null; } }
 
+  /* ---------- озвучка ---------- */
+  /* Рассказчик читает подписи сцен, мастер кода — свои реплики, низким медленным голосом.
+     Если в audio/intro/ лежит manifest.json со списком записанных файлов ({ "spring": "spring.mp3", "master1": "master1.mp3", … }),
+     играют записи; иначе голос синтезирует браузер (русский голос есть в Windows, Android, iOS и macOS).
+     Пока голос говорит, ролик не переходит к следующей сцене или реплике. Кнопка «Озвучка» запоминает выбор. */
+  const VOICE_KEY = 'ash:voice';
+  let voiceOn = (() => { try { const v = localStorage.getItem(VOICE_KEY); return v ? v === '1' : localStorage.getItem('ash:muted') !== '1'; } catch (e) { return true; } })();
+  let talking = false, talkTimer = 0, rec = null, files = null;
+  const synth = window.speechSynthesis;
+  const ruVoice = () => {
+    const vs = synth ? synth.getVoices().filter(v => /^ru/i.test(v.lang)) : [];
+    return vs.find(v => /google|natural|online|milena|irina|dmitry|pavel|yuri/i.test(v.name)) || vs[0] || null;
+  };
+  if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = () => {};
+  fetch('audio/intro/manifest.json').then(r => r.ok ? r.json() : null).then(m => { files = m; }).catch(() => {});
+  function hush() {
+    talking = false; clearTimeout(talkTimer);
+    if (rec) { try { rec.pause(); } catch (e) { } rec = null; }
+    if (synth) try { synth.cancel(); } catch (e) { }
+    if (master) master.gain.value = 0.05;
+  }
+  function say(key, text, who) {
+    hush();
+    if (!voiceOn || !text) return;
+    const done = () => { talking = false; clearTimeout(talkTimer); if (master) master.gain.value = 0.05; };
+    talking = true; if (master) master.gain.value = 0.018; // музыка тише, пока говорят
+    talkTimer = setTimeout(done, 2500 + text.length * 110); // на случай, если браузер не сообщит о конце речи
+    if (files && files[key]) {
+      rec = new Audio('audio/intro/' + files[key]); rec.onended = done; rec.onerror = done;
+      rec.play().catch(done);
+      return;
+    }
+    const v = ruVoice();
+    if (!synth || !v) { done(); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = v; u.lang = v.lang;
+    if (who === 'master') { u.rate = 0.82; u.pitch = 0.55; } else { u.rate = 0.95; u.pitch = 0.9; }
+    u.onend = done; u.onerror = done;
+    synth.speak(u);
+  }
+
   /* ---------- окно ролика ---------- */
   let box, cap, raf = 0, onDone = null, lastFocus = null;
   function build() {
@@ -359,11 +400,18 @@
         <p class="intro-season" aria-hidden="true"></p>
       </div>
       <div class="intro-cap" aria-live="polite"><span class="intro-who"></span><span class="intro-text"></span></div>
-      <button type="button" class="intro-skip" data-skip>Пропустить ✕</button>`;
+      <div class="intro-tools"><button type="button" class="intro-voice" data-voice aria-pressed="${voiceOn}">Озвучка: ${voiceOn ? 'вкл' : 'выкл'}</button><button type="button" class="intro-skip" data-skip>Пропустить ✕</button></div>`;
     document.body.appendChild(box);
     cv = box.querySelector('canvas'); g = cv.getContext('2d');
     cap = box.querySelector('.intro-cap');
     box.addEventListener('click', e => {
+      const vb = e.target.closest('[data-voice]');
+      if (vb) {
+        voiceOn = !voiceOn; try { localStorage.setItem(VOICE_KEY, voiceOn ? '1' : '0'); } catch (err) { }
+        vb.textContent = `Озвучка: ${voiceOn ? 'вкл' : 'выкл'}`; vb.setAttribute('aria-pressed', String(voiceOn));
+        if (!voiceOn) hush();
+        return;
+      }
       if (e.target.closest('[data-go]')) start();
       else if (e.target.closest('[data-again]')) start();
       else if (e.target.closest('[data-skip],[data-close]')) close();
@@ -395,14 +443,19 @@
     box.querySelector('.intro-start').hidden = true; box.querySelector('.intro-end').hidden = true;
     box.querySelector('.intro-skip').focus();
     audioOff(); audioOn();
-    let si = -1, t0 = 0, last = performance.now(), shown = '';
+    let si = -1, t0 = 0, last = performance.now(), shown = '', spoken = '';
+    const KEYS = ['prolog', 'spring', 'summer', 'autumn', 'winter'];
     const total = SCENES.reduce((a, s) => a + s.dur, 0);
     let clock = 0;
     cancelAnimationFrame(raf);
     const tick = now => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      clock += dt;
       let acc = 0, i = 0;
+      while (i < SCENES.length - 1 && clock >= acc + SCENES[i].dur) { acc += SCENES[i].dur; i++; }
+      // Пока голос говорит, не уходим дальше: сцена ждёт перед затемнением, реплика — до следующей
+      const sc0 = SCENES[i], t0n = clock - acc;
+      const nextAt = sc0.lines ? (sc0.lines.find(([at]) => at > t0n)?.[0] ?? sc0.dur) : sc0.dur - 0.7;
+      if (!(talking && t0n + dt >= nextAt - 0.05)) clock += dt;
       while (i < SCENES.length - 1 && clock >= acc + SCENES[i].dur) { acc += SCENES[i].dur; i++; }
       const sc = SCENES[i], t = clock - acc;
       if (i !== si) { si = i; sc.init(); t0 = acc; shown = ''; const s = box.querySelector('.intro-season'); s.textContent = [sc.season, sc.where].filter(Boolean).join(' · '); s.classList.remove('show'); void s.offsetWidth; s.classList.add('show'); }
@@ -416,6 +469,9 @@
       const since = sc.lines ? t - (sc.lines.filter(([at]) => t >= at).pop()?.[0] || 0) : t - 0.4;
       const typed = reduce ? full : full.slice(0, Math.max(0, Math.floor(since * 40)));
       if (typed !== shown) { shown = typed; setCaption(who, typed); }
+      // озвучка: подпись сцены — рассказчик, реплика — мастер
+      const key = sc.lines ? (full ? 'master' + (sc.lines.findIndex(l => l[1] === full) + 1) : '') : (t >= 0.4 ? KEYS[i] : '');
+      if (key && key !== spoken) { spoken = key; say(key, full, sc.lines ? 'master' : 'narrator'); }
       music(i);
       if (clock >= total) { finish(); return; }
       raf = requestAnimationFrame(tick);
@@ -424,12 +480,13 @@
   }
   function finish() {
     cancelAnimationFrame(raf);
+    say('end', 'Твой путь начинается здесь.', 'narrator');
     box.querySelector('.intro-end').hidden = false;
     box.querySelector('[data-close]').focus();
     setTimeout(audioOff, 1200);
   }
   function close() {
-    cancelAnimationFrame(raf); audioOff();
+    cancelAnimationFrame(raf); audioOff(); hush();
     box.remove(); box = null;
     document.documentElement.classList.remove('intro-open');
     if (lastFocus && lastFocus.focus) lastFocus.focus();

@@ -41,11 +41,13 @@
 }
 .intro-cap.on { opacity: 1; }
 .intro-who { color: var(--gold-hi); font-weight: 600; }
-.intro-skip {
-  position: absolute; right: 16px; top: max(12px, env(safe-area-inset-top, 0px)); padding: 8px 12px; cursor: pointer;
+.intro-tools { position: absolute; right: 16px; top: max(12px, env(safe-area-inset-top, 0px)); display: flex; gap: 8px; }
+.intro-skip, .intro-voice {
+  padding: 8px 12px; cursor: pointer;
   background: rgba(0,0,0,0.6); color: var(--bone); border: 2px solid var(--stone); font: 14px var(--font-ui);
 }
-.intro-skip:hover, .intro-skip:focus-visible { border-color: var(--gold); color: var(--gold-hi); outline: none; }
+.intro-voice[aria-pressed="false"] { color: var(--muted); }
+.intro-skip:hover, .intro-skip:focus-visible, .intro-voice:hover, .intro-voice:focus-visible { border-color: var(--gold); color: var(--gold-hi); outline: none; }
 @media (prefers-reduced-motion: reduce) { .intro, .intro-season.show { animation: none; opacity: 1; } }
 
 /* Кнопка внизу кабинета */
