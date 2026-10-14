@@ -1,0 +1,54 @@
+/* Вступительный ролик «Путь путника» (js/intro.js): окно поверх кабинета */
+.intro-open, .intro-open body { overflow: hidden; }
+.intro, .intro * { box-sizing: border-box; }
+.intro {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  background: rgba(5, 4, 6, 0.97);
+  animation: intro-in 0.5s ease-out;
+}
+@keyframes intro-in { from { opacity: 0; } }
+.intro-frame {
+  position: relative; width: min(100%, 960px, calc((100vh - 170px) * 16 / 9)); aspect-ratio: 16 / 9;
+  border: 3px solid var(--gold); box-shadow: 0 0 0 3px #000, 0 0 40px rgba(232,119,46,0.35);
+  background: #050406; overflow: hidden;
+}
+.intro canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+.intro-start, .intro-end {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 16px; text-align: center; background: radial-gradient(ellipse at center, rgba(5,4,6,0.35), rgba(5,4,6,0.85));
+}
+.intro-start[hidden], .intro-end[hidden] { display: none; }
+.intro-eyebrow { margin: 0; color: var(--gold); font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; }
+.intro-title { margin: 0; font-family: var(--font-display); font-size: clamp(26px, 5vw, 48px); letter-spacing: 0.06em; color: var(--bone); text-shadow: 0 0 18px rgba(232,119,46,0.6); text-wrap: balance; }
+.intro-lead { margin: 0; color: rgba(230,220,198,0.85); max-width: 40ch; }
+.intro-acts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 8px; }
+.intro-acts .btn { width: auto; height: 46px; margin: 0; padding-inline: 22px; font-size: 14px; letter-spacing: 0.12em; }
+.intro-path { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.intro-path li { padding: 4px 9px; border: 2px solid var(--stone); background: rgba(0,0,0,0.5); font-size: 13px; color: rgba(230,220,198,0.85); }
+.intro-path b { color: var(--ember-hi); font-weight: 600; margin-right: 4px; }
+.intro-season {
+  position: absolute; left: 14px; top: 10px; margin: 0; font-family: var(--font-display); font-size: clamp(14px, 2.4vw, 22px);
+  letter-spacing: 0.14em; color: #fff6dc; text-shadow: 0 2px 0 #000, 0 0 12px rgba(0,0,0,0.8); opacity: 0;
+}
+.intro-season.show { animation: intro-season 4.5s ease-out forwards; }
+@keyframes intro-season { 0% { opacity: 0; transform: translateY(-6px); } 15%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.intro-cap {
+  width: min(100%, 960px); min-height: 3.4em; margin: 0; padding: 10px 14px;
+  border: 2px solid var(--stone); background: rgba(0,0,0,0.6); color: var(--bone); font-size: clamp(15px, 2.2vw, 19px); line-height: 1.45;
+  opacity: 0; transition: opacity 0.3s;
+}
+.intro-cap.on { opacity: 1; }
+.intro-who { color: var(--gold-hi); font-weight: 600; }
+.intro-skip {
+  position: absolute; right: 16px; top: max(12px, env(safe-area-inset-top, 0px)); padding: 8px 12px; cursor: pointer;
+  background: rgba(0,0,0,0.6); color: var(--bone); border: 2px solid var(--stone); font: 14px var(--font-ui);
+}
+.intro-skip:hover, .intro-skip:focus-visible { border-color: var(--gold); color: var(--gold-hi); outline: none; }
+@media (prefers-reduced-motion: reduce) { .intro, .intro-season.show { animation: none; opacity: 1; } }
+
+/* Кнопка внизу кабинета */
+.replay { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.replay p { margin: 0; flex: 1 1 280px; color: rgba(230,220,198,0.85); }
+.replay .btn { width: auto; height: 46px; margin: 0; padding-inline: 20px; font-size: 13px; letter-spacing: 0.12em; }

@@ -107,6 +107,9 @@
 
     /* ---------- таблица лидеров ---------- */
     setHidden(v) { run({ type: 'hidden', value: !!v }); },
+    // Вступительный ролик кабинета
+    introSeen() { return !!st.introSeen; },
+    markIntro() { if (!st.introSeen) run({ type: 'intro' }); },
 
     /* ---------- задания ---------- */
     // Черновик кода, чтобы не потерять при перезагрузке

@@ -31,7 +31,11 @@ async function login(p, name, pass) {
   await p.goto(U + 'index.html');
   await p.fill('#l-name', name); await p.fill('#l-pass', pass);
   await p.click('#b-login');
+  // Студента в кабинете при первом входе встречает ролик: закрываем его, чтобы не мешал остальным проверкам
+  await p.waitForURL(/cabinet|admin/, { timeout: 5000 }).catch(() => {});
+  if (/cabinet/.test(p.url())) { const box = p.locator('.intro'); if (await box.count() || await box.waitFor({ timeout: 2000 }).then(() => true, () => false)) { introSeenOnLogin = true; await p.keyboard.press('Escape'); } }
 }
+let introSeenOnLogin = false;
 // Код регистрации группы читаем прямо из базы теста
 const { DatabaseSync } = await import('node:sqlite');
 const invite = gid => { const d = new DatabaseSync(path.join(DATA, 'ash.db')); const g = JSON.parse(d.prepare("SELECT data FROM items WHERE coll = 'groups' AND id = ?").get(gid).data); d.close(); return g.invite; };
@@ -367,6 +371,15 @@ try {
   await ad.click('[data-ghide-mod="mdk2"]'); await ad.waitForTimeout(900);
   await sx.goto(U + 'lessons.html'); await sx.waitForTimeout(800);
   ok(await sx.locator('#modules .module').count() === 5 && await sx.locator('#modules a[href="#mdk-01"]').count() === 1, 'урок и тема снова видны группе после «Показать»');
+
+  /* ---------- вступительный ролик ---------- */
+  ok(introSeenOnLogin, 'при первом входе студента в кабинет открывается ролик «Путь путника»');
+  await sx.goto(U + 'cabinet.html'); await sx.waitForTimeout(800);
+  ok(await sx.locator('.intro').count() === 0, 'второй раз ролик сам не открывается');
+  await sx.bringToFront(); await sx.click('#intro-btn'); await sx.click('.intro [data-go]');
+  ok(await sx.waitForFunction(() => document.querySelector('.intro-text')?.textContent.startsWith('Пепел'), null, { timeout: 8000 }).then(() => true, () => false), 'кнопка внизу кабинета запускает ролик, идут подписи');
+  await sx.keyboard.press('Escape'); await sx.waitForTimeout(300);
+  ok(await sx.locator('.intro').count() === 0, 'Esc закрывает ролик');
 
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);

@@ -130,6 +130,11 @@
         journal('action', a.value ? 'скрыл себя из таблицы лидеров' : 'вернулся в таблицу лидеров');
         return { ok: true };
 
+      // Вступительный ролик кабинета показан (js/intro.js): при следующих входах он сам не открывается
+      case 'intro':
+        if (!st.introSeen) st.introSeen = env.now();
+        return { ok: true };
+
       /* ---------- задания ---------- */
       case 'draft': {
         const c = code(a.code); if (!env.task(a.task) || !c) return fail('Черновик не сохранён.');

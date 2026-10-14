@@ -184,5 +184,9 @@
     const t = $('toast'); t.textContent = text; t.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
   }
+  /* ---------- вступительный ролик ---------- */
+  // При первом входе студента ролик открывается сам и сразу отмечается как показанный; потом — кнопкой внизу кабинета
+  $('intro-btn').addEventListener('click', () => window.AshIntro.play());
+  if (B.me.role === 'student' && !St.introSeen()) { St.markIntro(); window.AshIntro.play(); }
   document.querySelectorAll('.corner').forEach(n => { if (!n.innerHTML) n.innerHTML = svg(window.Ash.S.corner, { G: C.gold, L: '#7a5f2e' }, 4); });
 })();
