@@ -79,7 +79,7 @@
   function lists(g) {
     const all = S.db.lessonList || [];
     if (Array.isArray(g.lessons)) return { lessons: g.lessons.slice(), open: (g.lessonsOpen || []).slice(), legacy: false };
-    const open = all.filter(l => Logic.lessonAccess(l, g, 'student') === 'open').map(l => l.id);
+    const open = all.filter(l => Logic.lessonAccess({ ...l, hidden: false, modHidden: false }, g, 'student') === 'open').map(l => l.id);
     return { lessons: open.slice(), open, legacy: true };
   }
   function save(g, lessons, open, text) {
@@ -156,6 +156,7 @@
         <div class="f"><label for="le-ses">Номер занятия в курсе</label><input id="le-ses" type="number" min="1" max="999" value="${l.session || ''}" placeholder="необязательно"></div>
         <div class="f"><label for="le-min">Минут на занятие</label><input id="le-min" type="number" min="1" max="600" value="${l.minutes}"></div>
         <div class="f"><label for="le-diff">Сложность</label><select id="le-diff">${DIFF.map(d => `<option${d === l.difficulty ? ' selected' : ''}>${d}</option>`).join('')}</select></div>
+        <div class="f full"><div class="checks"><label><input type="checkbox" id="le-hid"${l.hidden ? ' checked' : ''}> Скрыть урок <small class="hint">студенты не увидят его в «Уроках», в кабинете и в заданиях</small></label></div></div>
         <div class="f full"><span class="lbl">Задания урока, по порядку</span>
           <div class="le-tasks">${[0, 1, 2, 3].map(i => `<select id="le-task-${i}" class="le-task" aria-label="Задание ${i + 1}">${taskOptions(lTasks[i])}</select>`).join('')}</div>
           <span class="hint">Урок считается пройденным, когда прочитан, квиз решён без ошибок и все задания сданы.</span></div>
@@ -183,7 +184,8 @@
         item = {
           id: id || S.uid('l'), title: $('le-title').value.trim(), module: $('le-mod').value, lesson: +$('le-n').value || 1,
           minutes: +$('le-min').value || 120, difficulty: $('le-diff').value, kind: $('le-kind').value, session: +$('le-ses').value || undefined,
-          tasks: [...new Set([...document.querySelectorAll('.le-task')].map(x => x.value).filter(Boolean))], markdown: $('le-md').value, quiz
+          tasks: [...new Set([...document.querySelectorAll('.le-task')].map(x => x.value).filter(Boolean))], markdown: $('le-md').value, quiz,
+          hidden: $('le-hid').checked
         };
         item.task = item.tasks[0] || null;
         if (item.title.length < 2) return 'Напишите название урока.';
@@ -202,17 +204,27 @@
     });
     if (v !== 'ok' || !item) return;
     // Изменённый урок из курса хранится под своим id: в первый раз — создаём запись, дальше — обновляем
-    const isNew = !id || (src.builtin && !src.edited);
+    const isNew = !id || (src.builtin && !src.stored);
     if (await S.saveLesson(item, isNew)) toast(id ? `Урок «${item.title}» сохранён.` : `Урок «${item.title}» создан. Добавьте его группам галочкой «В группе».`);
   }
+  // Удалить можно только свой урок; урок курса можно скрыть (кнопка «Скрыть» рядом)
   async function removeLesson(id) {
     const l = (S.db.lessonList || []).find(x => x.id === id);
-    if (l.builtin) {
-      if (!await A.confirmBox('Скрыть урок курса?', `«${esc(l.title)}» пропадёт у всех групп. Вернуть его можно внизу раздела, в списке скрытых уроков.`, 'СКРЫТЬ')) return;
-      if (await S.saveLesson({ id, removed: true, title: l.title }, !l.edited)) toast('Урок скрыт.');
-    } else if (await A.confirmBox('Удалить урок?', `«${esc(l.title)}» будет удалён у всех групп. Прогресс студентов по нему перестанет учитываться.`)) {
+    if (await A.confirmBox('Удалить урок?', `«${esc(l.title)}» будет удалён у всех групп. Прогресс студентов по нему перестанет учитываться. Если урок нужен потом, лучше нажмите «Скрыть».`)) {
       if (await S.dropLesson(id)) toast('Урок удалён.');
     }
+  }
+  /* Скрыть или показать урок. Скрытый урок студенты не видят нигде: ни в «Уроках», ни в кабинете, ни в заданиях;
+     прогресс по нему сохраняется. У неизменённого урока курса хранится только отметка { id, hidden, title }. */
+  async function toggleLesson(id) {
+    const l = (S.db.lessonList || []).find(x => x.id === id), hidden = !l.hidden;
+    const raw = (S.db.lessons || []).find(o => o.id === id);
+    const item = l.builtin && !l.edited ? { id, hidden, title: l.title } : { ...raw, hidden };
+    if (await S.saveLesson(item, !l.stored)) toast(hidden ? `«${l.title}» скрыт от студентов.` : `«${l.title}» снова виден студентам.`);
+  }
+  async function toggleModule(id) {
+    const m = S.byId('modules', id), hidden = !m.hidden;
+    if (await S.saveModule({ ...m, hidden }, false)) toast(hidden ? `Тема «${m.title}» скрыта: её уроки студенты не видят.` : `Тема «${m.title}» снова видна студентам.`);
   }
 
   A.register('lessons', (root, st) => {
@@ -222,9 +234,9 @@
     const g = S.byId('groups', st.group), L = g ? lists(g) : { lessons: [], open: [], legacy: false };
     const added = new Set(L.lessons), open = new Set(L.open);
     const students = g ? S.db.users.filter(u => u.group === g.id && u.role === 'student').length : 0;
-    const hidden = (S.db.lessons || []).filter(o => o.removed);
+    const hiddenN = all.filter(l => l.hidden || l.modHidden).length;
     root.innerHTML = `
-      <div class="view-head"><h1>Уроки групп</h1><span class="count">${all.length} уроков в ${S.db.modules.length} темах${g ? `, группе ${esc(g.code)} добавлено ${added.size}, можно проходить ${open.size}` : ''}</span>
+      <div class="view-head"><h1>Уроки групп</h1><span class="count">${all.length} уроков в ${S.db.modules.length} темах${hiddenN ? `, скрыто ${hiddenN}` : ''}${g ? `, группе ${esc(g.code)} добавлено ${added.size}, можно проходить ${open.size}` : ''}</span>
         <button type="button" class="btn" id="lg-new-mod">НОВАЯ ТЕМА</button></div>
       <section class="plate">
         ${g ? `<div class="toolbar lg-tools">
@@ -233,26 +245,25 @@
           <button type="button" class="btn ghost" id="lg-open-all">РАЗРЕШИТЬ ВСЕ ДОБАВЛЕННЫЕ</button>
           <button type="button" class="btn ghost" id="lg-close-all">ЗАКРЫТЬ ВСЕ</button>
         </div>
-        <p class="hint">${students} студентов в группе. «В группе» — студенты видят урок в списке. «Можно проходить» — урок открыт: можно читать, решать квиз и получать награду. Без разрешения урок виден с замком.</p>
+        <p class="hint">${students} студентов в группе. «В группе» — студенты видят урок в списке. «Можно проходить» — урок открыт: можно читать, решать квиз и получать награду. Без разрешения урок виден с замком. «Скрыть» прячет урок или целую тему от всех студентов, галочки групп при этом сохраняются.</p>
         ${L.legacy ? '<p class="hint lg-legacy">Эту группу ещё не настраивали: сейчас ей открыты уроки, у которых в описании не указаны группы. Первое изменение сохранит собственный список группы.</p>' : ''}`
         : '<p class="hint">Групп пока нет: создайте группу в разделе «Группы», чтобы выдавать ей уроки. Темы и уроки можно готовить уже сейчас.</p>'}
         ${S.db.modules.map((m, mi) => {
           const ls = all.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
-          return `<div class="lg-mod"><div class="lg-mod-head"><h2>${mi + 1}. ${esc(m.title)}</h2>
+          return `<div class="lg-mod${m.hidden ? ' off' : ''}"><div class="lg-mod-head"><h2>${mi + 1}. ${esc(m.title)}${m.hidden ? ' <span class="pill off">скрыта</span>' : ''}</h2>
               <button type="button" class="act" data-new-les="${m.id}">+ Урок</button>
               ${g && ls.length ? `<button type="button" class="act" data-mod-add="${m.id}">Добавить тему группе</button><button type="button" class="act" data-mod-open="${m.id}">Разрешить тему</button>` : ''}
-              <button type="button" class="act" data-ed-mod="${m.id}">Изменить тему</button><button type="button" class="act danger" data-rm-mod="${m.id}">Удалить тему</button></div>
+              <button type="button" class="act" data-ed-mod="${m.id}">Изменить тему</button><button type="button" class="act" data-hide-mod="${m.id}">${m.hidden ? 'Показать тему' : 'Скрыть тему'}</button><button type="button" class="act danger" data-rm-mod="${m.id}">Удалить тему</button></div>
             ${ls.length ? `<div class="table-wrap"><table class="data-table">
               <thead><tr><th>Урок</th>${g ? '<th>В группе</th><th>Можно проходить</th>' : ''}<th class="acts"><span class="sr">Действия</span></th></tr></thead>
-              <tbody>${ls.map(l => `<tr>
-                <td>${l.lesson}. ${esc(l.title)}<small>${l.custom ? 'ваш урок' : l.edited ? 'урок курса, изменён' : 'урок курса'} · ${l.minutes} мин · ${(l.quiz || []).length} вопр.${(l.tasks || []).length > 1 ? ` · заданий: ${l.tasks.length}` : (l.tasks || []).length || l.task ? ' · задание' : ''}</small></td>
+              <tbody>${ls.map(l => `<tr${l.hidden ? ' class="off"' : ''}>
+                <td>${l.lesson}. ${esc(l.title)}${l.hidden ? ' <span class="pill off">скрыт</span>' : ''}<small>${l.custom ? 'ваш урок' : l.edited ? 'урок курса, изменён' : 'урок курса'} · ${l.minutes} мин · ${(l.quiz || []).length} вопр.${(l.tasks || []).length > 1 ? ` · заданий: ${l.tasks.length}` : (l.tasks || []).length || l.task ? ' · задание' : ''}</small></td>
                 ${g ? `<td><label class="check"><input type="checkbox" data-add="${l.id}"${added.has(l.id) ? ' checked' : ''}> <span class="sr">Добавить «${esc(l.title)}» группе</span></label></td>
                 <td><label class="check"><input type="checkbox" data-open="${l.id}"${open.has(l.id) ? ' checked' : ''}${added.has(l.id) ? '' : ' disabled'}> <span class="sr">Разрешить «${esc(l.title)}»</span></label></td>` : ''}
-                <td class="acts"><button type="button" class="act" data-ed-les="${l.id}">Изменить</button>${l.edited ? `<button type="button" class="act" data-revert="${l.id}">Вернуть как было</button>` : ''}<button type="button" class="act danger" data-rm-les="${l.id}">${l.builtin ? 'Скрыть' : 'Удалить'}</button></td>
+                <td class="acts"><button type="button" class="act" data-ed-les="${l.id}">Изменить</button>${l.edited ? `<button type="button" class="act" data-revert="${l.id}">Вернуть как было</button>` : ''}<button type="button" class="act" data-hide-les="${l.id}">${l.hidden ? 'Показать' : 'Скрыть'}</button>${l.custom ? `<button type="button" class="act danger" data-rm-les="${l.id}">Удалить</button>` : ''}</td>
               </tr>`).join('')}</tbody>
             </table></div>` : '<p class="empty">В теме пока нет уроков. Нажмите «+ Урок».</p>'}</div>`;
         }).join('') || '<p class="empty">Тем пока нет. Нажмите «НОВАЯ ТЕМА».</p>'}
-        ${hidden.length ? `<div class="lg-mod"><div class="lg-mod-head"><h2>Скрытые уроки курса</h2></div><ul class="lg-hidden">${hidden.map(o => `<li>${esc(o.title || o.id)} <button type="button" class="act" data-revert="${o.id}">Вернуть</button></li>`).join('')}</ul></div>` : ''}
       </section>`;
     $('lg-new-mod').addEventListener('click', () => editModule());
     const modIds = m => all.filter(l => l.module === m).map(l => l.id);
@@ -269,7 +280,7 @@
       });
     }
     root.addEventListener('click', async e => {
-      const b = e.target.closest('[data-mod-add],[data-mod-open],[data-new-les],[data-ed-mod],[data-rm-mod],[data-ed-les],[data-rm-les],[data-revert]'); if (!b) return;
+      const b = e.target.closest('[data-mod-add],[data-mod-open],[data-new-les],[data-ed-mod],[data-rm-mod],[data-hide-mod],[data-ed-les],[data-rm-les],[data-hide-les],[data-revert]'); if (!b) return;
       const d = b.dataset;
       if (d.modAdd) save(g, [...L.lessons, ...modIds(d.modAdd)], L.open, 'Тема добавлена группе.');
       if (d.modOpen) { const m = modIds(d.modOpen); save(g, [...L.lessons, ...m], [...L.open, ...m], 'Тема разрешена группе.'); }
@@ -278,7 +289,13 @@
       if (d.rmMod) removeModule(d.rmMod);
       if (d.edLes) editLesson(d.edLes);
       if (d.rmLes) removeLesson(d.rmLes);
-      if (d.revert && await A.confirmBox('Вернуть урок курса?', 'Урок снова станет таким, как в курсе. Ваши правки пропадут.', 'ВЕРНУТЬ')) { if (await S.dropLesson(d.revert)) toast('Урок возвращён.'); }
+      if (d.hideLes) toggleLesson(d.hideLes);
+      if (d.hideMod) toggleModule(d.hideMod);
+      // Скрытый урок после возврата остаётся скрытым: оставляем только отметку
+      if (d.revert && await A.confirmBox('Вернуть урок курса?', 'Урок снова станет таким, как в курсе. Ваши правки пропадут.', 'ВЕРНУТЬ')) {
+        const l = all.find(x => x.id === d.revert);
+        if (await (l?.hidden ? S.saveLesson({ id: l.id, hidden: true, title: l.title }, false) : S.dropLesson(d.revert))) toast('Урок возвращён.');
+      }
     });
   });
 

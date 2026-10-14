@@ -29,7 +29,7 @@
   $('soul-icon').innerHTML = icon('soul', { Y: '#7fb0ff', W: '#e8f1ff' }, 5);
 
   /* ---------- уровень и опыт ---------- */
-  const lv = D.levels;
+  const lv = E.LEVELS;
   let cur = 0;
   lv.forEach((l, i) => { if (D.xp >= l.xp) cur = i; });
   const next = lv[cur + 1];
@@ -121,17 +121,20 @@
   // Курсы — из админки. Открыт курс, если администратор дал доступ группе студента или ему лично;
   // закрытый можно попросить открыть: заявка приходит администратору в раздел «Заявки»
   const access = new Set([...(myGroup?.courses || []), ...(B.me.courses || [])]);
+  // Уроки курса — видимые студенту уроки из тем курса (у курса без тем — все видимые уроки)
+  const courseLessons = c => window.LESSONS.filter(l => lessonAccess(l) !== 'hidden' && (!(c.modules || []).length || c.modules.includes(l.module)));
   const courses = B.db.courses.slice().sort((a, b) => access.has(b.id) - access.has(a.id));
   const current = courses.find(c => access.has(c.id));
   $('course-name').textContent = current ? current.title : 'курс ещё не открыт';
   $('course-list').innerHTML = courses.map(c => {
     const open = access.has(c.id);
     const req = (B.db.requests || []).find(r => r.course === c.id); // последняя заявка на этот курс
-    const right = c === current ? `<span class="tagline active">ИДЁТ · ${all.length ? Math.round(done / all.length * 100) : 0}%</span>`
-      : open ? '<span class="tagline active">ОТКРЫТ</span>'
+    // Открытый курс: кнопка «Открыть» ведёт в «Уроки», где показаны только темы этого курса
+    const cl = open ? courseLessons(c) : [], cd = cl.filter(l => E.lessonDone(l, SS)).length;
+    const right = open ? `<div class="course-go"><span class="tagline active">${c === current ? 'ИДЁТ' : 'ОТКРЫТ'}${cl.length ? ` · ${Math.round(cd / cl.length * 100)}%` : ''}</span><a class="btn" href="lessons.html#course-${encodeURIComponent(c.id)}">ОТКРЫТЬ</a></div>`
       : req?.status === 'pending' ? '<button type="button" class="btn" disabled>ЗАЯВКА ОТПРАВЛЕНА</button>'
       : `<button type="button" class="btn" data-ask="${c.id}">${req?.status === 'declined' ? 'ПОПРОСИТЬ СНОВА' : 'ПОПРОСИТЬ ДОСТУП'}</button>`;
-    const note = open ? '' : req?.status === 'pending' ? ' · ждёт ответа преподавателя' : req?.status === 'declined' ? ' · преподаватель пока отклонил заявку' : ' · откроет преподаватель';
+    const note = open ? (cl.length ? ` · пройдено ${cd} из ${cl.length} уроков` : '') : req?.status === 'pending' ? ' · ждёт ответа преподавателя' : req?.status === 'declined' ? ' · преподаватель пока отклонил заявку' : ' · откроет преподаватель';
     return `<li class="course ${open ? 'active' : 'locked'}"><div class="course-info"><p class="course-title">${esc(c.title)}</p><p class="course-text">${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}${note}</p></div>${right}</li>`;
   }).join('') || '<li class="course locked"><div class="course-info"><p class="course-text">Курсов пока нет.</p></div></li>';
   $('course-list').addEventListener('click', async e => {

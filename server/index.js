@@ -306,10 +306,19 @@ function checkInvite(g) {
 }
 
 /* Урок, который администратор создал или изменил. Изменённый урок из content/lessons хранится под тем же id
-   и заменяет исходный; { id, removed: true } прячет исходный урок. */
+   и заменяет исходный; запись { id, hidden, title } у урока курса только прячет или показывает его, не меняя текст.
+   Поле hidden у любого урока: true — студенты не видят урок в разделе «Уроки», в кабинете и в заданиях. */
 const str = (v, max) => typeof v === 'string' && v.length <= max;
 function checkLesson(it) {
-  if (it.removed === true) { if (!D.LESSONS.some(l => l.id === it.id)) fail(400, 'Скрыть можно только урок из курса.'); return; }
+  const builtin = D.LESSONS.find(l => l.id === it.id);
+  if (builtin && Object.keys(it).every(k => ['id', 'hidden', 'removed', 'title'].includes(k))) {
+    const hidden = !!(it.hidden || it.removed);
+    Object.keys(it).forEach(k => delete it[k]);
+    Object.assign(it, { id: builtin.id, hidden, title: builtin.title });
+    return;
+  }
+  if (it.removed === true) fail(400, 'Урок можно скрыть или удалить.');
+  it.hidden = !!it.hidden;
   it.title = String(it.title || '').trim();
   if (it.title.length < 2 || it.title.length > 120) fail(400, 'Название урока — от 2 до 120 символов.');
   if (!D.getItem('modules', String(it.module))) fail(400, 'Выберите тему урока.');
@@ -339,6 +348,7 @@ function checkModule(m) {
   m.title = String(m.title || '').trim();
   if (m.title.length < 2 || m.title.length > 80) fail(400, 'Название темы — от 2 до 80 символов.');
   m.lessons = Math.max(0, Math.min(99, parseInt(m.lessons, 10) || 0));
+  m.hidden = !!m.hidden; // скрытая тема: её уроки студенты не видят
 }
 
 // Уроки группы: только существующие; разрешить можно только добавленный урок. Новая группа начинает без уроков.
@@ -391,6 +401,26 @@ function changeUser(id, fn) {
   D.db.prepare('UPDATE users SET profile = ?, role = ?, state = ?, rev = rev + 1 WHERE id = ?').run(JSON.stringify(p), p.role, st && JSON.stringify(st), id);
   return D.userOut(D.getUser(id));
 }
+/* Время студента на задания: для карточки студента в админке.
+   active — сколько секунд студент реально работал (страница считает, пока задание открыто и он что-то делает),
+   solvedActive — сколько из них ушло до первой успешной сдачи; startedAt → solvedAt — сколько прошло по календарю. */
+app.get('/api/admin/users/:id/tasks', needAdmin, (req, res) => {
+  const row = D.getUser(req.params.id);
+  if (!row) fail(404, 'Пользователь не найден.');
+  const st = parseState(row), lessons = D.allLessons(), E = D.GAME.Economy;
+  const tasks = Object.entries(st?.tasks || {}).map(([id, t]) => {
+    const task = D.GAME.TASKS.find(x => x.id === id);
+    if (!task || !t || !(t.startedAt || t.attempts)) return null;
+    const l = task.lesson && lessons.find(x => x.id === task.lesson);
+    return {
+      id, title: task.title, where: l ? (l.session ? `Занятие ${l.session}. ${l.title}` : l.title) : 'Испытания', norm: task.minutes,
+      startedAt: t.startedAt || null, solvedAt: t.solvedAt || null, lastDate: t.lastDate || null, attempts: t.attempts || 0,
+      active: t.active || 0, solvedActive: t.solvedActive ?? null, solved: !!t.solved,
+      best: t.best || 0, max: Math.round(task.points * (1 + E.CLEAN_SHARE + E.SPEED_SHARE))
+    };
+  }).filter(Boolean).sort((a, b) => String(b.lastDate || b.startedAt).localeCompare(String(a.lastDate || a.startedAt)));
+  res.json({ tasks });
+});
 app.post('/api/admin/users/:id/role', needAdmin, (req, res) => {
   const role = req.body?.role;
   if (!['student', 'teacher', 'admin'].includes(role)) fail(400, 'Нет такой роли.');

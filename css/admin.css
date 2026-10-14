@@ -222,8 +222,14 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
 .le-row .le-qa { width: 72px; }
 .le-preview { margin-top: 10px; padding: 14px 16px; max-height: 420px; overflow: auto; border: 2px dashed var(--stone); background: rgba(0,0,0,0.3); line-height: 1.55; }
 .le-preview pre { overflow-x: auto; padding: 10px; background: #0d0b10; }
-.lg-hidden { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.lg-hidden li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lg-mod.off .data-table, .lg-mod tr.off td:first-child { opacity: 0.6; }
+.lg-mod h2 .pill, .lg-mod td .pill { vertical-align: middle; margin-left: 6px; }
 .lg-mod .empty { color: var(--muted); }
 .le-tasks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .le-tasks select { min-width: 0; width: 100%; }
+
+/* Время на задания в карточке студента */
+.time-wrap { max-height: 340px; overflow: auto; }
+.time-table { min-width: 640px; }
+.time-table td small { display: block; }
+.time-table td.over { color: var(--ember-hi); }

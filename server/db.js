@@ -116,8 +116,10 @@ LESSONS.forEach(l => {
 let lessonsMemo = { key: null, list: [] };
 function allLessons() {
   const rows = db.prepare("SELECT data FROM items WHERE coll = 'lessons' ORDER BY pos").all().map(r => r.data);
-  const k = rows.join('\n');
-  if (k !== lessonsMemo.key) lessonsMemo = { key: k, list: JSON.parse(JSON.stringify(W.StudentLogic.mergeLessons(LESSONS, rows.map(r => JSON.parse(r))))) };
+  // Скрытая тема прячет свои уроки, поэтому темы тоже входят в ключ
+  const mods = db.prepare("SELECT data FROM items WHERE coll = 'modules' ORDER BY pos").all().map(r => r.data);
+  const k = rows.join('\n') + '\n--\n' + mods.join('\n');
+  if (k !== lessonsMemo.key) lessonsMemo = { key: k, list: JSON.parse(JSON.stringify(W.StudentLogic.mergeLessons(LESSONS, rows.map(r => JSON.parse(r)), mods.map(r => JSON.parse(r))))) };
   return lessonsMemo.list;
 }
 const GAME = { Economy: W.Economy, Logic: W.StudentLogic, TASKS: W.TASKS, ACHIEVEMENTS: W.STUDENT.achievements };
@@ -196,7 +198,22 @@ function ensureCourse() {
 }
 
 if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) { seed(); db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('mdk0801', now()); }
+// Темы курса (кнопка «Открыть» в кабинете): старым базам проставляем их из начальных данных, если поля ещё нет
+function ensureCourseModules() {
+  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('courseModules')) return;
+  const s = loadSeed();
+  tx(() => {
+    listColl('courses').forEach(c => {
+      if (Array.isArray(c.modules)) return;
+      const seedC = s.courses.find(x => x.id === c.id);
+      putItem('courses', { ...c, modules: (seedC?.modules || []).filter(id => getItem('modules', id)) });
+    });
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('courseModules', now());
+  });
+}
+
 ensureCourse();
+ensureCourseModules();
 ensureInvites();
 ensureThemes();
 dropEmails();

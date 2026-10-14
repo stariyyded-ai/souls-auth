@@ -28,6 +28,8 @@
      если в его описании не указаны группы или указана группа студента. Администратору открыто всё. */
   function lessonAccess(lesson, group, role) {
     if (role === 'admin') return 'open';
+    // Скрытый администратором урок (или вся его тема) не виден никому из студентов
+    if (lesson.hidden || lesson.modHidden) return 'hidden';
     if (!group || !Array.isArray(group.lessons)) {
       const only = lesson.groups || [];
       return !only.length || (group && only.includes(group.code)) ? 'open' : 'wait';
@@ -37,16 +39,22 @@
   }
 
   /* Уроки курса: встроенные (js/content.js) плюс правки администратора (коллекция lessons на сервере).
-     Запись с id встроенного урока заменяет его, { id, removed: true } прячет, остальные — новые уроки.
-     builtin — урок из курса, edited — изменён администратором, custom — создан администратором. */
-  function mergeLessons(builtins, overrides) {
+     Запись с id встроенного урока заменяет его; запись только с флагом { id, hidden } (или старое removed) прячет
+     урок, не меняя его; остальные записи — новые уроки.
+     builtin — урок из курса, edited — изменён администратором, custom — создан администратором,
+     stored — для урока есть запись в базе, hidden — скрыт, modHidden — скрыта его тема (modules: темы из админки). */
+  const FLAG_KEYS = ['id', 'hidden', 'removed', 'title'];
+  function mergeLessons(builtins, overrides, modules) {
     const map = new Map(builtins.map(l => [l.id, { ...l, builtin: true }]));
     (overrides || []).forEach(o => {
-      if (o.removed) { const b = map.get(o.id); if (b) b.removed = true; return; }
       const b = map.get(o.id);
-      map.set(o.id, b ? { ...b, ...o, builtin: true, edited: true } : { groups: [], quiz: [], ...o, custom: true });
+      if (!b) { if (!o.removed) map.set(o.id, { groups: [], quiz: [], ...o, custom: true, stored: true, hidden: !!o.hidden }); return; }
+      const flagOnly = Object.keys(o).every(k => FLAG_KEYS.includes(k));
+      map.set(o.id, flagOnly ? { ...b, stored: true, hidden: !!(o.hidden || o.removed) }
+        : { ...b, ...o, builtin: true, edited: true, stored: true, hidden: !!o.hidden });
     });
-    return [...map.values()].filter(l => !l.removed);
+    const off = new Set((modules || []).filter(m => m.hidden).map(m => m.id));
+    return [...map.values()].map(l => off.has(l.module) ? { ...l, modHidden: true } : l);
   }
 
   const activeBoosters = st => Object.entries(st.boosters).filter(([, b]) => b.charges > 0).map(([id, b]) => ({ id, ...b }));
@@ -131,6 +139,16 @@
         const t = taskRec(a.task); if (!t.startedAt) t.startedAt = env.now();
         return { ok: true, startedAt: t.startedAt };
       }
+      // Сколько студент реально работал над заданием: страница присылает секунды, пока вкладка открыта
+      // и студент что-то делает. Больше, чем прошло по часам с прошлой отметки, не засчитывается.
+      case 'time': {
+        if (!env.task(a.task)) return fail('Нет такого задания.');
+        const t = taskRec(a.task), now = env.now();
+        const since = t.tickAt ? (Date.parse(now) - Date.parse(t.tickAt)) / 1000 + 5 : 120;
+        const sec = Math.max(0, Math.min(Number(a.sec) || 0, 120, since));
+        t.active = Math.round((t.active || 0) + sec); t.tickAt = now;
+        return { ok: true };
+      }
       case 'restart': {
         if (!env.task(a.task)) return fail('Нет такого задания.');
         const t = taskRec(a.task); t.startedAt = env.now(); delete t.code;
@@ -159,7 +177,7 @@
           st.xp += gains.xp; st.souls += gains.souls;
           journal('transaction', `Награда за задание «${task.title}»`, gains.souls);
         }
-        if (sc.solved && !t.solved) { t.solved = true; t.solvedAt = env.now(); }
+        if (sc.solved && !t.solved) { t.solved = true; t.solvedAt = env.now(); t.solvedActive = t.active || 0; }
         if (sc.cleanFull) t.cleanFull = true;
         if (sc.solved && sc.speedFull) t.speedFull = true;
         st.history.unshift({

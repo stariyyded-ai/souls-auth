@@ -3,7 +3,9 @@
    и подгружается, когда урок открыт. У урока может быть несколько заданий (поле tasks).
    Под примерами HTML — кнопка «Попробовать»: код открывается в песочнице tasks.html#sandbox.
    Лекции — то, что администратор загрузил в админке: конспект, видео, файл PDF или Word.
-   Адреса: lessons.html#html-structure — урок, lessons.html#lecture-l2 — лекция. */
+   Адреса: lessons.html#html-structure — урок, lessons.html#lecture-l2 — лекция,
+   lessons.html#course-c6 — уроки одного курса (только его темы; сюда ведёт кнопка «Открыть» в кабинете).
+   Скрытые администратором уроки и темы здесь не показываются никому. */
 (() => {
   const { $, esc, fmt, toast, announce } = window.UI;
   const St = window.Student, A = window.AdminStore, Files = window.AshFiles;
@@ -19,7 +21,10 @@
   const group = A.db.groups.find(g => g.id === window.BOOT.me.group);
   const access = l => window.StudentLogic.lessonAccess(l, group, window.BOOT.me.role);
   const open = l => access(l) === 'open';
-  const VISIBLE = LESSONS.filter(l => access(l) !== 'hidden');
+  const VISIBLE = LESSONS.filter(l => !l.hidden && !l.modHidden && access(l) !== 'hidden');
+  // Курс, открытый кнопкой «Открыть» в кабинете: показываем только его темы
+  let course = null;
+  const inCourse = l => !course || !(course.modules || []).length || course.modules.includes(l.module);
   const modTitle = id => MODULES.find(m => m.id === id)?.title || '';
   const tasksOf = l => window.Economy.lessonTasks(l).map(id => TASKS.find(t => t.id === id)).filter(Boolean);
   const KIND = { lecture: 'Лекция', practice: 'Практическая работа' };
@@ -53,12 +58,16 @@
   const lectures = () => A.db.lectures.filter(l => l.published && (window.Ash.isAdmin() || !l.groups || !l.groups.length || l.groups.includes(myGroupId)));
 
   function renderList() {
-    const used = MODULES.filter(m => VISIBLE.some(l => l.module === m.id));
-    $('modules').innerHTML = !used.length ? '<section class="plate"><p class="empty">Преподаватель ещё не добавил уроки вашей группе.</p></section>' : used.map((m, i) => {
+    const used = MODULES.filter(m => VISIBLE.some(l => l.module === m.id && inCourse(l)));
+    $('list-title').textContent = course ? course.title : 'Уроки';
+    $('course-bar').hidden = !course; $('list-lead').hidden = !!course;
+    if (course) $('course-text').textContent = course.text ? course.text + '.' : '';
+    $('mat-plate').hidden = !!course;
+    $('modules').innerHTML = !used.length ? `<section class="plate"><p class="empty">${course ? 'В этом курсе пока нет открытых вам уроков.' : 'Преподаватель ещё не добавил уроки вашей группе.'}</p></section>` : used.map((m, i) => {
       const ls = VISIBLE.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
       const done = ls.filter(l => lessonStatus(l).cls === 'done').length;
       return `<section class="plate module" aria-labelledby="mod-${m.id}">
-        <div class="plate-head"><span class="mod-n">${m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
+        <div class="plate-head"><span class="mod-n">${course ? i + 1 : m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
         <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${done / ls.length * 100}%"></i></div>
         <ol class="lesson-list">${ls.map(l => {
           const s = lessonStatus(l), ts = tasksOf(l);
@@ -122,7 +131,7 @@
     });
     if (l.quiz && l.quiz.length) renderQuiz(l);
     renderMini(l);
-    const list = VISIBLE.filter(open).sort((a, b) => (modN(a.module) || 99) - (modN(b.module) || 99) || a.lesson - b.lesson);
+    const list = VISIBLE.filter(l => open(l) && inCourse(l)).sort((a, b) => (modN(a.module) || 99) - (modN(b.module) || 99) || a.lesson - b.lesson);
     const i = list.indexOf(l), prev = list[i - 1], next = list[i + 1];
     $('ls-nav').innerHTML = `${prev ? `<a href="#${prev.id}" class="prev">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="#${next.id}" class="next">${esc(next.title)} →</a>` : ''}`;
   }
@@ -223,9 +232,14 @@
     const lecture = h.startsWith('lecture-') && lectures().find(l => l.id === h.slice(8));
     if (lesson) { show('lesson-view'); renderLesson(lesson); window.scrollTo(0, 0); $('ls-title').focus({ preventScroll: true }); }
     else if (lecture) { show('mat-view'); renderLecture(lecture); window.scrollTo(0, 0); $('mt-title').focus({ preventScroll: true }); }
-    else { show('list-view'); document.title = 'Уроки · Пепельный Пиксель'; renderList(); }
+    else {
+      // #course-c6 — уроки курса; курс запоминаем, чтобы «← Все уроки» из урока вернул в тот же курс
+      if (h.startsWith('course-')) course = (window.BOOT.db.courses || []).find(c => c.id === h.slice(7)) || null;
+      else course = null;
+      show('list-view'); document.title = `${course ? course.title : 'Уроки'} · Пепельный Пиксель`; renderList();
+    }
   }
-  document.querySelectorAll('[data-back]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.hash = ''; }));
+  document.querySelectorAll('[data-back]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.hash = course ? 'course-' + course.id : ''; }));
   window.addEventListener('hashchange', route);
   route();
 })();

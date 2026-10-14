@@ -86,7 +86,7 @@
 .badge { flex: none; }
 .rank-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; color: var(--gold-hi); letter-spacing: 0.06em; }
 .rank-next { margin: 0 0 0 auto; font-size: 13px; color: var(--muted); text-align: right; }
-.ladder { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; counter-reset: lvl; }
+.ladder { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; counter-reset: lvl; }
 .ladder li {
   position: relative; padding: 8px 6px 6px; text-align: center; font-size: 13px;
   background: rgba(0,0,0,0.35); border: 2px solid var(--stone); color: var(--muted);
@@ -211,6 +211,8 @@
 .tagline.locked { color: var(--muted); }
 .course .btn { width: auto; height: 40px; margin: 0; padding-inline: 14px; font-size: 13px; letter-spacing: 0.1em; }
 .course .btn[disabled] { filter: grayscale(1) brightness(0.8); }
+.course-go { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.course a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 
 /* История заданий */
 .table-wrap { overflow-x: auto; }

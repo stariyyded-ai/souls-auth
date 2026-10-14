@@ -9,13 +9,14 @@ window.ADMIN_SEED = (() => {
   const inDays = d => new Date(now + d * DAY).toISOString().slice(0, 10);
 
   // Курсы: студент видит опубликованные, а открыт курс, только если администратор дал доступ его группе или лично ему
+  // modules — темы курса: кнопка «Открыть» в кабинете ведёт в «Уроки» с этими темами
   const courses = [
-    { id: 'c1', title: 'Веб-дизайн: основы', text: 'HTML, CSS и адаптивная вёрстка', hours: 72, published: true },
-    { id: 'c2', title: 'UI-анимация', text: 'Микроанимации, переходы, easing', hours: 24, published: true },
-    { id: 'c3', title: 'Типографика в интерфейсах', text: 'Шрифтовые пары, ритм, сетка', hours: 16, published: true },
-    { id: 'c4', title: 'Продвинутый JavaScript', text: 'Состояние, компоненты, API', hours: 40, published: true },
-    { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true },
-    { id: 'c6', title: 'МДК.08.01 Проектирование и разработка интерфейсов', text: '55 занятий по 2 часа: HTML, CSS, вёрстка, JavaScript, веб-дизайн и юзабилити. Подготовка к демоэкзамену', hours: 110, published: true }
+    { id: 'c1', title: 'Веб-дизайн: основы', text: 'HTML, CSS и адаптивная вёрстка', hours: 72, published: true, modules: ['m1', 'm2', 'm3'] },
+    { id: 'c2', title: 'UI-анимация', text: 'Микроанимации, переходы, easing', hours: 24, published: true, modules: [] },
+    { id: 'c3', title: 'Типографика в интерфейсах', text: 'Шрифтовые пары, ритм, сетка', hours: 16, published: true, modules: [] },
+    { id: 'c4', title: 'Продвинутый JavaScript', text: 'Состояние, компоненты, API', hours: 40, published: true, modules: ['m5'] },
+    { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true, modules: ['m4'] },
+    { id: 'c6', title: 'МДК.08.01 Проектирование и разработка интерфейсов', text: '55 занятий по 2 часа: HTML, CSS, вёрстка, JavaScript, веб-дизайн и юзабилити. Подготовка к демоэкзамену', hours: 110, published: true, modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'] }
   ];
   const modules = [
     { id: 'm1', title: 'Основы HTML', lessons: 8 },

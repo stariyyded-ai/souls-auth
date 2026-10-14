@@ -30,7 +30,7 @@
     return icon(a.icon, pal, a.icon === 'slug' ? 3 : s);
   };
   const ROLES = { student: 'Студент', teacher: 'Преподаватель', admin: 'Администратор' };
-  const LEVELS = [{ title: 'Новичок', xp: 0 }, { title: 'Джун', xp: 1000 }, { title: 'Мидл', xp: 3000 }, { title: 'Сеньор', xp: 6000 }];
+  const LEVELS = window.Economy.LEVELS; // пороги уровней — js/economy.js
   const level = xp => LEVELS.filter(l => xp >= l.xp).pop().title;
   const userName = id => (S.byId('users', id) || { name: 'Удалённый пользователь' }).name;
   // Уроков в теме: сколько запланировано или сколько уже есть, если больше (не меньше одного, чтобы делить)
@@ -358,6 +358,39 @@
     if (e.target.id !== 'gm-group' || !e.target.value) return;
     document.querySelectorAll(`#modal-body input[name=gu][data-g="${e.target.value}"]`).forEach(i => { i.checked = true; });
   });
+  /* ---------- время на задания ---------- */
+  // «В работе» — сколько студент реально работал над заданием (пока оно было открыто и он что-то делал);
+  // «С начала до сдачи» — сколько прошло по календарю от первого открытия до первой успешной сдачи
+  const dur = sec => {
+    sec = Math.round(sec || 0);
+    if (sec < 60) return sec ? `${sec} с` : '—';
+    const m = Math.round(sec / 60);
+    if (m < 60) return `${m} мин`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} ч ${m % 60} мин`;
+    return `${Math.floor(h / 24)} дн ${h % 24} ч`;
+  };
+  async function loadTaskTime(id, box) {
+    let list;
+    try { list = (await window.Ash.api('GET', `api/admin/users/${encodeURIComponent(id)}/tasks`)).tasks; }
+    catch (e) { box.innerHTML = `<p class="hint">Не получилось загрузить: ${esc(e.message)}</p>`; return; }
+    if (!list.length) { box.innerHTML = '<p class="hint">Студент ещё не открывал задания.</p>'; return; }
+    const total = list.reduce((a, t) => a + t.active, 0), solved = list.filter(t => t.solved);
+    const late = solved.filter(t => t.solvedActive != null && t.solvedActive > t.norm * 60).length;
+    box.innerHTML = `<p class="hint">Открыто заданий: ${list.length}, сдано: ${solved.length}, всего в работе ${dur(total)}${late ? `, дольше нормы: ${late}` : ''}. «В работе» — время, пока задание было открыто и студент что-то делал; «С начала до сдачи» — по календарю.</p>
+      <div class="table-wrap time-wrap"><table class="data-table time-table">
+        <thead><tr><th>Задание</th><th>Статус</th><th class="num">В работе</th><th class="num">С начала до сдачи</th><th class="num">Норма</th><th class="num">Попыток</th><th class="num">Очки</th></tr></thead>
+        <tbody>${list.map(t => {
+          const work = t.solved && t.solvedActive != null ? t.solvedActive : t.active;
+          const over = work > t.norm * 60;
+          const wall = t.solved && t.startedAt && t.solvedAt ? dur((Date.parse(t.solvedAt) - Date.parse(t.startedAt)) / 1000) : '—';
+          return `<tr><td>${esc(t.title)}<small>${esc(t.where)}${t.startedAt ? ` · открыл ${timeStr(t.startedAt)}` : ''}</small></td>
+            <td>${t.solved ? `<span class="pill on">сдано</span><small>${timeStr(t.solvedAt)}</small>` : t.attempts ? '<span class="pill off">не сдано</span>' : '<span class="pill off">открыл</span>'}</td>
+            <td class="num${over ? ' over' : ''}">${dur(work)}${t.solved && t.active > work ? `<small>всего ${dur(t.active)}</small>` : ''}</td>
+            <td class="num">${wall}</td><td class="num">${t.norm} мин</td><td class="num">${t.attempts}</td><td class="num">${fmt(t.best)}<small>из ${fmt(t.max)}</small></td></tr>`;
+        }).join('')}</tbody></table></div>`;
+  }
+
   function openUser(id) {
     const u = S.byId('users', id), g = S.byId('groups', u.group);
     const mods = S.db.modules.map(m => { const d = u.progress[m.id] || 0; return `<div class="mod-row"><span>${esc(m.title)}</span><span class="stat-val">${d} / ${modCount(m)}</span>${bar(d / modCount(m) * 100)}</div>`; }).join('');
@@ -375,9 +408,12 @@
           <div><span class="eyebrow">Души</span><p>${fmt(u.souls)}</p></div>
           <div><span class="eyebrow">Был в сети</span><p>${ago(u.lastSeen)}</p></div>
         </div>
+        ${u.role === 'student' ? `<span class="eyebrow">Время на задания</span><div id="u-time"><p class="hint">Загружаю…</p></div>` : ''}
         <span class="eyebrow">Прогресс по модулям</span><div class="mod-rows">${mods}</div>
         <span class="eyebrow">Достижения</span><div class="badges">${ach}</div>
         ${tx ? `<span class="eyebrow">Последние транзакции</span><div class="table-wrap"><table class="data-table" style="min-width:0"><tbody>${tx}</tbody></table></div>` : ''}`,
+      wide: u.role === 'student',
+      onOpen: () => { if (u.role === 'student') loadTaskTime(id, $('u-time')); },
       actions: [{ label: 'СБРОСИТЬ ПРОГРЕСС', value: 'reset', kind: 'danger' }, { label: 'СМЕНИТЬ ПАРОЛЬ', value: 'pass', kind: 'ghost' }, { label: 'КУРСЫ', value: 'courses', kind: 'ghost' }, { label: 'ВЫДАТЬ ДОСТИЖЕНИЯ', value: 'grant', kind: 'ghost' }, { label: 'ЗАКРЫТЬ', value: 'close', primary: true }]
     }).then(v => { if (v === 'reset') resetUser(id); if (v === 'grant') grant(id); if (v === 'pass') changePassword(id); if (v === 'courses') userCourses(id); });
   }

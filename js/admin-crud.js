@@ -67,9 +67,10 @@
 
     courses: {
       title: 'Курсы', one: 'курс', create: 'НОВЫЙ КУРС', search: c => c.title + ' ' + (c.text || ''),
-      defaults: () => ({ title: '', text: '', hours: 0, published: true }),
+      defaults: () => ({ title: '', text: '', hours: 0, published: true, modules: [] }),
       columns: [
         ['Курс', c => `${esc(c.title)}<small>${esc(c.text || '')}${c.hours ? ` · ${c.hours} ч` : ''}</small>`],
+        ['Темы', c => (c.modules || []).length ? `${c.modules.length}<small>${c.modules.map(m => esc(titleOf('modules', m))).join(', ')}</small>` : '—'],
         ['Открыт группам', c => esc(db().groups.filter(g => (g.courses || []).includes(c.id)).map(g => g.code).join(', ') || '—')],
         ['Открыт лично', c => { const n = db().users.filter(u => (u.courses || []).includes(c.id)).length; return n ? `${n} студ.` : '—'; }],
         ['Видимость', c => c.published !== false ? '<span class="pill on">в кабинете</span>' : '<span class="pill off">скрыт</span>']
@@ -78,6 +79,7 @@
         { key: 'title', label: 'Название', type: 'text', required: true, full: true },
         { key: 'text', label: 'Короткое описание', type: 'text', full: true },
         { key: 'hours', label: 'Длительность, часов', type: 'number', min: 0 },
+        { key: 'modules', label: 'Темы курса', type: 'multi', options: moduleOpts, full: true, hint: 'Кнопка «Открыть» в кабинете студента ведёт в «Уроки», где показаны только эти темы.' },
         { key: 'published', label: 'Видимость', type: 'bool', text: 'Показывать в кабинете студента', hint: 'Открыть курс можно группе (раздел «Группы») или студенту лично (карточка пользователя → «Курсы»).' }
       ],
       beforeRemove: c => { const n = db().groups.filter(g => (g.courses || []).includes(c.id)).length; return n ? `Курс открыт ${n} группам, у них он пропадёт.` : ''; }

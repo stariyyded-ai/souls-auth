@@ -9,13 +9,7 @@ window.STUDENT = {
   souls: 3450,
   soulsWeek: 120,
 
-  // Пороги уровней по опыту
-  levels: [
-    { title: 'Новичок', xp: 0 },
-    { title: 'Джун', xp: 1000 },
-    { title: 'Мидл', xp: 3000 },
-    { title: 'Сеньор', xp: 6000 }
-  ],
+  // Пороги уровней по опыту — в js/economy.js (Economy.LEVELS)
 
   course: 'Веб-дизайн: основы',
   // Статусы уроков: done — пройден, current — в работе, open — доступен, locked — закрыт

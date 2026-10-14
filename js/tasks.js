@@ -194,6 +194,7 @@
   }
 
   function open(id) {
+    sendWork();
     if (id === 'sandbox') task = sandboxTask();
     else task = TASKS.find(t => t.id === id);
     if (!task) { location.hash = ''; return; }
@@ -236,11 +237,29 @@
     $('t-title').setAttribute('tabindex', '-1'); $('t-title').focus({ preventScroll: true });
   }
   function close() {
+    sendWork();
     task = null; clearInterval(tick);
     $('task-view').hidden = true; $('list-view').hidden = false;
     document.title = 'Задания · Пепельный Пиксель';
     renderList();
   }
+  /* ---------- время работы над заданием ---------- */
+  // Секунды идут, пока задание открыто, вкладка на экране и студент что-то делал последние 2 минуты.
+  // Раз в минуту, при смене задания, проверке и уходе со страницы время уходит на сервер; администратор видит его в карточке студента
+  const IDLE_MS = 120000;
+  let workTask = null, workSec = 0, lastAct = Date.now();
+  ['keydown', 'pointerdown', 'pointermove', 'wheel', 'input'].forEach(ev => addEventListener(ev, () => { lastAct = Date.now(); }, { capture: true, passive: true }));
+  function sendWork() {
+    if (workTask && workSec > 0) St.workTime(workTask, workSec);
+    workSec = 0;
+  }
+  setInterval(() => {
+    if (!task || task.sandbox || document.hidden || Date.now() - lastAct > IDLE_MS) return;
+    if (workTask !== task.id) { sendWork(); workTask = task.id; }
+    if (++workSec >= 60) sendWork();
+  }, 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { sendWork(); St.flush(); } });
+
   const route = () => { const id = location.hash.slice(1); if (/^(t\d\d|k\d{4}|sandbox)$/.test(id)) open(id); else close(); };
   window.addEventListener('hashchange', route);
   $('back').addEventListener('click', e => { e.preventDefault(); location.hash = ''; });
@@ -280,6 +299,7 @@
     lastReport = rep;
     renderChecks(rep);
     // Очки считает Student (и затем сервер) по отчёту проверки и времени с открытия задания
+    sendWork(); // время работы — до проверки, чтобы в админке было видно, сколько ушло до сдачи
     const res = St.recordTask(task, rep, code);
     if (res.ok === false) { toast(res.msg); return; }
     const sc = res.sc;

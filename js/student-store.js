@@ -114,6 +114,8 @@
     taskState(taskId) { return st.tasks[taskId] || null; },
     startTask(taskId) { return run({ type: 'start', task: taskId }).startedAt; },
     restartTask(taskId) { return run({ type: 'restart', task: taskId }).startedAt; },
+    // Сколько секунд студент реально работал над заданием (считает страница заданий)
+    workTime(taskId, sec) { run({ type: 'time', task: taskId, sec: Math.round(sec) }); },
     // report — отчёт автопроверки; на сервер уходят только отметки «прошла / не прошла» по каждой проверке
     recordTask(task, report, code) {
       const flags = list => list.map(t => ({ ok: !!t.ok }));

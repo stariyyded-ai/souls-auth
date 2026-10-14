@@ -331,6 +331,39 @@ try {
   await ca.goto(U + 'tasks.html'); await ca.waitForTimeout(1000);
   ok(await ca.locator('#course-list .course-mod').count() === 5, 'в заданиях курс разложен по пяти темам');
 
+  /* ---------- курс из кабинета, время на задание, скрытые уроки и темы ---------- */
+  const sx = await ctxPage();
+  await sx.goto(U + 'index.html');
+  ok((await api(sx, 'POST', 'api/register', { name: 'Студент Курса', password: 'kurs1234', code: invite('g4') })).status === 201, 'студент зарегистрировался в группу ИСП-11');
+  await login(sx, 'Студент Курса', 'kurs1234'); await sx.waitForURL(/cabinet\.html/, { timeout: 10000 });
+  await sx.click('#course-list a[href="lessons.html#course-c6"]'); await sx.waitForURL(/lessons\.html#course-c6/, { timeout: 8000 }); await sx.waitForTimeout(600);
+  const heads = await sx.locator('#modules .module h2').allTextContents();
+  ok(heads.length === 5 && heads.every(h => h.startsWith('08.01')) && (await sx.textContent('#list-title')).startsWith('МДК.08.01'), 'кнопка «Открыть» в кабинете ведёт в уроки курса: только его пять тем');
+  await sx.goto(U + 'tasks.html#k0101'); await sx.waitForTimeout(1200);
+  await sx.evaluate(() => { window.Student.workTime('k0101', 42); return window.Student.flush(); }); await sx.waitForTimeout(800);
+  const sid = (await api(ad, 'GET', 'api/admin/db')).body.users.find(u => u.name === 'Студент Курса').id;
+  const tt = (await api(ad, 'GET', `api/admin/users/${sid}/tasks`)).body.tasks.find(t => t.id === 'k0101');
+  ok(tt && tt.active >= 42 && tt.norm === 15 && !tt.solved, `админка видит время студента на задании (${tt && tt.active} с)`);
+  await ad.goto(U + 'admin.html#users'); await ad.reload(); await ad.waitForTimeout(800);
+  await ad.click(`[data-open="${sid}"]`); await ad.waitForSelector('#u-time table', { timeout: 8000 });
+  ok((await ad.textContent('#u-time')).includes('Первая страница'), 'в карточке студента есть таблица «Время на задания»');
+  await ad.click('#modal-actions button:has-text("ЗАКРЫТЬ")');
+  // Скрыть урок и тему в разделе «Уроки групп»
+  await ad.goto(U + 'admin.html#lessons'); await ad.waitForTimeout(600);
+  await ad.click('[data-hide-les="mdk-01"]'); await ad.waitForTimeout(900);
+  await ad.click('[data-hide-mod="mdk2"]'); await ad.waitForTimeout(900);
+  await sx.goto(U + 'lessons.html'); await sx.waitForTimeout(800);
+  const vis = await sx.evaluate(() => [...document.querySelectorAll('#modules .lesson-item h3')].map(h => h.textContent));
+  ok(!vis.some(t => t.startsWith('Как устроен веб')) && await sx.locator('#modules .module').count() === 4, 'скрытые урок и тема пропали из «Уроков» студента');
+  ok((await api(sx, 'POST', 'api/me/actions', { actions: [{ type: 'read', lesson: 'mdk-01' }] })).body.results[0].ok === false, 'скрытый урок сервер не засчитывает');
+  await sx.goto(U + 'tasks.html#k0101'); await sx.waitForTimeout(800);
+  ok(!sx.url().includes('#k0101'), 'задание скрытого урока не открывается');
+  await ad.click('[data-hide-les="mdk-01"]'); await ad.waitForTimeout(900);
+  await ad.click('[data-hide-mod="mdk2"]'); await ad.waitForTimeout(900);
+  const back = (await api(ad, 'GET', 'api/admin/db')).body.lessonList.filter(l => l.hidden || l.modHidden).length;
+  await sx.goto(U + 'lessons.html'); await sx.waitForTimeout(800);
+  ok(back === 0 && await sx.locator('#modules .module').count() === 5 && await sx.locator('#modules a[href="#mdk-01"]').count() === 1, 'урок и тема снова видны после «Показать»');
+
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);
   await login(m, '123', '123123123'); await m.waitForURL(/admin\.html/, { timeout: 10000 });
