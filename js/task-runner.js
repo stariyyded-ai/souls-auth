@@ -3,12 +3,18 @@
    iframe без allow-scripts: скрипты студента не выполняются, а мы читаем DOM и вычисленные стили снаружи.
    Проверки бывают двух видов:
    - результата (из задания): работает ли то, что просили;
-   - качества кода (общие для всех): семантика, доступность WCAG, контраст, чистота CSS, линтер. */
+   - качества кода (общие для всех): семантика, доступность WCAG, контраст, чистота CSS, линтер.
+   Задания с JavaScript (у задания есть поле js): проверки с флагом js: true выполняются внутри отдельного
+   iframe с allow-scripts, но без allow-same-origin (у страницы студента нет доступа к сайту). Для каждой
+   такой проверки страница загружается заново, функция check передаётся в iframe как текст, поэтому
+   она не может пользоваться переменными снаружи. Помощник внутри описан в JS_HELPER ниже. */
 (() => {
   const VIEWPORTS = { desk: 1024, phone: 360 };
   const HEIGHT = 800;
 
-  const page = (html, css) => `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Задание</title><style>${css}</style></head><body>${html}</body></html>`;
+  const inline = js => String(js).replace(/<\/(script)/gi, '<\\/$1');
+  // head — служебный код до кода студента (только для проверок JavaScript)
+  const page = (html, css, js, head = '') => `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Задание</title>${head}<style>${css}</style></head><body>${html}${js ? `<script>${inline(js)}</script>` : ''}</body></html>`;
 
   function frame(width) {
     const f = document.createElement('iframe');
@@ -61,7 +67,7 @@
   }
 
   /* ---------- помощник для проверок ---------- */
-  function helper(f, html, css) {
+  function helper(f, html, css, js = '') {
     const doc = f.contentDocument, win = f.contentWindow;
     const el = s => typeof s === 'string' ? doc.querySelector(s) : s;
     const rules = [];
@@ -71,7 +77,7 @@
     });
     try { walk(doc.styleSheets[0]?.cssRules || [], ''); } catch (e) {}
     const h = {
-      doc, win, html, css, rules, width: win.innerWidth, height: win.innerHeight,
+      doc, win, html, css, js, rules, width: win.innerWidth, height: win.innerHeight,
       $: s => doc.querySelector(s),
       $$: s => [...doc.querySelectorAll(s)],
       count: s => doc.querySelectorAll(s).length,
@@ -92,6 +98,56 @@
       maxDepth: () => Math.max(0, ...rules.flatMap(r => r.selector.split(',').map(s => s.trim().replace(/::?[\w-]+(\([^)]*\))?/g, '').split(/\s*[>+~]\s*|\s+/).filter(Boolean).length)))
     };
     return h;
+  }
+
+  /* ---------- проверки JavaScript ----------
+     Помощник h внутри страницы студента:
+       h.$, h.$$, h.count, h.text, h.cs(sel, prop), h.px(sel, prop) — как в обычных проверках;
+       h.click(sel) — клик; h.type(sel, value) — ввести значение и послать input и change;
+       h.submit(sel = 'form') — отправить форму (событие submit без перехода и без проверки браузера);
+       h.key(sel, key) — нажать клавишу (keydown и keyup); h.wait(ms = 60) — подождать;
+       h.get('имя') — глобальная переменная или функция студента (в том числе объявленная через let/const);
+       h.alerts — тексты alert, confirm и prompt; h.logs — что вывел console.log; h.errors — ошибки выполнения.
+     check может быть async и возвращает true или строку с причиной. */
+  const JS_HEAD = `<script>(()=>{const E=window.__ash={errors:[],logs:[],alerts:[]};
+addEventListener('error',e=>E.errors.push(e.message||String(e)));
+addEventListener('unhandledrejection',e=>E.errors.push(String(e.reason&&e.reason.message||e.reason)));
+const L=console.log.bind(console);console.log=(...a)=>{E.logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));L(...a)};
+window.alert=m=>{E.alerts.push(String(m))};window.confirm=m=>{E.alerts.push(String(m));return true};window.prompt=(m,d)=>{E.alerts.push(String(m));return d==null?'':String(d)};})()<\/script>`;
+  const JS_HELPER = `const D=document,E=window.__ash,el=s=>typeof s==='string'?D.querySelector(s):s,
+need=s=>{const e=el(s);if(!e)throw new Error('не найден элемент '+s);return e;};
+const h={doc:D,win:window,errors:E.errors,logs:E.logs,alerts:E.alerts,
+$:s=>D.querySelector(s),$$:s=>[...D.querySelectorAll(s)],count:s=>D.querySelectorAll(s).length,
+text:s=>(el(s)?.textContent||'').replace(/\\s+/g,' ').trim(),
+cs:(s,p)=>{const e=el(s);return e?getComputedStyle(e).getPropertyValue(p):''},
+px:(s,p)=>{const e=el(s);return e?parseFloat(getComputedStyle(e).getPropertyValue(p)):NaN},
+visible:s=>{const e=el(s);if(!e)return false;const c=getComputedStyle(e);return c.display!=='none'&&c.visibility!=='hidden'&&e.getClientRects().length>0},
+click:s=>{need(s).click()},
+type:(s,v)=>{const e=need(s);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))},
+submit:(s='form')=>{const f=need(s);return f.dispatchEvent(typeof SubmitEvent==='function'?new SubmitEvent('submit',{bubbles:true,cancelable:true}):new Event('submit',{bubbles:true,cancelable:true}))},
+key:(s,k)=>{const e=need(s);['keydown','keyup'].forEach(t=>e.dispatchEvent(new KeyboardEvent(t,{key:k,bubbles:true,cancelable:true})))},
+wait:(ms=60)=>new Promise(r=>setTimeout(r,ms)),
+get:n=>{try{return (0,eval)(n)}catch(e){return undefined}}};`;
+  function jsCheck(test, html, css, js) {
+    const id = 'r' + Math.random().toString(36).slice(2);
+    const tail = `<script>(()=>{${JS_HELPER}
+const run=async()=>{let out;try{await h.wait(30);const r=await (${test.check.toString()})(h);out={ok:r===true,note:typeof r==='string'?r:(r===true?'':'проверка не прошла')}}catch(e){out={ok:false,note:'ошибка: '+e.message}}
+parent.postMessage({ash:'${id}',out},'*')};
+if(D.readyState==='complete')run();else addEventListener('load',run);})()<\/script>`;
+    const src = page(html, css, js, JS_HEAD).replace(/<\/body><\/html>$/, () => tail + '</body></html>'); // функция: «$'» в тексте проверки не должен раскрываться
+    return new Promise(res => {
+      const f = document.createElement('iframe');
+      f.setAttribute('sandbox', 'allow-scripts');
+      f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+      f.style.cssText = `position:fixed;left:-20000px;top:0;width:${test.at === 360 ? 360 : 1024}px;height:${HEIGHT}px;border:0;visibility:hidden`;
+      let done = false;
+      const fin = out => { if (done) return; done = true; removeEventListener('message', on); clearTimeout(timer); f.remove(); res(out); };
+      const on = e => { if (e.source === f.contentWindow && e.data && e.data.ash === id) fin(e.data.out); };
+      addEventListener('message', on);
+      const timer = setTimeout(() => fin({ ok: false, note: 'страница не ответила за 5 секунд: нет ли бесконечного цикла?' }), 5000);
+      document.body.appendChild(f);
+      f.srcdoc = src;
+    });
   }
 
   /* ---------- общие проверки качества ---------- */
@@ -141,7 +197,7 @@
         try { if (!h.doc.querySelector(clean)) return `${s.trim()} ничего не находит`; } catch (e) { }
       }
       return true; } },
-    { id: 'lint', name: 'Линтер HTML и CSS без ошибок', check: h => { const l = lint(h.html, h.css).filter(m => m.type === 'error'); return l.length ? `${l[0].lang}, строка ${l[0].line}: ${l[0].message}` : true; } }
+    { id: 'lint', name: 'Линтер HTML и CSS без ошибок', check: h => { const l = lint(h.html, h.css, h.js).filter(m => m.type === 'error'); return l.length ? (l[0].line ? `${l[0].lang}, строка ${l[0].line}: ${l[0].message}` : `${l[0].lang}: ${l[0].message}`) : true; } }
   ];
 
   /* ---------- линтер ---------- */
@@ -229,29 +285,55 @@
       return { lang: 'HTML', type: m.type === 'error' ? 'error' : 'warning', line: m.line, col: m.col, message: (HTML_RU[id] || m.message) + (tags ? ' ' + tags : '') };
     });
   }
-  const lint = (html, css) => [...htmlLint(html), ...cssLint(css)];
+  // JavaScript: только синтаксис. Код компилируется, но не выполняется.
+  const JS_RU = [
+    [/Unexpected end of input/, 'код оборвался: не хватает закрывающей } или )'],
+    [/missing \) after argument list/, 'пропущена ) после аргументов функции'],
+    [/Invalid or unexpected token/, 'непонятный символ: возможно, не закрыта кавычка'],
+    [/Unexpected identifier '?([^']*)'?/, 'лишнее слово «$1»: возможно, пропущена запятая, точка или скобка'],
+    [/Unexpected token '?([^']*)'?/, 'неожиданный символ «$1»'],
+    [/Unexpected string/, 'неожиданная строка: возможно, пропущен + или запятая'],
+    [/Unexpected number/, 'неожиданное число: возможно, пропущен оператор'],
+    [/Identifier '([^']*)' has already been declared/, 'переменная «$1» объявлена дважды'],
+    [/Missing initializer in const declaration/, 'у const нет значения: const x = …'],
+    [/Invalid left-hand side in assignment/, 'слева от = должно быть имя переменной или свойства']
+  ];
+  function jsLint(js) {
+    if (!js || !js.trim()) return [];
+    try { new Function(js); return []; } catch (e) {
+      let msg = e.message;
+      for (const [re, ru] of JS_RU) if (re.test(msg)) { msg = msg.replace(new RegExp('^.*?' + re.source + '.*$'), ru); break; }
+      return [{ lang: 'JS', type: 'error', line: 0, col: 0, message: msg }];
+    }
+  }
+  const lint = (html, css, js) => [...htmlLint(html), ...cssLint(css), ...jsLint(js)];
 
   /* ---------- запуск ---------- */
-  async function run(task, html, css) {
+  // Общие проверки для задания. В заданиях с JavaScript нет проверки «каждый селектор что-то находит»:
+  // качество смотрится до запуска скриптов, а стили для состояний, которые добавляет скрипт (body.dark), законны.
+  const qualityFor = task => QUALITY.filter(q => !(task.skipQuality || []).includes(q.id) && !(typeof task.js === 'string' && q.id === 'unused'));
+
+  async function run(task, html, css, js = '') {
     const src = page(html, css);
     const frames = {};
     for (const [k, w] of Object.entries(VIEWPORTS)) { frames[k] = frame(w); }
     await Promise.all(Object.keys(frames).map(k => load(frames[k], src)));
-    const H = { desk: helper(frames.desk, html, css), phone: helper(frames.phone, html, css) };
+    const H = { desk: helper(frames.desk, html, css, js), phone: helper(frames.phone, html, css, js) };
     const exec = (t, h) => {
       try {
         const r = t.check(h);
         return { name: t.name, ok: r === true, note: typeof r === 'string' ? r : '' };
       } catch (e) { return { name: t.name, ok: false, note: 'не удалось проверить: ' + e.message }; }
     };
-    const report = {
-      func: task.tests.map(t => ({ ...exec(t, t.at === 360 ? H.phone : H.desk), at: t.at === 360 ? 'телефон 360px' : '' })),
-      quality: QUALITY.filter(q => !(task.skipQuality || []).includes(q.id)).map(q => exec(q, H.desk)),
-      lint: lint(html, css)
-    };
+    const quality = qualityFor(task).map(q => exec(q, H.desk));
+    const func = await Promise.all(task.tests.map(async t => ({
+      ...(t.js ? { name: t.name, ...(await jsCheck(t, html, css, js)) } : exec(t, t.at === 360 ? H.phone : H.desk)),
+      at: t.at === 360 ? 'телефон 360px' : ''
+    })));
+    const report = { func, quality, lint: lint(html, css, js) };
     Object.values(frames).forEach(f => f.remove());
     return report;
   }
 
-  window.TaskRunner = { run, page, lint, cssLint, htmlLint, QUALITY, contrast };
+  window.TaskRunner = { run, page, lint, cssLint, htmlLint, jsLint, QUALITY, qualityFor, contrast };
 })();

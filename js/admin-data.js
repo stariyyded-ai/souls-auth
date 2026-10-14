@@ -14,20 +14,30 @@ window.ADMIN_SEED = (() => {
     { id: 'c2', title: 'UI-анимация', text: 'Микроанимации, переходы, easing', hours: 24, published: true },
     { id: 'c3', title: 'Типографика в интерфейсах', text: 'Шрифтовые пары, ритм, сетка', hours: 16, published: true },
     { id: 'c4', title: 'Продвинутый JavaScript', text: 'Состояние, компоненты, API', hours: 40, published: true },
-    { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true }
+    { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true },
+    { id: 'c6', title: 'МДК.08.01 Проектирование и разработка интерфейсов', text: '55 занятий по 2 часа: HTML, CSS, вёрстка, JavaScript, веб-дизайн и юзабилити. Подготовка к демоэкзамену', hours: 110, published: true }
   ];
   const modules = [
     { id: 'm1', title: 'Основы HTML', lessons: 8 },
     { id: 'm2', title: 'CSS и вёрстка', lessons: 9 },
     { id: 'm3', title: 'Адаптивная вёрстка', lessons: 8 },
     { id: 'm4', title: 'Figma и прототипы', lessons: 6 },
-    { id: 'm5', title: 'JavaScript для дизайнера', lessons: 10 }
+    { id: 'm5', title: 'JavaScript для дизайнера', lessons: 10 },
+    // Курс МДК.08.01 (content/mdk-08-01-plan.md): уроки mdk-01…mdk-55 в content/lessons
+    { id: 'mdk1', title: '08.01.01 · HTML: первые страницы', lessons: 11 },
+    { id: 'mdk2', title: '08.01.01 · CSS: оформление страниц', lessons: 9 },
+    { id: 'mdk3', title: '08.01.01 · Вёрстка, публикация и JavaScript', lessons: 12 },
+    { id: 'mdk4', title: '08.01.02 · Веб-дизайн и проектирование', lessons: 9 },
+    { id: 'mdk5', title: '08.01.02 · Интерфейс и юзабилити', lessons: 14 }
   ];
+  const MDK = Array.from({ length: 55 }, (_, i) => 'mdk-' + String(i + 1).padStart(2, '0'));
 
   const groups = [
     { id: 'g1', code: 'ВД-21', title: 'Веб-дизайн, 2 курс', curator: 'Хранительница огня', courses: ['c1', 'c2'], modules: ['m1', 'm2', 'm3', 'm4'], deadline: inDays(21), quota: 20 },
     { id: 'g2', code: 'ВД-22', title: 'Веб-дизайн, 2 курс', curator: 'Андрэ из Асторы', courses: ['c1'], modules: ['m1', 'm2', 'm3'], deadline: inDays(14), quota: 18 },
-    { id: 'g3', code: 'ВД-31', title: 'Веб-дизайн, 3 курс', curator: 'Лоскутик', courses: ['c1', 'c3', 'c4'], modules: ['m1', 'm2', 'm3', 'm4', 'm5'], deadline: inDays(30), quota: 16 }
+    { id: 'g3', code: 'ВД-31', title: 'Веб-дизайн, 3 курс', curator: 'Лоскутик', courses: ['c1', 'c3', 'c4'], modules: ['m1', 'm2', 'm3', 'm4', 'm5'], deadline: inDays(30), quota: 16 },
+    // Первый курс на МДК.08.01: в группе все 55 занятий, проходить можно первые три (остальные открывает преподаватель)
+    { id: 'g4', code: 'ИСП-11', title: 'Информационные системы, 1 курс', curator: 'Хранительница огня', courses: ['c6'], modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'], deadline: inDays(120), quota: 25, lessons: MDK, lessonsOpen: MDK.slice(0, 3) }
   ];
 
   const achievements = [
@@ -48,9 +58,9 @@ window.ADMIN_SEED = (() => {
   const translit = s => s.toLowerCase().split(' ')[0].replace(/[а-яё]/g, c => ({ а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',щ:'sch',ы:'y',э:'e',ю:'yu',я:'ya',ъ:'',ь:'' }[c] || ''));
   const users = names.map((name, i) => {
     const role = i === 0 ? 'admin' : i < 3 ? 'teacher' : 'student';
-    const group = role === 'student' ? (i === names.length - 1 ? 'g1' : pick(groups).id) : null;
+    const group = role === 'student' ? (i === names.length - 1 ? 'g1' : pick(groups.slice(0, 3)).id) : null;
     const progress = {};
-    modules.forEach((m, k) => { progress[m.id] = role === 'student' ? Math.max(0, Math.min(m.lessons, Math.round(m.lessons * (1.15 - k * 0.24) * rnd() * 1.2))) : 0; });
+    modules.filter(m => !m.id.startsWith('mdk')).forEach((m, k) => { progress[m.id] = role === 'student' ? Math.max(0, Math.min(m.lessons, Math.round(m.lessons * (1.15 - k * 0.24) * rnd() * 1.2))) : 0; });
     const done = Object.values(progress).reduce((a, b) => a + b, 0);
     return {
       id: 'u' + (i + 1), name, email: `${translit(name)}${i + 1}@ashen.pixel`, role, group,

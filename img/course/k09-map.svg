@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="600" height="300">
+  <title>Схема проезда к колледжу</title>
+  <rect width="600" height="300" fill="#eef3e8"/>
+  <rect x="0" y="130" width="600" height="36" fill="#ffffff"/>
+  <rect x="270" y="0" width="34" height="300" fill="#ffffff"/>
+  <rect x="40" y="30" width="180" height="80" fill="#cfd8c4"/>
+  <rect x="340" y="190" width="200" height="80" fill="#cfd8c4"/>
+  <rect x="340" y="30" width="120" height="80" fill="#b9d3e8"/>
+  <rect x="40" y="190" width="180" height="80" fill="#d9e6c9"/>
+  <text x="300" y="153" font-family="Arial, sans-serif" font-size="14" fill="#444444" text-anchor="middle">ул. Ленина</text>
+  <text x="400" y="75" font-family="Arial, sans-serif" font-size="13" fill="#24476b" text-anchor="middle">Библиотека</text>
+  <text x="130" y="235" font-family="Arial, sans-serif" font-size="13" fill="#3d5a2a" text-anchor="middle">Парк</text>
+  <circle cx="440" cy="230" r="12" fill="#c0392b"/>
+  <circle cx="440" cy="230" r="5" fill="#ffffff"/>
+  <text x="440" y="208" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#8e1f14" text-anchor="middle">Колледж, корпус 2</text>
+</svg>

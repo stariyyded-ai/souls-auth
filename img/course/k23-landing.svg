@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="560" viewBox="0 0 640 560" font-family="Arial, sans-serif" font-size="13">
+<rect width="640" height="560" fill="#fdf6ee"/>
+<rect x="20" y="16" width="600" height="40" fill="#ffffff" stroke="#3b2416"/>
+<text x="32" y="41" font-weight="bold" fill="#3b2416">Зерно</text>
+<text x="420" y="41" fill="#3b2416">Меню   О нас   Контакты</text>
+<rect x="20" y="64" width="600" height="120" fill="#3b2416"/>
+<text x="40" y="104" font-size="20" font-weight="bold" fill="#ffffff">h1: Кофе, который ждёт вас между парами</text>
+<text x="40" y="128" fill="#ffffff">абзац с описанием</text>
+<rect x="40" y="144" width="150" height="28" rx="8" fill="#a4541c"/>
+<text x="56" y="163" fill="#ffffff">Посмотреть меню</text>
+<text x="20" y="210" font-weight="bold" fill="#3b2416">h2: Почему к нам заходят · Flexbox, 3 в ряд</text>
+<g fill="#ffffff" stroke="#3b2416"><rect x="20" y="220" width="188" height="70" rx="12"/><rect x="226" y="220" width="188" height="70" rx="12"/><rect x="432" y="220" width="188" height="70" rx="12"/></g>
+<g fill="#3b2416"><text x="36" y="250">иконка · h3 · p</text><text x="242" y="250">иконка · h3 · p</text><text x="448" y="250">иконка · h3 · p</text></g>
+<text x="20" y="318" font-weight="bold" fill="#3b2416">h2: Меню · Grid, 3 колонки, 6 карточек</text>
+<g fill="#ffffff" stroke="#3b2416"><rect x="20" y="328" width="188" height="80" rx="12"/><rect x="226" y="328" width="188" height="80" rx="12"/><rect x="432" y="328" width="188" height="80" rx="12"/><rect x="20" y="418" width="188" height="80" rx="12"/><rect x="226" y="418" width="188" height="80" rx="12"/><rect x="432" y="418" width="188" height="80" rx="12"/></g>
+<g fill="#3b2416"><text x="36" y="360">фото · h3 · цена</text><text x="36" y="396">кнопка внизу</text></g>
+<rect x="20" y="512" width="600" height="36" fill="#3b2416"/>
+<text x="32" y="535" fill="#ffffff">Название</text><text x="250" y="535" fill="#ffffff">Адрес и часы</text><text x="500" y="535" fill="#ffffff">Телефон</text>
+</svg>

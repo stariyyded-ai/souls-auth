@@ -84,8 +84,9 @@ function adminDb() {
 const listRequests = () => D.listColl('requests').sort((a, b) => b.date.localeCompare(a.date));
 // Уроки для раздела «Уроки групп» в админке: без текста и ответов
 // Администратору — уроки целиком, чтобы их можно было править; задания — для выбора мини-задания
-const lessonList = () => D.allLessons();
-const taskList = () => D.GAME.TASKS.map(t => ({ id: t.id, title: t.title }));
+// Текст неизменённых уроков курса админка подгружает сама (content/md), чтобы не гонять его в каждом ответе
+const lessonList = () => D.allLessons().map(l => l.builtin && !l.edited ? { ...l, markdown: undefined } : l);
+const taskList = () => D.GAME.TASKS.map(t => ({ id: t.id, title: t.title, ...(t.lesson ? { lesson: t.lesson } : {}) }));
 // Студент видит только то, что ему положено: опубликованные лекции своей группы,
 // других игроков без e-mail, а скрывшихся из таблицы лидеров — без имени и опыта
 function studentDb(row) {
@@ -316,8 +317,14 @@ function checkLesson(it) {
   it.minutes = Math.max(1, Math.min(600, parseInt(it.minutes, 10) || 30));
   if (!str(it.difficulty, 30)) it.difficulty = 'Лёгкий';
   if (!str(it.markdown, 200000)) fail(400, 'Текст урока слишком длинный.');
-  if (it.task && !D.GAME.TASKS.some(t => t.id === it.task)) fail(400, 'Нет такого мини-задания.');
-  it.task = it.task || null;
+  // Задания урока: список tasks (старое поле task — первое из них)
+  const tasks = Array.isArray(it.tasks) ? it.tasks : it.task ? [it.task] : [];
+  if (tasks.length > 6) fail(400, 'У урока — не больше 6 заданий.');
+  tasks.forEach(id => { if (!D.GAME.TASKS.some(t => t.id === id)) fail(400, 'Нет такого задания.'); });
+  it.tasks = [...new Set(tasks)];
+  it.task = it.tasks[0] || null;
+  it.kind = it.kind === 'practice' ? 'practice' : 'lecture';
+  it.session = it.session == null || it.session === '' ? undefined : Math.max(1, Math.min(999, parseInt(it.session, 10) || 1));
   if (!Array.isArray(it.quiz) || it.quiz.length > 30) fail(400, 'Квиз: до 30 вопросов.');
   it.quiz.forEach((q, i) => {
     if (!str(q.q, 2000) || !q.q.trim()) fail(400, `Вопрос ${i + 1}: нет текста.`);

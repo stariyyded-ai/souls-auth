@@ -100,12 +100,26 @@ function loadSeed() {
 }
 // Уроки, задания, достижения и правила экономики — те же файлы, что работают в браузере
 const shared = { window: {} };
-['js/economy.js', 'js/content.js', 'js/data.js', 'js/tasks-data.js', 'js/student-logic.js']
+// js/tasks-course.js — задания курса МДК.08.01, его собирает node tools/build-content.mjs
+['js/economy.js', 'js/content.js', 'js/data.js', 'js/tasks-data.js', 'js/tasks-course.js', 'js/student-logic.js']
+  .filter(f => fs.existsSync(path.join(ROOT, f)))
   .forEach(f => vm.runInNewContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), shared, { filename: f }));
 const W = shared.window;
 const LESSONS = W.LESSONS, lessonDone = W.Economy.lessonDone;
+// Текст урока лежит отдельно (content/md/<id>.md): страница уроков подгружает его сама, а админке он нужен для правки
+LESSONS.forEach(l => {
+  if (l.markdown != null) return;
+  try { l.markdown = fs.readFileSync(path.join(ROOT, 'content', 'md', l.id + '.md'), 'utf8').trim(); } catch (e) { l.markdown = ''; }
+});
 // Уроки из content/lessons плюс то, что администратор создал или изменил в разделе «Уроки групп» (коллекция lessons)
-const allLessons = () => JSON.parse(JSON.stringify(W.StudentLogic.mergeLessons(LESSONS, listColl('lessons'))));
+// Список пересчитывается, только когда администратор что-то поменял (сравниваем сырые записи); менять его снаружи нельзя
+let lessonsMemo = { key: null, list: [] };
+function allLessons() {
+  const rows = db.prepare("SELECT data FROM items WHERE coll = 'lessons' ORDER BY pos").all().map(r => r.data);
+  const k = rows.join('\n');
+  if (k !== lessonsMemo.key) lessonsMemo = { key: k, list: JSON.parse(JSON.stringify(W.StudentLogic.mergeLessons(LESSONS, rows.map(r => JSON.parse(r))))) };
+  return lessonsMemo.list;
+}
 const GAME = { Economy: W.Economy, Logic: W.StudentLogic, TASKS: W.TASKS, ACHIEVEMENTS: W.STUDENT.achievements };
 
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN || '123';
@@ -168,7 +182,21 @@ function ensureThemes() {
   });
 }
 
-if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) seed();
+// Курс МДК.08.01 появился позже: в уже созданную базу один раз добавляем курс и его темы (группы не трогаем)
+function ensureCourse() {
+  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('mdk0801')) return;
+  const s = loadSeed();
+  const have = c => new Set(listColl(c).map(x => x.id));
+  const mods = have('modules'), courses = have('courses');
+  tx(() => {
+    s.modules.filter(m => m.id.startsWith('mdk') && !mods.has(m.id)).forEach(m => putItem('modules', m));
+    s.courses.filter(c => c.id === 'c6' && !courses.has(c.id)).forEach(c => putItem('courses', c));
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('mdk0801', now());
+  });
+}
+
+if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) { seed(); db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('mdk0801', now()); }
+ensureCourse();
 ensureInvites();
 ensureThemes();
 dropEmails();

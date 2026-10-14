@@ -1,5 +1,7 @@
 /* Уроки и лекции.
-   Уроки — Markdown из content/lessons (собраны в js/content.js): текст, код, квиз, мини-задание.
+   Уроки — Markdown из content/lessons: описание и квиз собраны в js/content.js, текст урока лежит в content/md/<id>.md
+   и подгружается, когда урок открыт. У урока может быть несколько заданий (поле tasks).
+   Под примерами HTML — кнопка «Попробовать»: код открывается в песочнице tasks.html#sandbox.
    Лекции — то, что администратор загрузил в админке: конспект, видео, файл PDF или Word.
    Адреса: lessons.html#html-structure — урок, lessons.html#lecture-l2 — лекция. */
 (() => {
@@ -19,15 +21,30 @@
   const open = l => access(l) === 'open';
   const VISIBLE = LESSONS.filter(l => access(l) !== 'hidden');
   const modTitle = id => MODULES.find(m => m.id === id)?.title || '';
+  const tasksOf = l => window.Economy.lessonTasks(l).map(id => TASKS.find(t => t.id === id)).filter(Boolean);
+  const KIND = { lecture: 'Лекция', practice: 'Практическая работа' };
+  const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
   let blobUrl = null;
+
+  // Текст урока: у уроков из админки он приходит сразу, у уроков курса — отдельным файлом
+  const mdCache = new Map();
+  async function markdownOf(l) {
+    if (typeof l.markdown === 'string') return l.markdown;
+    if (mdCache.has(l.id)) return mdCache.get(l.id);
+    const r = await fetch(`content/md/${encodeURIComponent(l.id)}.md${l.md ? '?v=' + l.md : ''}`);
+    if (!r.ok) throw new Error('текст урока не найден');
+    const text = await r.text();
+    mdCache.set(l.id, text);
+    return text;
+  }
 
   /* ---------- список ---------- */
   function lessonStatus(l) {
     if (!open(l)) return { cls: 'locked', text: 'откроется, когда преподаватель разрешит' };
-    const s = St.lessonState(l.id), t = St.taskState(l.task);
+    const s = St.lessonState(l.id), ts = tasksOf(l), solved = ts.filter(t => St.taskState(t.id)?.solved).length;
     const parts = [];
     if (s && s.quizMax) parts.push(`квиз ${s.quiz} из ${s.quizMax}`);
-    if (t && t.solved) parts.push('задание решено');
+    if (ts.length && solved) parts.push(ts.length === 1 ? 'задание решено' : `заданий решено ${solved} из ${ts.length}`);
     if (window.Economy.lessonDone(l, St.state)) return { cls: 'done', text: parts.join(' · ') };
     if (s && s.read) return { cls: 'started', text: parts.join(' · ') || 'прочитан' };
     return { cls: 'new', text: 'не начат' };
@@ -44,11 +61,13 @@
         <div class="plate-head"><span class="mod-n">${m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
         <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${done / ls.length * 100}%"></i></div>
         <ol class="lesson-list">${ls.map(l => {
-          const s = lessonStatus(l), task = TASKS.find(t => t.id === l.task);
-          return `<li class="lesson-item ${s.cls}">
-            <span class="ln">${l.lesson}</span>
+          const s = lessonStatus(l), ts = tasksOf(l);
+          const taskMeta = !ts.length ? '' : ts.length === 1 ? `<span>задание: ${esc(ts[0].title)}, ${ts[0].minutes} мин</span>`
+            : `<span>${ts.length} ${plural(ts.length, 'задание', 'задания', 'заданий')}, ${ts.reduce((a, t) => a + t.minutes, 0)} мин</span>`;
+          return `<li class="lesson-item ${s.cls}${l.kind === 'practice' ? ' practice' : ''}">
+            <span class="ln">${l.session || l.lesson}</span>
             <div><h3>${s.cls === 'locked' ? esc(l.title) : `<a href="#${l.id}">${esc(l.title)}</a>`}</h3>
-              <p class="meta"><span>${esc(l.difficulty)}</span><span>${l.minutes} мин</span><span>мини-задание: ${esc(task?.title || '')}, ${task?.minutes} мин</span></p>
+              <p class="meta">${l.kind ? `<span class="kind">${KIND[l.kind]}</span>` : ''}<span>${esc(l.difficulty || '')}</span><span>${l.minutes >= 120 && l.minutes % 60 === 0 ? l.minutes / 60 + ' ч' : l.minutes + ' мин'}</span>${taskMeta}</p>
               <p class="st">${s.cls === 'locked' ? '🔒 ' : ''}${esc(s.text)}</p></div></li>`;
         }).join('')}</ol>
       </section>`;
@@ -63,10 +82,13 @@
   }
 
   /* ---------- урок ---------- */
-  function renderLesson(l) {
-    $('ls-crumb').textContent = `Тема ${modN(l.module)} · ${modTitle(l.module)} · урок ${l.lesson}`;
+  let renderId = 0;
+  async function renderLesson(l) {
+    const my = ++renderId;
+    // У занятий курса номер темы уже в её названии (08.01.01 · …), поэтому показываем номер занятия
+    $('ls-crumb').textContent = l.session ? `${modTitle(l.module)} · занятие ${l.session}` : `Тема ${modN(l.module)} · ${modTitle(l.module)} · урок ${l.lesson}`;
     $('ls-title').textContent = l.title;
-    $('ls-meta').innerHTML = `<span>Сложность: ${esc(l.difficulty)}</span><span>${l.minutes} мин</span>`;
+    $('ls-meta').innerHTML = `${l.kind ? `<span class="kind">${KIND[l.kind]}</span>` : ''}<span>Сложность: ${esc(l.difficulty || '')}</span><span>${l.minutes >= 120 && l.minutes % 60 === 0 ? `${l.minutes / 60} ч (${l.minutes} мин)` : l.minutes + ' мин'}</span>`;
     document.title = `${l.title} · Уроки · Пепельный Пиксель`;
     if (!open(l)) {
       $('ls-body').innerHTML = `<p>Этот урок откроется, когда преподаватель разрешит его проходить.</p>`;
@@ -74,11 +96,30 @@
       return;
     }
     // Квиз и мини-задание у урока из админки могут отсутствовать
-    document.querySelector('.quiz').hidden = !(l.quiz && l.quiz.length); document.querySelector('.mini').hidden = !l.task;
+    document.querySelector('.quiz').hidden = !(l.quiz && l.quiz.length); document.querySelector('.mini').hidden = !tasksOf(l).length;
+    $('ls-body').innerHTML = '<p class="loading">Открываю урок…</p>';
+    let md;
+    try { md = await markdownOf(l); } catch (e) {
+      if (my === renderId) $('ls-body').innerHTML = `<p class="note">Не получилось загрузить текст урока: ${esc(e.message)}. Обновите страницу.</p>`;
+      return;
+    }
+    if (my !== renderId) return;
     St.markRead(l.id);
-    $('ls-body').innerHTML = window.marked.parse(l.markdown);
+    $('ls-body').innerHTML = window.marked.parse(md);
     $('ls-body').querySelectorAll('table').forEach(t => { const w = document.createElement('div'); w.className = 'table-wrap'; t.replaceWith(w); w.appendChild(t); });
-    $('ls-body').querySelectorAll('pre').forEach(p => { p.tabIndex = 0; p.setAttribute('aria-label', 'Пример кода'); });
+    $('ls-body').querySelectorAll('pre').forEach(p => {
+      p.tabIndex = 0; p.setAttribute('aria-label', 'Пример кода');
+      const code = p.querySelector('code');
+      if (!code || !/language-html\b/.test(code.className)) return;
+      // HTML-пример можно открыть в песочнице и поменять
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'try'; b.textContent = 'Попробовать';
+      b.addEventListener('click', () => {
+        try { sessionStorage.setItem('ash.sandbox', JSON.stringify({ html: code.textContent, from: l.id, title: l.title })); } catch (e) { }
+        location.href = 'tasks.html#sandbox';
+      });
+      p.after(b);
+    });
     if (l.quiz && l.quiz.length) renderQuiz(l);
     renderMini(l);
     const list = VISIBLE.filter(open).sort((a, b) => (modN(a.module) || 99) - (modN(b.module) || 99) || a.lesson - b.lesson);
@@ -88,7 +129,7 @@
 
   function renderQuiz(l) {
     const s = St.lessonState(l.id) || {};
-    $('quiz-sub').textContent = s.quizMax ? `лучший результат ${s.quiz} из ${s.quizMax}` : `${l.quiz.length} вопроса · 20 XP и 20 душ за каждый новый верный ответ`;
+    $('quiz-sub').textContent = s.quizMax ? `лучший результат ${s.quiz} из ${s.quizMax}` : `${l.quiz.length} ${plural(l.quiz.length, 'вопрос', 'вопроса', 'вопросов')} · 20 XP и 20 душ за каждый новый верный ответ`;
     $('quiz-form').innerHTML = l.quiz.map((q, i) => `
       <fieldset class="q" data-q="${i}">
         <legend><span class="qn">${i + 1}</span>${window.marked.parseInline(q.q)}</legend>
@@ -117,14 +158,17 @@
   }
 
   function renderMini(l) {
-    const t = TASKS.find(x => x.id === l.task); if (!t) { $('mini').innerHTML = ''; return; }
-    const s = St.taskState(t.id);
-    const max = Math.round(t.points * 1.7);
-    $('mini').innerHTML = `<div class="mini-card">
-      <div><p class="eyebrow">${MECH[t.mech].title} · ${t.level}</p><h3>${esc(t.title)}</h3><p>${esc(t.goal)}</p>
-        <p class="meta"><span>норма ${t.minutes} мин</span><span>до ${fmt(max)} очков</span><span>автопроверка: ${t.tests.length} требований + качество кода</span></p></div>
+    const ts = tasksOf(l);
+    $('mini-title').textContent = ts.length > 1 ? `Задания (${ts.length})` : 'Задание';
+    $('mini').innerHTML = (ts.length > 1 ? `<p class="mini-note">Решайте по порядку. Урок будет пройден, когда сданы все задания и квиз решён без ошибок. Всего ≈ ${ts.reduce((a, t) => a + t.minutes, 0)} мин.</p>` : '') + ts.map((t, i) => {
+      const s = St.taskState(t.id);
+      const max = Math.round(t.points * 1.7);
+      return `<div class="mini-card${s && s.solved ? ' solved' : ''}">
+      <div><p class="eyebrow">${ts.length > 1 ? `Задание ${i + 1} · ` : ''}${MECH[t.mech].title} · ${t.level}</p><h3>${esc(t.title)}</h3><p>${esc(t.goal)}</p>
+        <p class="meta"><span>норма ${t.minutes} мин</span><span>до ${fmt(max)} очков</span><span>автопроверка: ${t.tests.length} ${plural(t.tests.length, 'требование', 'требования', 'требований')} + качество кода</span></p></div>
       <div class="mini-act">${s && s.solved ? `<p class="done">Решено · ${fmt(s.best)} из ${fmt(max)}</p>` : ''}<a class="btn" href="tasks.html#${t.id}">${s && s.solved ? 'ПЕРЕРЕШАТЬ' : s ? 'ПРОДОЛЖИТЬ' : 'НАЧАТЬ'}</a></div>
     </div>`;
+    }).join('');
   }
 
   /* ---------- лекция ---------- */

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" width="480" height="300" font-family="Arial, sans-serif">
+  <title>Блочная модель: content, padding, border, margin</title>
+  <rect x="1" y="1" width="478" height="298" fill="#fdf0d5" stroke="#b07d1a" stroke-dasharray="6 4"/>
+  <text x="14" y="24" font-size="15" fill="#6b4a00">margin — внешний отступ</text>
+  <rect x="50" y="40" width="380" height="220" fill="#1f4e79"/>
+  <text x="64" y="60" font-size="15" fill="#ffffff">border — рамка</text>
+  <rect x="64" y="70" width="352" height="176" fill="#e3edf7"/>
+  <text x="78" y="92" font-size="15" fill="#1f4e79">padding — внутренний отступ</text>
+  <rect x="130" y="110" width="220" height="100" fill="#ffffff" stroke="#1f4e79"/>
+  <text x="240" y="155" font-size="16" fill="#222222" text-anchor="middle" font-weight="bold">content</text>
+  <text x="240" y="178" font-size="13" fill="#444444" text-anchor="middle">width × height</text>
+</svg>

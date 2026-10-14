@@ -125,7 +125,24 @@
     </fieldset>`;
   async function editLesson(id, moduleId) {
     const src = id ? (S.db.lessonList || []).find(l => l.id === id) : null;
-    const l = src || { title: '', module: moduleId || S.db.modules[0]?.id, lesson: (S.db.lessonList || []).filter(x => x.module === moduleId).length + 1, minutes: 30, difficulty: 'Лёгкий', markdown: '', quiz: [], task: null };
+    if (src && typeof src.markdown !== 'string') {
+      try { const r = await fetch(`content/md/${encodeURIComponent(src.id)}.md${src.md ? '?v=' + src.md : ''}`); if (!r.ok) throw new Error(); src.markdown = await r.text(); }
+      catch (e) { toast('Не получилось загрузить текст урока. Обновите страницу.'); return; }
+    }
+    const l = src || { title: '', module: moduleId || S.db.modules[0]?.id, lesson: (S.db.lessonList || []).filter(x => x.module === moduleId).length + 1, minutes: 120, difficulty: 'Лёгкий', kind: 'lecture', markdown: '', quiz: [], tasks: [] };
+    const lTasks = Array.isArray(l.tasks) && l.tasks.length ? l.tasks : l.task ? [l.task] : [];
+    // Задания в списке: сначала задания курса по занятиям, потом испытания
+    const lessonTitle = id => (S.db.lessonList || []).find(x => x.id === id);
+    const taskOptions = sel => {
+      const all = S.db.taskList || [];
+      const course = all.filter(t => t.lesson), game = all.filter(t => !t.lesson);
+      const opt = t => `<option value="${t.id}"${t.id === sel ? ' selected' : ''}>${esc(t.title)}</option>`;
+      const byLesson = [...new Set(course.map(t => t.lesson))].map(lid => {
+        const ll = lessonTitle(lid);
+        return `<optgroup label="${esc(ll ? `${ll.session ? 'Занятие ' + ll.session : 'Урок ' + ll.lesson}. ${ll.title}` : lid)}">${course.filter(t => t.lesson === lid).map(opt).join('')}</optgroup>`;
+      }).join('');
+      return `<option value="">— нет —</option>${byLesson}${game.length ? `<optgroup label="Испытания">${game.map(opt).join('')}</optgroup>` : ''}`;
+    };
     let item = null;
     const v = await A.modal({
       title: id ? 'Изменить урок' : 'Новый урок',
@@ -135,10 +152,13 @@
         <div class="f full"><label for="le-title">Название урока</label><input id="le-title" type="text" maxlength="120" value="${esc(l.title)}"></div>
         <div class="f"><label for="le-mod">Тема</label><select id="le-mod">${S.db.modules.map(m => `<option value="${m.id}"${m.id === l.module ? ' selected' : ''}>${esc(m.title)}</option>`).join('')}</select></div>
         <div class="f"><label for="le-n">Номер в теме</label><input id="le-n" type="number" min="1" max="99" value="${l.lesson}"></div>
-        <div class="f"><label for="le-min">Минут на урок</label><input id="le-min" type="number" min="1" max="600" value="${l.minutes}"></div>
+        <div class="f"><label for="le-kind">Вид занятия</label><select id="le-kind"><option value="lecture"${l.kind !== 'practice' ? ' selected' : ''}>Лекция</option><option value="practice"${l.kind === 'practice' ? ' selected' : ''}>Практическая работа</option></select></div>
+        <div class="f"><label for="le-ses">Номер занятия в курсе</label><input id="le-ses" type="number" min="1" max="999" value="${l.session || ''}" placeholder="необязательно"></div>
+        <div class="f"><label for="le-min">Минут на занятие</label><input id="le-min" type="number" min="1" max="600" value="${l.minutes}"></div>
         <div class="f"><label for="le-diff">Сложность</label><select id="le-diff">${DIFF.map(d => `<option${d === l.difficulty ? ' selected' : ''}>${d}</option>`).join('')}</select></div>
-        <div class="f full"><label for="le-task">Мини-задание после урока</label><select id="le-task"><option value="">— без мини-задания —</option>${(S.db.taskList || []).map(t => `<option value="${t.id}"${t.id === l.task ? ' selected' : ''}>${esc(t.title)}</option>`).join('')}</select>
-          <span class="hint">Урок считается пройденным, когда прочитан, квиз решён без ошибок и мини-задание сдано.</span></div>
+        <div class="f full"><span class="lbl">Задания урока, по порядку</span>
+          <div class="le-tasks">${[0, 1, 2, 3].map(i => `<select id="le-task-${i}" class="le-task" aria-label="Задание ${i + 1}">${taskOptions(lTasks[i])}</select>`).join('')}</div>
+          <span class="hint">Урок считается пройденным, когда прочитан, квиз решён без ошибок и все задания сданы.</span></div>
         <div class="f full"><div class="le-row"><label for="le-md">Текст урока</label><button type="button" class="act" id="le-pv">Показать как у студента</button></div>
           <textarea id="le-md" rows="14" spellcheck="true" placeholder="## Заголовок&#10;&#10;Обычный текст. **Жирный**, \`код\`, списки через «- ».&#10;&#10;\`\`\`html&#10;<p>Пример кода</p>&#10;\`\`\`">${esc(l.markdown || '')}</textarea>
           <span class="hint">Разметка Markdown: ## заголовок, **жирный**, \`код\`, списки через «- », блок кода между строками \`\`\`.</span>
@@ -162,8 +182,10 @@
         }
         item = {
           id: id || S.uid('l'), title: $('le-title').value.trim(), module: $('le-mod').value, lesson: +$('le-n').value || 1,
-          minutes: +$('le-min').value || 30, difficulty: $('le-diff').value, task: $('le-task').value || null, markdown: $('le-md').value, quiz
+          minutes: +$('le-min').value || 120, difficulty: $('le-diff').value, kind: $('le-kind').value, session: +$('le-ses').value || undefined,
+          tasks: [...new Set([...document.querySelectorAll('.le-task')].map(x => x.value).filter(Boolean))], markdown: $('le-md').value, quiz
         };
+        item.task = item.tasks[0] || null;
         if (item.title.length < 2) return 'Напишите название урока.';
         if (!item.markdown.trim()) return 'Напишите текст урока.';
         return null;
@@ -223,7 +245,7 @@
             ${ls.length ? `<div class="table-wrap"><table class="data-table">
               <thead><tr><th>Урок</th>${g ? '<th>В группе</th><th>Можно проходить</th>' : ''}<th class="acts"><span class="sr">Действия</span></th></tr></thead>
               <tbody>${ls.map(l => `<tr>
-                <td>${l.lesson}. ${esc(l.title)}<small>${l.custom ? 'ваш урок' : l.edited ? 'урок курса, изменён' : 'урок курса'} · ${l.minutes} мин · ${(l.quiz || []).length} вопр.${l.task ? ' · мини-задание' : ''}</small></td>
+                <td>${l.lesson}. ${esc(l.title)}<small>${l.custom ? 'ваш урок' : l.edited ? 'урок курса, изменён' : 'урок курса'} · ${l.minutes} мин · ${(l.quiz || []).length} вопр.${(l.tasks || []).length > 1 ? ` · заданий: ${l.tasks.length}` : (l.tasks || []).length || l.task ? ' · задание' : ''}</small></td>
                 ${g ? `<td><label class="check"><input type="checkbox" data-add="${l.id}"${added.has(l.id) ? ' checked' : ''}> <span class="sr">Добавить «${esc(l.title)}» группе</span></label></td>
                 <td><label class="check"><input type="checkbox" data-open="${l.id}"${open.has(l.id) ? ' checked' : ''}${added.has(l.id) ? '' : ' disabled'}> <span class="sr">Разрешить «${esc(l.title)}»</span></label></td>` : ''}
                 <td class="acts"><button type="button" class="act" data-ed-les="${l.id}">Изменить</button>${l.edited ? `<button type="button" class="act" data-revert="${l.id}">Вернуть как было</button>` : ''}<button type="button" class="act danger" data-rm-les="${l.id}">${l.builtin ? 'Скрыть' : 'Удалить'}</button></td>

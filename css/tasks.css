@@ -154,3 +154,30 @@
 .CodeMirror-lint-tooltip { font: 13px var(--font-ui); background: #1e1a24; color: #e6dcc6; border: 2px solid var(--gold); border-radius: 0; z-index: 20; }
 /* В заданиях редактору и предпросмотру нужно место: страница шире */
 #panel:has(#task-view:not([hidden])) { width: min(1480px, 100%); }
+
+/* Задания курса: темы и занятия */
+.sec-filter { margin: 0; }
+#course-list { display: flex; flex-direction: column; gap: 16px; }
+.course-mod { gap: 16px; }
+.course-mod > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.course-mod > summary::-webkit-details-marker { display: none; }
+.course-mod > summary::before { content: "▸"; color: var(--gold); font-size: 18px; }
+.course-mod[open] > summary::before { content: "▾"; }
+.course-mod > summary h2 { margin: 0; font-size: 22px; }
+.course-mod > summary:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 4px; }
+.course-lesson { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 2px solid rgba(90,80,102,0.4); }
+.cl-title { margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 17px; font-weight: 600; }
+.cl-title a { color: var(--bone); }
+.task-card.locked { opacity: 0.6; border-style: dashed; }
+.task-card.locked:hover { border-color: var(--stone); }
+
+/* Ссылки над заданием, подсказки, вкладка script.js */
+.back-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.hint-box { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.hint-box .btn { width: auto; margin: 0; height: 40px; padding-inline: 18px; font-size: 13px; }
+.hints { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5; color: var(--bone); }
+.hints:empty { display: none; }
+.hints li::marker { color: var(--gold); font-weight: 700; }
+/* Три вкладки и сводка линтера на телефоне переносятся, а не вылезают за экран */
+.ed-tabs { flex-wrap: wrap; }
+@media (max-width: 480px) { .ed-tabs .lint-sum { flex-basis: 100%; order: -1; text-align: right; } }

@@ -108,3 +108,17 @@ iframe.pdf { width: 100%; height: min(80vh, 900px); border: 2px solid #2b2430; b
 .docx.prose h1, .docx.prose h2, .docx.prose h3 { margin-top: 8px; text-align: left; text-indent: 0; letter-spacing: 0.02em; text-shadow: none; line-height: 1.2; font-size: 26px; }
 .docx.prose h2 { font-size: 22px; }
 .docx.prose h3 { font-size: 19px; }
+
+/* Курс МДК.08.01: вид занятия, песочница, несколько заданий */
+.prose .table-wrap { overflow-x: auto; }
+.meta .kind { color: var(--gold-hi); font-weight: 600; }
+.lesson-item.practice .ln { border-color: var(--ember); }
+.prose pre + .try { margin-top: -8px; }
+.try { align-self: flex-start; padding: 6px 14px; font: 600 13px var(--font-ui); letter-spacing: 0.04em; color: var(--gold-hi); background: rgba(0,0,0,0.45); border: 2px solid var(--gold); cursor: pointer; }
+.try:hover { background: rgba(201,164,92,0.16); }
+.try:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
+#mini { display: flex; flex-direction: column; gap: 14px; }
+.mini-note { margin: 0; color: var(--muted); font-size: 14px; }
+#mini .mini-card + .mini-card { padding-top: 14px; border-top: 2px solid rgba(90,80,102,0.4); }
+.mini-card.solved h3 { color: var(--ok); }
+.prose img { max-width: 100%; height: auto; }

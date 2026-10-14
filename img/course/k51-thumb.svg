@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="300" viewBox="0 0 420 300" role="img" aria-labelledby="t">
+<title id="t">Зоны большого пальца: лёгкая внизу и в центре, растяжка по краям, трудная в верхних углах</title>
+<rect width="420" height="300" fill="#ffffff"/>
+<defs><clipPath id="s"><rect x="40" y="28" width="150" height="250" rx="10"/></clipPath></defs>
+<rect x="30" y="12" width="170" height="282" rx="22" fill="#24292f"/>
+<g clip-path="url(#s)">
+<rect x="40" y="28" width="150" height="250" fill="#f6c3bf"/>
+<circle cx="200" cy="300" r="190" fill="#fbe3a6"/>
+<circle cx="200" cy="300" r="125" fill="#bfe3c9"/>
+</g>
+<text x="56" y="62" font-family="Arial, sans-serif" font-size="13" fill="#7a1a12">трудно</text>
+<text x="70" y="160" font-family="Arial, sans-serif" font-size="13" fill="#5c4400">растяжка</text>
+<text x="118" y="240" font-family="Arial, sans-serif" font-size="13" fill="#1e4620">легко</text>
+<g font-family="Arial, sans-serif" font-size="14" fill="#222222">
+<rect x="230" y="60" width="18" height="18" fill="#bfe3c9"/><text x="256" y="74">Легко: главные кнопки,</text><text x="256" y="92">нижняя навигация</text>
+<rect x="230" y="122" width="18" height="18" fill="#fbe3a6"/><text x="256" y="136">Растяжка: второстепенное</text>
+<rect x="230" y="172" width="18" height="18" fill="#f6c3bf"/><text x="256" y="186">Трудно: редкие и опасные</text><text x="256" y="204">действия</text>
+<text x="230" y="250" font-size="12" fill="#57606a">Телефон в правой руке,</text><text x="230" y="266" font-size="12" fill="#57606a">нажимает большой палец</text>
+</g>
+</svg>

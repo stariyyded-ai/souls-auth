@@ -83,7 +83,8 @@
     };
     const taskRec = id => st.tasks[id] || (st.tasks[id] = { best: 0, attempts: 0 });
     const str = v => typeof v === 'string' ? v : '';
-    const code = c => (c && typeof c === 'object' && str(c.html).length <= MAX_CODE && str(c.css).length <= MAX_CODE) ? { html: str(c.html), css: str(c.css) } : null;
+    const code = c => (c && typeof c === 'object' && str(c.html).length <= MAX_CODE && str(c.css).length <= MAX_CODE && str(c.js).length <= MAX_CODE)
+      ? { html: str(c.html), css: str(c.css), ...(c.js ? { js: str(c.js) } : {}) } : null;
 
     switch (a && a.type) {
       /* ---------- магазин ---------- */

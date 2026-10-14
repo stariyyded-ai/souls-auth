@@ -31,7 +31,7 @@
       <div id="list-view">
         <div class="page-head">
           <h1>Уроки</h1>
-          <p class="lead">Модули делятся на уроки: текст, примеры кода и квиз. К каждому уроку есть мини-задание на 15–30 минут с автопроверкой. Ниже — лекции преподавателя в PDF и Word.</p>
+          <p class="lead">Темы делятся на занятия: лекции и практические работы. В занятии — текст с примерами (их можно открыть в песочнице кнопкой «Попробовать»), квиз и задания с автопроверкой. Урок пройден, когда он прочитан, квиз решён без ошибок и все задания сданы. Ниже — лекции преподавателя в PDF и Word.</p>
         </div>
         <div id="modules"></div>
         <section class="plate" aria-labelledby="mat-title">
@@ -54,7 +54,7 @@
           <form id="quiz-form" class="quiz-form"></form>
         </section>
         <section class="plate mini" aria-labelledby="mini-title">
-          <div class="plate-head"><h2 id="mini-title">Мини-задание</h2></div>
+          <div class="plate-head"><h2 id="mini-title">Задание</h2></div>
           <div id="mini"></div>
         </section>
         <nav class="ls-nav" id="ls-nav" aria-label="Соседние уроки"></nav>
@@ -75,7 +75,7 @@
 
     <footer class="foot">
       <span class="msg">знание — тоже оружие</span>
-      <span>Уроки — файлы Markdown в content/lessons, лекции загружает администратор. v0.4 · Эпоха огня</span>
+      <span>Уроки — файлы Markdown в content/lessons, лекции загружает администратор. v0.6 · Эпоха огня</span>
     </footer>
   </div>
 
@@ -95,6 +95,7 @@
   <script src="js/files.js"></script>
   <script src="vendor/marked/marked.min.js"></script>
   <script src="js/tasks-data.js"></script>
+  <script src="js/tasks-course.js"></script>
   <script src="js/content.js"></script>
   <script src="js/lessons-db.js"></script>
   <script src="js/lessons.js"></script>

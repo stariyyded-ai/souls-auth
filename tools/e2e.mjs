@@ -92,7 +92,7 @@ try {
   ok(await anon.locator('#mod-list .pip.done').count() === 0, 'в модулях новичка нет пройденных уроков');
   ok(await anon.textContent('#st-group') === 'Группа ВД-21 · Веб-дизайн, 2 курс', 'по коду студент попал в свою группу');
   // Курсы: открыты курсы группы (ВД-21: c1, c2), остальные — только по запросу
-  ok(await anon.locator('#course-list .course.active').count() === 2 && await anon.locator('#course-list [data-ask]').count() === 3, 'в кабинете открыты только курсы группы');
+  ok(await anon.locator('#course-list .course.active').count() === 2 && await anon.locator('#course-list [data-ask]').count() === 4, 'в кабинете открыты только курсы группы');
   await anon.click('[data-ask="c4"]'); await anon.waitForTimeout(500);
   ok((await anon.textContent('#course-list .course:has-text("Продвинутый JavaScript") button')) === 'ЗАЯВКА ОТПРАВЛЕНА', 'студент попросил открыть курс');
   const again = await api(anon, 'POST', 'api/me/course-request', { course: 'c4' });
@@ -312,6 +312,24 @@ try {
   await st.click('a.exit'); await st.waitForURL(/index\.html/, { timeout: 8000 });
   await st.goto(U + 'cabinet.html');
   ok(st.url().endsWith('/index.html'), 'после выхода кабинет снова закрыт');
+
+  /* ---------- курс МДК.08.01: текст урока, задание с JavaScript, песочница ---------- */
+  const ca = await ctxPage();
+  await login(ca, '123', '123123123'); await ca.waitForURL(/admin\.html/, { timeout: 10000 });
+  await ca.goto(U + 'lessons.html#mdk-28'); await ca.waitForTimeout(1500);
+  ok((await ca.textContent('#ls-body')).length > 3000 && await ca.locator('#mini .mini-card').count() === 3, 'урок курса: текст подгрузился, у занятия три задания');
+  ok(await ca.locator('#ls-body .try').count() > 0, 'под примерами HTML есть кнопка «Попробовать»');
+  await ca.locator('#ls-body .try').first().click(); await ca.waitForURL(/tasks\.html#sandbox/, { timeout: 8000 }); await ca.waitForTimeout(800);
+  ok((await ca.textContent('#t-mech')).startsWith('Песочница') && await ca.locator('#run').isHidden(), 'пример открылся в песочнице без проверки');
+  await ca.goto(U + 'tasks.html#k2801'); await ca.waitForTimeout(1200);
+  ok(await ca.locator('#tab-js').isVisible(), 'у задания с JavaScript есть вкладка script.js');
+  await ca.evaluate(() => new Promise(r => { const s = document.createElement('script'); s.src = 'tools/solutions-course.js'; s.onload = r; document.head.appendChild(s); }));
+  await ca.evaluate(() => { const t = window.TASKS.find(x => x.id === 'k2801'), sol = window.TASK_SOLUTIONS.k2801(t), cms = document.querySelectorAll('.CodeMirror'); cms[0].CodeMirror.setValue(sol.html); cms[1].CodeMirror.setValue(sol.css); cms[2].CodeMirror.setValue(sol.js || ''); });
+  await ca.click('#run'); await ca.waitForSelector('#result:not([hidden])', { timeout: 20000 });
+  ok(await ca.locator('#t-checks li.ok').count() === await ca.locator('#t-checks li').count(), 'задание с JavaScript решается через редактор: все проверки зелёные');
+  ok((await ca.getAttribute('#preview', 'sandbox')).includes('allow-scripts') && !(await ca.getAttribute('#preview', 'sandbox')).includes('allow-same-origin'), 'предпросмотр выполняет скрипт студента без доступа к сайту');
+  await ca.goto(U + 'tasks.html'); await ca.waitForTimeout(1000);
+  ok(await ca.locator('#course-list .course-mod').count() === 5, 'в заданиях курс разложен по пяти темам');
 
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);

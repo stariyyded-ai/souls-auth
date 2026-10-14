@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="330" viewBox="0 0 640 330" font-family="Arial, sans-serif" font-size="12">
+<rect width="640" height="330" fill="#fdf6ee"/>
+<g fill="#3b2416"><text x="20" y="20" font-weight="bold">360px · телефон</text><text x="160" y="20" font-weight="bold">768px · планшет</text><text x="380" y="20" font-weight="bold">1280px · компьютер</text></g>
+<rect x="20" y="30" width="110" height="290" rx="8" fill="#ffffff" stroke="#3b2416"/>
+<g fill="#3b2416"><rect x="28" y="38" width="40" height="10"/><rect x="28" y="52" width="94" height="8" fill="#a4541c"/><rect x="28" y="66" width="94" height="44"/></g>
+<g fill="#e8d9c8"><rect x="28" y="116" width="94" height="22"/><rect x="28" y="142" width="94" height="22"/><rect x="28" y="168" width="94" height="22"/><rect x="28" y="198" width="94" height="40"/><rect x="28" y="242" width="94" height="40"/></g>
+<rect x="28" y="290" width="94" height="22" fill="#3b2416"/>
+<rect x="160" y="30" width="200" height="290" rx="8" fill="#ffffff" stroke="#3b2416"/>
+<g fill="#3b2416"><rect x="168" y="38" width="40" height="10"/><rect x="250" y="38" width="102" height="10" fill="#a4541c"/><rect x="168" y="56" width="184" height="60"/></g>
+<g fill="#e8d9c8"><rect x="168" y="124" width="58" height="40"/><rect x="231" y="124" width="58" height="40"/><rect x="294" y="124" width="58" height="40"/><rect x="168" y="172" width="90" height="50"/><rect x="262" y="172" width="90" height="50"/><rect x="168" y="226" width="90" height="50"/><rect x="262" y="226" width="90" height="50"/></g>
+<rect x="168" y="290" width="184" height="22" fill="#3b2416"/>
+<rect x="380" y="30" width="240" height="290" rx="8" fill="#ffffff" stroke="#3b2416"/>
+<g fill="#3b2416"><rect x="388" y="38" width="40" height="10"/><rect x="500" y="38" width="112" height="10" fill="#a4541c"/><rect x="388" y="56" width="224" height="70"/></g>
+<g fill="#e8d9c8"><rect x="388" y="134" width="72" height="40"/><rect x="464" y="134" width="72" height="40"/><rect x="540" y="134" width="72" height="40"/><rect x="388" y="182" width="72" height="50"/><rect x="464" y="182" width="72" height="50"/><rect x="540" y="182" width="72" height="50"/><rect x="388" y="236" width="72" height="50"/><rect x="464" y="236" width="72" height="50"/><rect x="540" y="236" width="72" height="50"/></g>
+<rect x="388" y="290" width="224" height="22" fill="#3b2416"/>
+</svg>

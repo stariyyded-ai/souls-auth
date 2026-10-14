@@ -32,23 +32,28 @@
       <!-- Список заданий -->
       <div id="list-view">
         <div class="page-head">
-          <h1>Испытания</h1>
-          <p class="lead">25 заданий по HTML и CSS. Очки = базовый балл за результат + бонус за чистый код (до 40%) + бонус за скорость (до 30%, если уложились в норму времени). Перерешать можно сколько угодно: начисляется только прирост к лучшему результату.</p>
+          <h1>Задания</h1>
+          <p class="lead">Задания курса привязаны к занятиям: решайте их после урока. Испытания — 25 игровых заданий по HTML и CSS. Очки = базовый балл за результат + бонус за чистый код (до 40%) + бонус за скорость (до 30%, если уложились в норму времени). Перерешать можно сколько угодно: начисляется только прирост к лучшему результату.</p>
+        </div>
+        <div class="chips sec-filter" role="group" aria-label="Раздел" id="sec-filter">
+          <button type="button" class="chip on" data-s="course">Задания курса</button>
+          <button type="button" class="chip" data-s="game">Испытания</button>
         </div>
         <section class="plate tasks-sum" aria-label="Прогресс">
-          <div><p class="eyebrow">Решено</p><p class="big" id="sum-solved">0 / 25</p></div>
+          <div><p class="eyebrow">Решено</p><p class="big" id="sum-solved">0</p></div>
           <div class="sum-bar"><div class="bar xp" role="progressbar" aria-label="Решено заданий" id="sum-bar"><i></i></div></div>
           <div><p class="eyebrow">Очков за задания</p><p class="big" id="sum-points">0</p></div>
           <div class="boosts" id="boosts"></div>
         </section>
         <div class="chips mech-filter" role="group" aria-label="Механика" id="mech-filter"></div>
         <div id="mech-list"></div>
+        <div id="course-list"></div>
       </div>
 
       <!-- Одно задание -->
       <div id="task-view" hidden>
         <div class="task-top">
-          <a href="#" class="back" id="back">← Все задания</a>
+          <div class="back-links"><a href="#" class="back" id="back">← Все задания</a><a href="lessons.html" class="back" id="t-lesson" hidden>← К уроку</a></div>
           <div class="task-title">
             <p class="eyebrow" id="t-mech"></p>
             <h1 id="t-title"></h1>
@@ -67,6 +72,10 @@
               <p class="story" id="t-story"></p>
               <div><h2 class="h3">Условие</h2><p id="t-goal"></p></div>
               <p class="meta" id="t-meta"></p>
+              <div class="hint-box" id="hint-box" hidden>
+                <ol class="hints" id="hints"></ol>
+                <button type="button" class="btn ghost" id="hint-btn">ПОДСКАЗКА</button>
+              </div>
               <div id="frag-box" hidden>
                 <h2 class="h3">Фрагменты</h2>
                 <p class="hint">Поставь курсор в нужное место и нажми на фрагмент. Ловушки портят оценку.</p>
@@ -89,10 +98,12 @@
             <div class="ed-tabs" role="tablist" aria-label="Файлы">
               <button type="button" role="tab" id="tab-html" aria-selected="true" aria-controls="pane-html">index.html</button>
               <button type="button" role="tab" id="tab-css" aria-selected="false" aria-controls="pane-css">style.css</button>
+              <button type="button" role="tab" id="tab-js" aria-selected="false" aria-controls="pane-js" hidden>script.js</button>
               <span class="lint-sum" id="lint-sum"></span>
             </div>
             <div class="ed-pane" id="pane-html" role="tabpanel" aria-labelledby="tab-html"></div>
             <div class="ed-pane" id="pane-css" role="tabpanel" aria-labelledby="tab-css" hidden></div>
+            <div class="ed-pane" id="pane-js" role="tabpanel" aria-labelledby="tab-js" hidden></div>
             <div class="ed-actions">
               <button type="button" class="btn" id="run">ПРОВЕРИТЬ</button>
               <button type="button" class="link" id="restart">Начать заново</button>
@@ -121,7 +132,7 @@
 
     <footer class="foot">
       <span class="msg">не теряй надежду</span>
-      <span>Код и результаты сохраняются на сервере, очки пересчитывает сервер. v0.5 · Эпоха огня</span>
+      <span>Код и результаты сохраняются на сервере, очки пересчитывает сервер. v0.6 · Эпоха огня</span>
     </footer>
   </div>
 
@@ -151,6 +162,9 @@
   <script src="vendor/htmlhint/htmlhint.min.js"></script>
   <script src="js/task-runner.js"></script>
   <script src="js/tasks-data.js"></script>
+  <script src="js/tasks-course.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/lessons-db.js"></script>
   <script src="js/tasks.js"></script>
 </body>
 </html>

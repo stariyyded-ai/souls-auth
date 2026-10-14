@@ -54,15 +54,17 @@
     };
   }
 
-  // Урок пройден, когда квиз решён без ошибок и мини-задание сдано (то же считает сервер для админки)
+  // Задания урока: новый формат — массив tasks, старый — одно поле task
+  const lessonTasks = l => Array.isArray(l.tasks) && l.tasks.length ? l.tasks : l.task ? [l.task] : [];
+  // Урок пройден, когда он прочитан, квиз решён без ошибок и все задания урока сданы (то же считает сервер для админки)
   function lessonDone(l, st) {
-    const s = st.lessons[l.id], t = l.task && st.tasks[l.task];
+    const s = st.lessons[l.id];
     const quizOk = !(l.quiz && l.quiz.length) || (s && s.quizMax && s.quiz === s.quizMax);
-    const taskOk = !l.task || (t && t.solved);
+    const taskOk = lessonTasks(l).every(id => st.tasks[id] && st.tasks[id].solved);
     return !!(s && s.read && quizOk && taskOk);
   }
 
   const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, clock };
+  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, lessonTasks, clock };
 })();
