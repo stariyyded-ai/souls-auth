@@ -348,21 +348,25 @@ try {
   await ad.click(`[data-open="${sid}"]`); await ad.waitForSelector('#u-time table', { timeout: 8000 });
   ok((await ad.textContent('#u-time')).includes('Первая страница'), 'в карточке студента есть таблица «Время на задания»');
   await ad.click('#modal-actions button:has-text("ЗАКРЫТЬ")');
-  // Скрыть урок и тему в разделе «Уроки групп»
+  // Скрыть урок и тему у группы ИСП-11 в разделе «Уроки групп»; у других групп они остаются
   await ad.goto(U + 'admin.html#lessons'); await ad.waitForTimeout(600);
-  await ad.click('[data-hide-les="mdk-01"]'); await ad.waitForTimeout(900);
-  await ad.click('[data-hide-mod="mdk2"]'); await ad.waitForTimeout(900);
+  await ad.selectOption('#lg-group', 'g4'); await ad.waitForTimeout(400);
+  await ad.click('[data-ghide-les="mdk-01"]'); await ad.waitForTimeout(900);
+  await ad.click('[data-ghide-mod="mdk2"]'); await ad.waitForTimeout(900);
+  const gdb = (await api(ad, 'GET', 'api/admin/db')).body.groups;
+  ok(gdb.find(g => g.id === 'g4').hiddenLessons.includes('mdk-01') && gdb.find(g => g.id === 'g4').hiddenModules.includes('mdk2') && !(gdb.find(g => g.id === 'g1').hiddenModules || []).length, 'скрытие сохранено только у группы ИСП-11');
   await sx.goto(U + 'lessons.html'); await sx.waitForTimeout(800);
   const vis = await sx.evaluate(() => [...document.querySelectorAll('#modules .lesson-item h3')].map(h => h.textContent));
-  ok(!vis.some(t => t.startsWith('Как устроен веб')) && await sx.locator('#modules .module').count() === 4, 'скрытые урок и тема пропали из «Уроков» студента');
+  ok(!vis.some(t => t.startsWith('Как устроен веб')) && await sx.locator('#modules .module').count() === 4, 'скрытые урок и тема пропали из «Уроков» студента группы');
+  await sx.goto(U + 'cabinet.html'); await sx.waitForTimeout(800);
+  ok(!(await sx.textContent('#mod-list')).includes('CSS: оформление страниц') && (await sx.textContent('#mod-list')).includes('HTML: первые страницы'), 'скрытая тема пропала из «Модулей курса» в кабинете');
   ok((await api(sx, 'POST', 'api/me/actions', { actions: [{ type: 'read', lesson: 'mdk-01' }] })).body.results[0].ok === false, 'скрытый урок сервер не засчитывает');
   await sx.goto(U + 'tasks.html#k0101'); await sx.waitForTimeout(800);
   ok(!sx.url().includes('#k0101'), 'задание скрытого урока не открывается');
-  await ad.click('[data-hide-les="mdk-01"]'); await ad.waitForTimeout(900);
-  await ad.click('[data-hide-mod="mdk2"]'); await ad.waitForTimeout(900);
-  const back = (await api(ad, 'GET', 'api/admin/db')).body.lessonList.filter(l => l.hidden || l.modHidden).length;
+  await ad.click('[data-ghide-les="mdk-01"]'); await ad.waitForTimeout(900);
+  await ad.click('[data-ghide-mod="mdk2"]'); await ad.waitForTimeout(900);
   await sx.goto(U + 'lessons.html'); await sx.waitForTimeout(800);
-  ok(back === 0 && await sx.locator('#modules .module').count() === 5 && await sx.locator('#modules a[href="#mdk-01"]').count() === 1, 'урок и тема снова видны после «Показать»');
+  ok(await sx.locator('#modules .module').count() === 5 && await sx.locator('#modules a[href="#mdk-01"]').count() === 1, 'урок и тема снова видны группе после «Показать»');
 
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);

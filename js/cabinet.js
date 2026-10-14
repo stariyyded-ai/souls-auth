@@ -66,7 +66,9 @@
   };
   // У группы с набранными уроками показываем темы, где есть её уроки; у прочих — модули группы
   const configured = Array.isArray(myGroup?.lessons);
-  const modules = B.db.modules.filter(m => configured || !myGroup || !myGroup.modules || myGroup.modules.includes(m.id)).map(m => {
+  // Скрытые темы (у всех или у группы студента) в «Модулях курса» не показываем
+  const modOff = m => m.hidden || (myGroup?.hiddenModules || []).includes(m.id);
+  const modules = B.db.modules.filter(m => !modOff(m) && (configured || !myGroup || !myGroup.modules || myGroup.modules.includes(m.id))).map(m => {
     const real = window.LESSONS.filter(l => l.module === m.id && lessonAccess(l) !== 'hidden').sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
     // Группе, которой преподаватель сам набрал уроки, пустые места модуля не показываем
     const planned = configured ? real.length : Math.max(m.lessons || 0, real.length);

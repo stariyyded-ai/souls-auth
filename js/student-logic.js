@@ -28,8 +28,10 @@
      если в его описании не указаны группы или указана группа студента. Администратору открыто всё. */
   function lessonAccess(lesson, group, role) {
     if (role === 'admin') return 'open';
-    // Скрытый администратором урок (или вся его тема) не виден никому из студентов
+    // Скрытый администратором урок (или вся его тема) не виден студентам: у всех (hidden, modHidden)
+    // или только у этой группы (group.hiddenLessons, group.hiddenModules)
     if (lesson.hidden || lesson.modHidden) return 'hidden';
+    if (group && ((group.hiddenLessons || []).includes(lesson.id) || (group.hiddenModules || []).includes(lesson.module))) return 'hidden';
     if (!group || !Array.isArray(group.lessons)) {
       const only = lesson.groups || [];
       return !only.length || (group && only.includes(group.code)) ? 'open' : 'wait';

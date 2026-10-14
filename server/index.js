@@ -353,6 +353,12 @@ function checkModule(m) {
 
 // Уроки группы: только существующие; разрешить можно только добавленный урок. Новая группа начинает без уроков.
 function checkLessons(g, old) {
+  // Что скрыто у группы: темы и уроки (списки id); если не прислали — оставляем как было
+  for (const k of ['hiddenModules', 'hiddenLessons']) {
+    if (g[k] === undefined) g[k] = old?.[k] || [];
+    if (!Array.isArray(g[k])) fail(400, 'Неверный список скрытого.');
+    g[k] = [...new Set(g[k].filter(x => typeof x === 'string' && x.length <= 80))];
+  }
   if (g.lessons === undefined && old) { if (old.lessons !== undefined) { g.lessons = old.lessons; g.lessonsOpen = old.lessonsOpen; } return; }
   if (g.lessons === undefined) g.lessons = [];
   const known = new Set(D.allLessons().map(l => l.id));
