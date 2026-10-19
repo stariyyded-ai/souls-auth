@@ -1,0 +1,103 @@
+/* Оболочка внутренних страниц: шапка-панель с меню и плашкой игрока, на телефоне — меню внизу экрана.
+   Подключается последней, поэтому переопределяет старую шапку из style.css и cabinet.css. */
+
+/* ---------- Шапка ---------- */
+.stage { padding-top: 0; }
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  margin-inline: -16px; margin-bottom: 8px;
+  padding: 10px max(16px, calc((100% - 1240px) / 2 + 16px));
+  display: flex; flex-wrap: nowrap; align-items: center; gap: 14px;
+  background: linear-gradient(180deg, rgba(10,9,12,0.94), rgba(16,13,20,0.9));
+  border-bottom: 2px solid rgba(201,164,92,0.45);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+/* тлеющая кромка под шапкой */
+.top::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 2px;
+  background: repeating-linear-gradient(90deg, rgba(232,119,46,0.55) 0 6px, transparent 6px 14px, rgba(246,196,83,0.35) 14px 16px, transparent 16px 30px);
+  pointer-events: none;
+}
+.top .logo-name { font-size: 18px; white-space: nowrap; }
+
+/* Меню: иконка и подпись */
+.topnav { display: flex; gap: 4px; margin-left: 18px; margin-right: auto; font-size: 14px; }
+.topnav a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 2px solid transparent; border-bottom: 2px solid transparent;
+  color: rgba(230,220,198,0.78); text-decoration: none; font-weight: 500;
+}
+.topnav a:hover { color: var(--gold-hi); background: rgba(201,164,92,0.08); }
+.topnav a.on { color: var(--gold-hi); background: rgba(232,119,46,0.12); border-color: rgba(201,164,92,0.5); border-bottom-color: var(--ember); }
+.topnav a:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
+.nav-ico { display: grid; place-items: center; width: 18px; height: 18px; }
+.nav-ico svg { display: block; }
+
+/* Плашка игрока */
+.me-chip {
+  display: inline-flex; align-items: center; gap: 10px; flex: none;
+  padding: 4px 10px 4px 4px;
+  text-decoration: none; color: var(--bone); font-weight: 400;
+  background: rgba(0,0,0,0.45); border: 2px solid rgba(201,164,92,0.45);
+}
+.me-chip:hover { border-color: var(--gold); }
+.me-chip:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
+.mc-ava { display: grid; place-items: center; width: 34px; height: 34px; background: radial-gradient(circle at 50% 70%, rgba(232,119,46,0.35), rgba(0,0,0,0.5) 70%); border: 2px solid var(--stone); overflow: hidden; }
+.mc-ava svg { display: block; max-width: 30px; max-height: 30px; }
+.mc-lv { display: flex; flex-direction: column; gap: 4px; min-width: 84px; }
+.mc-lv b { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-hi); line-height: 1; }
+.mc-lv i { display: block; height: 6px; background: var(--xp-dark, #6a4b14); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6); position: relative; }
+.mc-lv i::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--xp, #e0b44a); }
+.mc-souls { font-weight: 700; font-size: 14px; color: #bcd6ff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-souls small { font-weight: 400; color: var(--muted); font-size: 12px; }
+
+.top .sound { margin-left: 0; padding: 6px 8px; }
+.top .exit { white-space: nowrap; }
+
+/* Средние экраны: подписи меню прячутся, остаются иконки */
+@media (max-width: 1180px) {
+  .topnav .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .topnav a { padding: 8px; }
+  .topnav { margin-left: 8px; }
+  .top .sound .label { display: none; }
+}
+
+/* ---------- Телефон: меню панелью внизу ---------- */
+@media (max-width: 720px) {
+  /* без backdrop-filter: иначе нижнее меню (position: fixed) привязывается к шапке, а не к экрану */
+  .top { gap: 10px; padding-block: 8px; backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(10,9,12,0.96); }
+  .top .logo-name { font-size: 15px; }
+  .mc-lv, .top .sound { display: none; }
+  .me-chip { margin-left: auto; padding-right: 8px; }
+  .topnav {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; margin: 0; width: auto; order: 0;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: rgba(10,9,12,0.96); border-top: 2px solid rgba(201,164,92,0.5);
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+  }
+  .topnav a { flex-direction: column; gap: 3px; padding: 6px 2px; font-size: 11px; border: 0; border-top: 2px solid transparent; justify-content: center; }
+  .topnav a.on { background: rgba(232,119,46,0.14); border-top-color: var(--ember); }
+  .topnav .nav-label { position: static; width: auto; height: auto; clip: auto; overflow: visible; }
+  .nav-ico { width: 20px; height: 20px; }
+  .stage { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .toast { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 35; }
+}
+@media (max-width: 380px) { .top .logo-name { display: none; } }
+
+/* ---------- Заголовок страницы ---------- */
+.page-head { position: relative; padding-bottom: 16px; }
+.page-head::after {
+  content: ""; position: absolute; left: 0; bottom: 0; width: min(320px, 60%); height: 4px;
+  background: linear-gradient(90deg, var(--ember) 0 12px, transparent 12px 16px, var(--gold) 16px 60%, transparent);
+}
+.top .logo-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.top .sound .label { white-space: nowrap; }
+@media (max-width: 720px) { .top .logo-name { font-size: 13px; letter-spacing: 0.04em; } }
+@media (max-width: 720px) {
+  .top .logo-name { display: none; }
+  /* длинное пояснение под заголовком на телефоне свёрнуто до трёх строк, нажатие раскрывает */
+  .page-head .lead:not(.full) { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .page-head .lead:not(.full)::after { content: ""; }
+}

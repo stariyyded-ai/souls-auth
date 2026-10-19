@@ -85,20 +85,41 @@
   const isAdmin = () => !!me && me.role === 'admin';
 
   // Меню в шапке: <nav class="topnav" data-page="cabinet"></nav> заполняется отсюда.
-  // Пункт «Админка» видит только администратор.
+  // Пункт «Админка» видит только администратор. На телефоне то же меню встаёт панелью внизу экрана.
   const NAV = [
-    ['cabinet', 'cabinet.html', 'Кабинет'],
-    ['lessons', 'lessons.html', 'Уроки'],
-    ['tasks', 'tasks.html', 'Задания'],
-    ['shop', 'shop.html', 'Магазин'],
-    ['leaders', 'leaderboard.html', 'Лидеры'],
-    ['admin', 'admin.html', 'Админка', 'admin']
+    ['cabinet', 'cabinet.html', 'Кабинет', ['..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XX.....XX', 'XX.X.X.XX', 'XX.....XX', 'XXX.X.XXX', '.XXXXXXX.', '..X...X..']],
+    ['lessons', 'lessons.html', 'Уроки', ['.........', 'XXXX.XXXX', 'X..X.X..X', 'X.XX.XX.X', 'X..X.X..X', 'X.XX.XX.X', 'X..X.X..X', 'XXXXXXXXX', '....X....']],
+    ['tasks', 'tasks.html', 'Задания', ['.......XX', '......XXX', '.....XXX.', '....XXX..', 'X..XXX...', '.XXXX....', '..XX.....', '.X.XX....', 'X...X....']],
+    ['shop', 'shop.html', 'Магазин', ['...XXX...', '....X....', '..XXXXX..', '.XX...XX.', 'XX..X..XX', 'X..XXX..X', 'X...X...X', 'XX.....XX', '.XXXXXXX.']],
+    ['leaders', 'leaderboard.html', 'Лидеры', ['.........', 'X...X...X', 'XX.XXX.XX', 'XXXXXXXXX', 'XXXXXXXXX', 'X.X.X.X.X', 'XXXXXXXXX', 'XXXXXXXXX', '.........']],
+    ['admin', 'admin.html', 'Админка', ['.........', '.XXX.....', 'X...X....', 'X...XXXXX', 'X...X.X.X', '.XXX..X.X', '.........', '.........', '.........'], 'admin']
   ];
   document.querySelectorAll('nav.topnav[data-page]').forEach(nav => {
     const page = nav.dataset.page;
-    nav.innerHTML = NAV.filter(n => !n[3] || isAdmin()).map(([id, href, label]) =>
-      id === page ? `<a href="${href}" class="on" aria-current="page">${label}</a>` : `<a href="${href}" data-fade>${label}</a>`).join('');
+    nav.innerHTML = NAV.filter(n => !n[4] || isAdmin()).map(([id, href, label, ico]) =>
+      `<a href="${href}"${id === page ? ' class="on" aria-current="page"' : ' data-fade'}><span class="nav-ico">${svg(ico, { X: 'currentColor' }, 2)}</span><span class="nav-label">${label}</span></a>`).join('');
   });
+
+  // Плашка игрока в шапке: аватар, уровень, полоска опыта и души. Есть на страницах, где загружены данные студента.
+  function chip() {
+    const St = window.Student, E = window.Economy, top = document.querySelector('.top');
+    if (!St || !E || !top || !St.state) return;
+    let el = document.getElementById('me-chip');
+    if (!el) {
+      el = document.createElement('a');
+      el.id = 'me-chip'; el.className = 'me-chip'; el.href = 'cabinet.html';
+      top.querySelector('.sound')?.before(el);
+    }
+    const st = St.state, lv = E.LEVELS;
+    let i = 0; lv.forEach((l, k) => { if (st.xp >= l.xp) i = k; });
+    const nx = lv[i + 1], pct = nx ? (st.xp - lv[i].xp) / (nx.xp - lv[i].xp) * 100 : 100;
+    const ava = window.ASH_AVATAR_SVG ? window.ASH_AVATAR_SVG(st.equipped?.avatar, 2) : '';
+    el.setAttribute('aria-label', `${lv[i].title}, ${st.xp.toLocaleString('ru-RU')} опыта, ${st.souls.toLocaleString('ru-RU')} душ. Открыть кабинет`);
+    el.innerHTML = `<span class="mc-ava" aria-hidden="true">${ava}</span><span class="mc-lv" aria-hidden="true"><b>${lv[i].title}</b><i style="--w:${Math.max(0, Math.min(100, pct))}%"></i></span><span class="mc-souls" aria-hidden="true">${st.souls.toLocaleString('ru-RU')}<small> душ</small></span>`;
+  }
+  document.addEventListener('DOMContentLoaded', () => { chip(); window.Student?.on?.(chip); });
+  // На телефоне пояснение под заголовком свёрнуто (css/shell.css): нажатие показывает его целиком
+  document.addEventListener('click', e => { const l = e.target.closest('.page-head .lead'); if (l && !e.target.closest('a')) l.classList.add('full'); });
 
   // Плавное появление панели при загрузке и уход со страницы
   const panel = document.getElementById('panel');

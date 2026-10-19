@@ -136,8 +136,9 @@
     sx.fillStyle = g; sx.fillRect(0, 0, W, H);
     if (T.stars) stars.forEach(s => { sx.fillStyle = `rgba(230,220,198,${s.a * (0.7 + 0.3 * Math.sin(t * 1.3 + s.tw))})`; sx.fillRect(s.x, s.y, 1, 1); });
     // sun / eclipse
-    const R = Math.max(12, Math.round(Math.min(W, H) * 0.09));
-    const ex = Math.round(W * (W < 140 ? 0.78 : 0.82)), ey = T.orb === 'sunset' ? Math.round(gy - 40 - R * 0.6) : Math.round(H * 0.2);
+    // Светило держится в правом верхнем углу, подальше от заголовков страниц
+    const R = W < 140 ? Math.max(8, Math.round(W * 0.07)) : Math.max(12, Math.round(Math.min(W, H) * 0.075));
+    const ex = W < 140 ? W - R * 2 - 2 : W - R * 2 - 4, ey = T.orb === 'sunset' ? Math.round(gy - 40 - R * 0.6) : Math.round(H * 0.13);
     orb(t, ex, ey, R);
     // clouds
     if (T.clouds) clouds.forEach(c => {

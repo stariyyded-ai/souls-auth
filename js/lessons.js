@@ -57,20 +57,59 @@
   // Администратор видит лекции всех групп, студент — только своей (файлы сервер всё равно отдаёт по тем же правилам)
   const lectures = () => A.db.lectures.filter(l => l.published && (window.Ash.isAdmin() || !l.groups || !l.groups.length || l.groups.includes(myGroupId)));
 
+  function saveOpen() {
+    const ids = [...document.querySelectorAll('#modules details.module[open]')].map(d => d.dataset.mod);
+    try { localStorage.setItem('ash:open-mods', JSON.stringify(ids)); } catch (e) { /* без памяти браузера просто не запоминаем */ }
+  }
+  // Номер темы в навигации раскрывает её и прокручивает к ней, адрес не меняется (хеш в адресе — это открытый урок)
+  document.addEventListener('click', e => {
+    const a = e.target.closest('#mod-nav a, [data-all-mods]');
+    if (!a) return;
+    e.preventDefault();
+    const all = document.querySelectorAll('#modules details.module');
+    if (a.dataset.allMods !== undefined) {
+      const openAll = [...all].some(d => !d.open);
+      all.forEach(d => { d.open = openAll; });
+      a.textContent = openAll ? 'Свернуть все темы' : 'Развернуть все темы';
+      saveOpen(); return;
+    }
+    const d = document.getElementById('box-' + a.dataset.mod);
+    if (!d) return;
+    d.open = true; saveOpen();
+    d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  });
+
   function renderList() {
     const used = MODULES.filter(m => VISIBLE.some(l => l.module === m.id && inCourse(l)));
     $('list-title').textContent = course ? course.title : 'Уроки';
     $('course-bar').hidden = !course; $('list-lead').hidden = !!course;
     if (course) $('course-text').textContent = course.text ? course.text + '.' : '';
     $('mat-plate').hidden = !!course;
-    $('modules').innerHTML = !used.length ? `<section class="plate"><p class="empty">${course ? 'В этом курсе пока нет открытых вам уроков.' : 'Преподаватель ещё не добавил уроки вашей группе.'}</p></section>` : used.map((m, i) => {
+    // Темы сворачиваются: открыта та, где сейчас идёт учёба (и те, что студент раскрыл сам — запоминаем в браузере)
+    let opened = null;
+    try { opened = JSON.parse(localStorage.getItem('ash:open-mods') || 'null'); } catch (e) { opened = null; }
+    const rows = used.map(m => {
       const ls = VISIBLE.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
-      const done = ls.filter(l => lessonStatus(l).cls === 'done').length;
-      return `<section class="plate module" aria-labelledby="mod-${m.id}">
-        <div class="plate-head"><span class="mod-n">${course ? i + 1 : m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p></div>
+      return { m, ls, st: ls.map(lessonStatus) };
+    });
+    const cur = rows.find(r => r.st.some(s => s.cls !== 'done' && s.cls !== 'locked')) || rows[0];
+    const next = cur && cur.ls.find((l, k) => cur.st[k].cls === 'started') || cur && cur.ls.find((l, k) => cur.st[k].cls === 'new');
+    $('resume').hidden = !next;
+    if (next) { $('resume-link').href = '#' + next.id; $('resume-link').textContent = next.title; }
+    $('mod-nav').hidden = rows.length < 3;
+    $('mod-nav').innerHTML = rows.map((r, i) => {
+      const done = r.st.filter(s => s.cls === 'done').length;
+      return `<a href="#mod-${r.m.id}" data-mod="${r.m.id}" class="${done === r.ls.length ? 'done' : r === cur ? 'cur' : ''}" title="${esc(r.m.title)}">${course ? i + 1 : r.m.n}</a>`;
+    }).join('');
+    $('modules').innerHTML = !used.length ? `<section class="plate"><p class="empty">${course ? 'В этом курсе пока нет открытых вам уроков.' : 'Преподаватель ещё не добавил уроки вашей группе.'}</p></section>` : rows.map((r, i) => {
+      const { m, ls } = r;
+      const done = r.st.filter(s => s.cls === 'done').length;
+      const isOpen = opened ? opened.includes(m.id) : r === cur;
+      return `<details class="plate module${done === ls.length ? ' all-done' : ''}" id="box-${m.id}" data-mod="${m.id}"${isOpen ? ' open' : ''}>
+        <summary class="plate-head"><span class="mod-n">${course ? i + 1 : m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p><span class="chev" aria-hidden="true"></span></summary>
         <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${done / ls.length * 100}%"></i></div>
-        <ol class="lesson-list">${ls.map(l => {
-          const s = lessonStatus(l), ts = tasksOf(l);
+        <ol class="lesson-list">${ls.map((l, k) => {
+          const s = r.st[k], ts = tasksOf(l);
           const taskMeta = !ts.length ? '' : ts.length === 1 ? `<span>задание: ${esc(ts[0].title)}, ${ts[0].minutes} мин</span>`
             : `<span>${ts.length} ${plural(ts.length, 'задание', 'задания', 'заданий')}, ${ts.reduce((a, t) => a + t.minutes, 0)} мин</span>`;
           return `<li class="lesson-item ${s.cls}${l.kind === 'practice' ? ' practice' : ''}">
@@ -79,8 +118,9 @@
               <p class="meta">${l.kind ? `<span class="kind">${KIND[l.kind]}</span>` : ''}<span>${esc(l.difficulty || '')}</span><span>${l.minutes >= 120 && l.minutes % 60 === 0 ? l.minutes / 60 + ' ч' : l.minutes + ' мин'}</span>${taskMeta}</p>
               <p class="st">${s.cls === 'locked' ? '🔒 ' : ''}${esc(s.text)}</p></div></li>`;
         }).join('')}</ol>
-      </section>`;
+      </details>`;
     }).join('');
+    $('modules').querySelectorAll('details.module').forEach(d => d.addEventListener('toggle', saveOpen));
     const mats = lectures();
     $('mat-sub').textContent = mats.length ? `${mats.length} для группы ${myGroup}` : '';
     $('mat-list').innerHTML = mats.map(l => `<li class="mat">

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/cabinet.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/intro.css">
+  <link rel="stylesheet" href="css/shell.css">
   <!-- Кто вошёл и его данные: без входа сервер отправит на страницу входа -->
   <script src="api/boot.js"></script>
 </head>
@@ -31,29 +32,40 @@
       <!-- Персонаж: имя, группа, уровень, полосы HP/XP, души -->
       <section class="plate hero" aria-labelledby="st-name">
         <span class="corner c-tl"></span><span class="corner c-tr"></span><span class="corner c-br"></span><span class="corner c-bl"></span>
-        <div class="who">
-          <div class="ava" id="avatar"></div>
-          <div class="who-text">
-            <p class="eyebrow">Личный кабинет</p>
-            <h1 id="st-name">Солер из Асторы</h1>
-            <span class="title-tag" id="st-title"></span>
-            <p class="group" id="st-group"></p>
+        <div class="hero-main">
+          <div class="who">
+            <div class="ava" id="avatar"></div>
+            <div class="who-text">
+              <p class="eyebrow">Личный кабинет</p>
+              <h1 id="st-name">Солер из Асторы</h1>
+              <span class="title-tag" id="st-title"></span>
+              <p class="group" id="st-group"></p>
+            </div>
           </div>
-        </div>
 
-        <div class="rank">
-          <div class="rank-head">
-            <span class="badge" id="rank-badge"></span>
-            <div>
-              <p class="eyebrow">Текущий уровень</p>
-              <p class="rank-title" id="rank-title">Джун</p>
+          <div class="rank">
+            <div class="rank-head">
+              <span class="badge" id="rank-badge"></span>
+              <div>
+                <p class="eyebrow">Текущий уровень</p>
+                <p class="rank-title" id="rank-title">Джун</p>
+              </div>
             </div>
             <p class="rank-next" id="rank-next"></p>
           </div>
-          <ol class="ladder" id="ladder" aria-label="Уровни"></ol>
+
+          <!-- Следующий шаг: урок, который сейчас в работе или первый доступный -->
+          <div class="go-on" id="go-on">
+            <p class="eyebrow">Продолжить путь</p>
+            <p class="go-title" id="go-title"></p>
+            <p class="go-sub" id="go-sub"></p>
+            <a class="btn" id="go-btn" href="lessons.html" data-fade>В ПУТЬ</a>
+          </div>
         </div>
 
-        <div class="bars">
+        <ol class="ladder path" id="ladder" aria-label="Уровни"></ol>
+
+        <div class="hero-foot">
           <div class="stat">
             <div class="stat-head"><span class="stat-key hp">HP</span><span>Прогресс курса</span><span class="stat-val" id="hp-val"></span></div>
             <div class="bar hp" role="progressbar" aria-label="Прогресс курса" id="hp-bar"><i></i></div>
@@ -62,16 +74,15 @@
             <div class="stat-head"><span class="stat-key xp">XP</span><span>Опыт до следующего уровня</span><span class="stat-val" id="xp-val"></span></div>
             <div class="bar xp" role="progressbar" aria-label="Опыт до следующего уровня" id="xp-bar"><i></i></div>
           </div>
-        </div>
-
-        <div class="purse">
-          <span class="soul" id="soul-icon"></span>
-          <div>
-            <p class="eyebrow">Баланс очков</p>
-            <p class="souls"><span id="souls">3 450</span> <small>душ</small></p>
+          <div class="purse">
+            <span class="soul" id="soul-icon"></span>
+            <div>
+              <p class="eyebrow">Баланс очков</p>
+              <p class="souls"><span id="souls">3 450</span> <small>душ</small></p>
+            </div>
+            <p class="week" id="souls-week"></p>
+            <a href="shop.html" class="to-shop" data-fade>В магазин</a>
           </div>
-          <p class="week" id="souls-week"></p>
-          <a href="shop.html" class="to-shop" data-fade>В магазин</a>
         </div>
       </section>
 
@@ -96,7 +107,8 @@
           <h2 id="ach-title">Достижения</h2>
           <p class="plate-sub" id="ach-count"></p>
           <div class="chips" role="group" aria-label="Фильтр по редкости" id="ach-filter">
-            <button type="button" class="chip on" data-r="all">Все</button>
+            <button type="button" class="chip on" data-r="got">Полученные</button>
+            <button type="button" class="chip" data-r="all">Все</button>
             <button type="button" class="chip" data-r="legendary">Легендарные</button>
             <button type="button" class="chip" data-r="epic">Эпические</button>
             <button type="button" class="chip" data-r="rare">Редкие</button>
@@ -142,7 +154,7 @@
 
     <footer class="foot">
       <span class="msg">хвала солнцу</span>
-      <span>Прогресс считается по пройденным урокам: квиз без ошибок и решённое мини-задание. v0.4 · Эпоха огня</span>
+      <span>Прогресс считается по пройденным урокам: квиз без ошибок и решённое мини-задание. v0.7 · Эпоха огня</span>
     </footer>
   </div>
 

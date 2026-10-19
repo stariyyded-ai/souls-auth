@@ -181,3 +181,9 @@
 /* Три вкладки и сводка линтера на телефоне переносятся, а не вылезают за экран */
 .ed-tabs { flex-wrap: wrap; }
 @media (max-width: 480px) { .ed-tabs .lint-sum { flex-basis: 100%; order: -1; text-align: right; } }
+
+/* На широком экране занятие слева, его задания справа в три колонки: список вдвое короче */
+@media (min-width: 900px) {
+  .course-lesson { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+  .course-lesson .task-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

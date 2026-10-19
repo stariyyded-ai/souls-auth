@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/cabinet.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/lessons.css">
+  <link rel="stylesheet" href="css/shell.css">
   <!-- Кто вошёл и его данные: без входа сервер отправит на страницу входа -->
   <script src="api/boot.js"></script>
 </head>
@@ -33,6 +34,11 @@
           <h1 id="list-title">Уроки</h1>
           <p class="lead course-bar" id="course-bar" hidden><span id="course-text"></span> Здесь только темы этого курса. <a href="#all">Все уроки</a> · <a href="cabinet.html">Личный кабинет</a></p>
           <p class="lead" id="list-lead">Темы делятся на занятия: лекции и практические работы. В занятии — текст с примерами (их можно открыть в песочнице кнопкой «Попробовать»), квиз и задания с автопроверкой. Урок пройден, когда он прочитан, квиз решён без ошибок и все задания сданы. Ниже — лекции преподавателя в PDF и Word.</p>
+        </div>
+        <div class="list-tools">
+          <p class="resume" id="resume" hidden>Продолжить: <a id="resume-link" href="#"></a></p>
+          <nav class="mod-nav" id="mod-nav" aria-label="Темы" hidden></nav>
+          <button type="button" class="link" data-all-mods>Развернуть все темы</button>
         </div>
         <div id="modules"></div>
         <section class="plate" id="mat-plate" aria-labelledby="mat-title">
@@ -76,7 +82,7 @@
 
     <footer class="foot">
       <span class="msg">знание — тоже оружие</span>
-      <span>Уроки — файлы Markdown в content/lessons, лекции загружает администратор. v0.6 · Эпоха огня</span>
+      <span>Уроки — файлы Markdown в content/lessons, лекции загружает администратор. v0.7 · Эпоха огня</span>
     </footer>
   </div>
 

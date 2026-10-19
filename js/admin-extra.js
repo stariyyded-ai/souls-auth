@@ -236,6 +236,9 @@
 
   A.register('lessons', (root, st) => {
     const groups = S.db.groups;
+    if (!st.openMods) { st.openMods = new Set(S.db.modules.slice(0, 1).map(m => m.id)); st.seenMods = new Set(S.db.modules.map(m => m.id)); }
+    // Только что созданная тема сразу раскрыта
+    S.db.modules.forEach(m => { if (!st.seenMods.has(m.id)) { st.seenMods.add(m.id); st.openMods.add(m.id); } });
     const all = S.db.lessonList || [];
     if (groups.length && !groups.some(g => g.id === st.group)) st.group = groups[0].id;
     const g = S.byId('groups', st.group), L = g ? lists(g) : { lessons: [], open: [], legacy: false };
@@ -253,13 +256,18 @@
           <button type="button" class="btn ghost" id="lg-open-all">РАЗРЕШИТЬ ВСЕ ДОБАВЛЕННЫЕ</button>
           <button type="button" class="btn ghost" id="lg-close-all">ЗАКРЫТЬ ВСЕ</button>
         </div>
-        <p class="hint">${students} студентов в группе. «В группе» — студенты видят урок в списке. «Можно проходить» — урок открыт: можно читать, решать квиз и получать награду. Без разрешения урок виден с замком. «Скрыть» прячет урок или целую тему от студентов выбранной группы: они пропадают из «Уроков», заданий и «Модулей курса» в кабинете. У других групп всё остаётся как было, галочки и прогресс сохраняются.</p>
+        <details class="lg-help"><summary>${students} студентов в группе · как работают галочки и «Скрыть»</summary>
+          <p class="hint">«В группе» — студенты видят урок в списке. «Можно проходить» — урок открыт: можно читать, решать квиз и получать награду. Без разрешения урок виден с замком. «Скрыть» прячет урок или целую тему от студентов выбранной группы: они пропадают из «Уроков», заданий и «Модулей курса» в кабинете. У других групп всё остаётся как было, галочки и прогресс сохраняются.</p></details>
         ${L.legacy ? '<p class="hint lg-legacy">Эту группу ещё не настраивали: сейчас ей открыты уроки, у которых в описании не указаны группы. Первое изменение сохранит собственный список группы.</p>' : ''}`
         : '<p class="hint">Групп пока нет: создайте группу в разделе «Группы», чтобы выдавать ей уроки. Темы и уроки можно готовить уже сейчас.</p>'}
+        ${S.db.modules.length > 1 ? '<button type="button" class="link lg-all" id="lg-all">Развернуть все темы</button>' : ''}
         ${S.db.modules.map((m, mi) => {
           const ls = all.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson);
           const mOff = m.hidden || gHidM.has(m.id);
-          return `<div class="lg-mod${mOff ? ' off' : ''}"><div class="lg-mod-head"><h2>${mi + 1}. ${esc(m.title)}${m.hidden ? ' <span class="pill off">скрыта у всех</span>' : gHidM.has(m.id) ? ` <span class="pill off">скрыта у ${esc(g.code)}</span>` : ''}</h2>
+          const inG = ls.filter(l => added.has(l.id)).length, opN = ls.filter(l => open.has(l.id)).length;
+          return `<details class="lg-mod${mOff ? ' off' : ''}" data-mod="${m.id}"${st.openMods.has(m.id) ? ' open' : ''}><summary class="lg-mod-head"><h2>${mi + 1}. ${esc(m.title)}${m.hidden ? ' <span class="pill off">скрыта у всех</span>' : gHidM.has(m.id) ? ` <span class="pill off">скрыта у ${esc(g.code)}</span>` : ''}</h2>
+              <span class="count">${ls.length} ${ls.length % 10 === 1 && ls.length % 100 !== 11 ? 'урок' : ls.length % 10 >= 2 && ls.length % 10 <= 4 && (ls.length % 100 < 10 || ls.length % 100 >= 20) ? 'урока' : 'уроков'}${g ? ` · в группе ${inG} · открыто ${opN}` : ''}</span><span class="chev" aria-hidden="true"></span></summary>
+            <div class="lg-mod-acts">
               <button type="button" class="act" data-new-les="${m.id}">+ Урок</button>
               ${g && ls.length ? `<button type="button" class="act" data-mod-add="${m.id}">Добавить тему группе</button><button type="button" class="act" data-mod-open="${m.id}">Разрешить тему</button>` : ''}
               <button type="button" class="act" data-ed-mod="${m.id}">Изменить тему</button>${m.hidden ? `<button type="button" class="act" data-hide-mod="${m.id}">Показать тему всем</button>` : ''}${g ? `<button type="button" class="act" data-ghide-mod="${m.id}">${gHidM.has(m.id) ? 'Показать тему группе' : 'Скрыть тему у группы'}</button>` : ''}<button type="button" class="act danger" data-rm-mod="${m.id}">Удалить тему</button></div>
@@ -271,10 +279,17 @@
                 <td><label class="check"><input type="checkbox" data-open="${l.id}"${open.has(l.id) ? ' checked' : ''}${added.has(l.id) ? '' : ' disabled'}> <span class="sr">Разрешить «${esc(l.title)}»</span></label></td>` : ''}
                 <td class="acts"><button type="button" class="act" data-ed-les="${l.id}">Изменить</button>${l.edited ? `<button type="button" class="act" data-revert="${l.id}">Вернуть как было</button>` : ''}${l.hidden ? `<button type="button" class="act" data-hide-les="${l.id}">Показать всем</button>` : ''}${g ? `<button type="button" class="act" data-ghide-les="${l.id}">${gHidL.has(l.id) ? 'Показать' : 'Скрыть'}</button>` : ''}${l.custom ? `<button type="button" class="act danger" data-rm-les="${l.id}">Удалить</button>` : ''}</td>
               </tr>`).join('')}</tbody>
-            </table></div>` : '<p class="empty">В теме пока нет уроков. Нажмите «+ Урок».</p>'}</div>`;
+            </table></div>` : '<p class="empty">В теме пока нет уроков. Нажмите «+ Урок».</p>'}</details>`;
         }).join('') || '<p class="empty">Тем пока нет. Нажмите «НОВАЯ ТЕМА».</p>'}
       </section>`;
     $('lg-new-mod').addEventListener('click', () => editModule());
+    // Темы свёрнуты, раскрытые запоминаются до перезагрузки страницы: после каждого сохранения список перерисовывается
+    const boxes = [...root.querySelectorAll('details.lg-mod')];
+    const allBtn = $('lg-all');
+    const syncAll = () => { if (allBtn) allBtn.textContent = boxes.every(d => d.open) ? 'Свернуть все темы' : 'Развернуть все темы'; };
+    boxes.forEach(d => d.addEventListener('toggle', () => { st.openMods[d.open ? 'add' : 'delete'](d.dataset.mod); syncAll(); }));
+    if (allBtn) allBtn.addEventListener('click', () => { const on = !boxes.every(d => d.open); boxes.forEach(d => { d.open = on; }); });
+    syncAll();
     const modIds = m => all.filter(l => l.module === m).map(l => l.id);
     if (g) {
       $('lg-group').addEventListener('change', e => { st.group = e.target.value; render(); });

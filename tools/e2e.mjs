@@ -191,6 +191,8 @@ try {
   // Уроки группы: добавлен, но не разрешён — виден с замком и не засчитывается; разрешён — проходится
   await ad.goto(U + 'admin.html#lessons'); await ad.waitForTimeout(400);
   await ad.selectOption('#lg-group', 'g1'); await ad.waitForTimeout(200);
+  await ad.click('#lg-all'); await ad.waitForTimeout(100);
+  ok(await ad.locator('details.lg-mod:not([open])').count() === 0, 'кнопка раскрывает все темы в «Уроках групп»');
   ok(await ad.locator('.lg-legacy').count() === 1, 'у старой группы подсказка про прежнее правило');
   await ad.click('#lg-close-all'); await ad.waitForTimeout(400);
   const keepOne = await ad.evaluate(() => window.AdminStore.db.lessonList.map(l => l.id));
@@ -206,6 +208,10 @@ try {
   await ad.check(`[data-open="${first}"]`); await ad.waitForTimeout(600);
   await anon.goto(U + 'lessons.html'); await anon.waitForTimeout(500);
   ok(await anon.locator('.lesson-item.locked').count() === 0, 'после разрешения урок открыт');
+  ok((await anon.getAttribute('#resume-link', 'href')) === '#' + first, '«Продолжить» в уроках ведёт к открытому уроку');
+  await anon.goto(U + 'cabinet.html'); await anon.waitForTimeout(500);
+  if (await anon.locator('.intro').count()) await anon.keyboard.press('Escape');
+  ok((await anon.getAttribute('#go-btn', 'href')) === 'lessons.html#' + first && await anon.locator('#me-chip').count() === 1, 'в кабинете «Продолжить путь» ведёт к уроку, в шапке плашка игрока');
   ok((await act({ type: 'quiz', lesson: first, answers: right })).body.state.xp > 0, 'квиз разрешённого урока засчитан');
   await ad.goto(U + 'admin.html#groups'); await ad.waitForTimeout(300);
   await ad.click('[data-x="g2"]'); await ad.waitForTimeout(300);
@@ -355,6 +361,7 @@ try {
   // Скрыть урок и тему у группы ИСП-11 в разделе «Уроки групп»; у других групп они остаются
   await ad.goto(U + 'admin.html#lessons'); await ad.waitForTimeout(600);
   await ad.selectOption('#lg-group', 'g4'); await ad.waitForTimeout(400);
+  await ad.click('#lg-all'); await ad.waitForTimeout(100);
   await ad.click('[data-ghide-les="mdk-01"]'); await ad.waitForTimeout(900);
   await ad.click('[data-ghide-mod="mdk2"]'); await ad.waitForTimeout(900);
   const gdb = (await api(ad, 'GET', 'api/admin/db')).body.groups;

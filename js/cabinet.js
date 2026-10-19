@@ -47,7 +47,7 @@
   if (next) {
     const have = D.xp - lv[cur].xp, need = next.xp - lv[cur].xp;
     $('xp-val').textContent = `${fmt(have)} / ${fmt(need)}`;
-    $('rank-next').innerHTML = `до уровня «${next.title}»<br>осталось ${fmt(next.xp - D.xp)} XP`;
+    $('rank-next').textContent = `до уровня «${next.title}» осталось ${fmt(next.xp - D.xp)} XP`;
     setBar($('xp-bar'), have, need, `${fmt(have)} из ${fmt(need)} опыта`);
   } else {
     $('xp-val').textContent = 'максимум';
@@ -78,6 +78,24 @@
   const all = modules.flatMap(m => m.lessons);
   const done = all.filter(l => l[1] === 'done').length;
   $('hp-val').textContent = `${done} / ${all.length} уроков`;
+
+  // «Продолжить путь»: урок, начатый последним по порядку тем, иначе первый доступный
+  const order = B.db.modules.filter(m => !modOff(m)).flatMap(m => window.LESSONS.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson));
+  const nextLes = order.find(l => lessonState(l) === 'current') || order.find(l => lessonState(l) === 'open');
+  if (nextLes) {
+    $('go-title').textContent = nextLes.title;
+    $('go-sub').textContent = `${B.db.modules.find(m => m.id === nextLes.module)?.title || ''} · ${nextLes.minutes} мин`;
+    $('go-btn').href = 'lessons.html#' + nextLes.id;
+    $('go-btn').textContent = lessonState(nextLes) === 'current' ? 'ПРОДОЛЖИТЬ' : 'НАЧАТЬ УРОК';
+  } else if (all.length && done === all.length) {
+    $('go-title').textContent = 'Все открытые уроки пройдены';
+    $('go-sub').textContent = 'Можно улучшить результаты в заданиях.';
+    $('go-btn').href = 'tasks.html'; $('go-btn').textContent = 'К ЗАДАНИЯМ';
+  } else {
+    $('go-title').textContent = 'Уроки скоро откроются';
+    $('go-sub').textContent = 'Преподаватель ещё не открыл уроки вашей группе.';
+    $('go-btn').hidden = true;
+  }
   setBar($('hp-bar'), done, all.length, `${done} из ${all.length} уроков`);
 
   const STATUS_L = { done: 'пройден', current: 'в работе', open: 'доступен', locked: 'закрыт' };
@@ -107,7 +125,11 @@
       <p class="ach-meta"><span class="ach-rarity">${r.label}</span><span class="ach-date">${a.date ? date(a.date) : 'не получено'}</span></p>
     </li>`;
   }).join('');
-  filterChips('ach-filter', 'r', v => document.querySelectorAll('.ach-item').forEach(el => el.hidden = v !== 'all' && el.dataset.r !== v));
+  // По умолчанию видны только полученные награды, остальные — по кнопке «Все» или по редкости
+  const achShow = v => document.querySelectorAll('.ach-item').forEach(el => el.hidden = v === 'got' ? el.classList.contains('locked') : v !== 'all' && el.dataset.r !== v);
+  if (!got) document.querySelectorAll('#ach-filter .chip').forEach(c => c.classList.toggle('on', c.dataset.r === 'all'));
+  achShow(got ? 'got' : 'all');
+  filterChips('ach-filter', 'r', achShow);
 
   /* ---------- группа и курсы ---------- */
   const g = D.group;

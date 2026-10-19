@@ -122,3 +122,26 @@ iframe.pdf { width: 100%; height: min(80vh, 900px); border: 2px solid #2b2430; b
 #mini .mini-card + .mini-card { padding-top: 14px; border-top: 2px solid rgba(90,80,102,0.4); }
 .mini-card.solved h3 { color: var(--ok); }
 .prose img { max-width: 100%; height: auto; }
+
+/* Список тем: темы сворачиваются, сверху — «Продолжить» и номера тем */
+.list-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.resume { margin: 0; padding: 10px 14px; background: rgba(0,0,0,0.45); border: 2px solid var(--ember); color: var(--muted); font-size: 15px; }
+.resume a { color: var(--gold-hi); }
+.mod-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.mod-nav a { display: grid; place-items: center; min-width: 34px; height: 34px; padding-inline: 4px; box-sizing: border-box; font-weight: 700; font-size: 14px; color: var(--bone); text-decoration: none; background: rgba(0,0,0,0.45); border: 2px solid var(--stone); font-variant-numeric: tabular-nums; }
+.mod-nav a:hover { border-color: var(--gold); }
+.mod-nav a.cur { border-color: var(--ember); color: var(--ember-hi); }
+.mod-nav a.done { border-color: rgba(127,184,90,0.7); color: var(--ok); }
+.list-tools .link { margin-left: auto; font-size: 14px; }
+details.module { gap: 0; scroll-margin-top: 16px; }
+details.module[open] { gap: 18px; }
+details.module > summary { list-style: none; cursor: pointer; align-items: center; }
+details.module > summary::-webkit-details-marker { display: none; }
+details.module > summary:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 4px; }
+details.module > summary h2 { font-size: 24px; }
+details.module > summary .chev { margin-left: auto; width: 12px; height: 12px; border-right: 3px solid var(--gold); border-bottom: 3px solid var(--gold); transform: rotate(45deg); transition: transform .15s steps(2); }
+details.module[open] > summary .chev { transform: rotate(225deg); }
+details.module:not([open]):hover { border-color: var(--gold); }
+details.module.all-done .mod-n { background: var(--ok); color: var(--void); border-color: #b5e08f; }
+details.module:not([open]) > .bar { display: none; }
+@media (max-width: 560px) { .list-tools .link { margin-left: 0; } details.module > summary h2 { font-size: 20px; } }
