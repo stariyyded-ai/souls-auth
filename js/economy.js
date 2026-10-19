@@ -70,7 +70,17 @@
     return !!(s && s.read && quizOk && taskOk);
   }
 
+  // Насколько урок пройден, от 0 до 1: прочитан, доля верных ответов квиза и каждое решённое задание — равные части.
+  // Нужна для процентов: пока урок не пройден целиком, прогресс по нему всё равно виден
+  function lessonProgress(l, st) {
+    if (lessonDone(l, st)) return 1;
+    const s = st.lessons[l.id] || {}, ts = lessonTasks(l), hasQuiz = !!(l.quiz && l.quiz.length);
+    const parts = 1 + (hasQuiz ? 1 : 0) + ts.length;
+    const got = (s.read ? 1 : 0) + (hasQuiz && s.quizMax ? (s.quiz || 0) / s.quizMax : 0) + ts.filter(id => st.tasks[id] && st.tasks[id].solved).length;
+    return Math.min(0.99, got / parts);
+  }
+
   const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, lessonTasks, clock };
+  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, lessonProgress, lessonTasks, clock };
 })();

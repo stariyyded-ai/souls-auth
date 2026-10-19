@@ -92,7 +92,7 @@ try {
   await anon.waitForURL(/cabinet\.html/, { timeout: 10000 });
   ok(await anon.textContent('#st-name') === 'Рыцарь Тестов', 'вход по имени персонажа, в кабинете своё имя');
   const hp = await anon.textContent('#hp-val');
-  ok(/^0 \/ \d+ уроков$/.test(hp) && await anon.locator('#hist-body .empty').count() === 1 && await anon.textContent('#souls') === '0', `новичок начинает с нуля: ${hp}, история пуста, 0 душ`);
+  ok(/^0 \/ \d+ уроков · 0%$/.test(hp) && await anon.locator('#hist-body .empty').count() === 1 && await anon.textContent('#souls') === '0', `новичок начинает с нуля: ${hp}, история пуста, 0 душ`);
   ok(await anon.locator('#mod-list .pip.done').count() === 0, 'в модулях новичка нет пройденных уроков');
   ok(await anon.textContent('#st-group') === 'Группа ВД-21 · Веб-дизайн, 2 курс', 'по коду студент попал в свою группу');
   // Курсы: открыты курсы группы (ВД-21: c1, c2), остальные — только по запросу
@@ -427,6 +427,9 @@ try {
       return { pageCopy, foreign, own: paste('<p>своё</p>') };
     });
     ok(cp.pageCopy && cp.foreign === '' && cp.own === '<p>своё</p>', `копировать текст страницы и вставлять чужой код нельзя, свой код вставляется (${JSON.stringify(cp)})`);
+    // Проценты в «Модулях курса» учитывают начатые уроки
+    const lp = await z.evaluate(() => window.Economy.lessonProgress({ id: 'x', quiz: [1, 2], tasks: ['a', 'b'] }, { lessons: { x: { read: true, quiz: 1, quizMax: 2 } }, tasks: { a: { solved: true } } }));
+    ok(lp === 0.625, `прогресс начатого урока: прочитан, квиз наполовину, одно задание из двух — ${lp * 100}%`);
     // Лидеры по группам
     await z.goto(U + 'leaderboard.html'); await z.waitForTimeout(600);
     await z.click('#lb-filter [data-g="groups"]'); await z.waitForTimeout(200);

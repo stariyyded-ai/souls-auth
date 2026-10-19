@@ -69,15 +69,18 @@
   // Скрытые темы (у всех или у группы студента) в «Модулях курса» не показываем
   const modOff = m => m.hidden || (myGroup?.hiddenModules || []).includes(m.id);
   const modules = B.db.modules.filter(m => !modOff(m) && (configured || !myGroup || !myGroup.modules || myGroup.modules.includes(m.id))).map(m => {
-    const real = window.LESSONS.filter(l => l.module === m.id && lessonAccess(l) !== 'hidden').sort((a, b) => a.lesson - b.lesson).map(l => [l.title, lessonState(l)]);
+    const real = window.LESSONS.filter(l => l.module === m.id && lessonAccess(l) !== 'hidden').sort((a, b) => a.lesson - b.lesson).map(l => { const st = lessonState(l); return [l.title, st, st === 'locked' ? 0 : E.lessonProgress(l, SS)]; });
     // Группе, которой преподаватель сам набрал уроки, пустые места модуля не показываем
     const planned = configured ? real.length : Math.max(m.lessons || 0, real.length);
-    for (let k = real.length; k < planned; k++) real.push([`Урок ${k + 1} ещё не опубликован`, 'locked']);
+    for (let k = real.length; k < planned; k++) real.push([`Урок ${k + 1} ещё не опубликован`, 'locked', 0]);
     return { title: m.title, lessons: real };
   }).filter(m => m.lessons.length);
   const all = modules.flatMap(m => m.lessons);
   const done = all.filter(l => l[1] === 'done').length;
-  $('hp-val').textContent = `${done} / ${all.length} уроков`;
+  // Проценты и полосы — с учётом начатых уроков (прочитан, квиз, решённые задания), счётчик — полностью пройденные
+  const prog = list => list.length ? list.reduce((a, l) => a + l[2], 0) / list.length : 0;
+  const allPct = Math.round(prog(all) * 100);
+  $('hp-val').textContent = `${done} / ${all.length} уроков · ${allPct}%`;
 
   // «Продолжить путь»: урок, начатый последним по порядку тем, иначе первый доступный
   const order = B.db.modules.filter(m => !modOff(m)).flatMap(m => window.LESSONS.filter(l => l.module === m.id).sort((a, b) => a.lesson - b.lesson));
@@ -96,13 +99,13 @@
     $('go-sub').textContent = 'Преподаватель ещё не открыл уроки вашей группе.';
     $('go-btn').hidden = true;
   }
-  setBar($('hp-bar'), done, all.length, `${done} из ${all.length} уроков`);
+  setBar($('hp-bar'), allPct, 100, `пройдено ${done} из ${all.length} уроков, ${allPct}%`);
 
   const STATUS_L = { done: 'пройден', current: 'в работе', open: 'доступен', locked: 'закрыт' };
   $('mod-list').innerHTML = modules.map((m, i) => {
     const d = m.lessons.filter(l => l[1] === 'done').length, n = m.lessons.length;
     const locked = m.lessons.every(l => l[1] === 'locked');
-    const pct = n ? Math.round(d / n * 100) : 0;
+    const pct = Math.round(prog(m.lessons) * 100);
     return `<li class="mod${d === n ? ' full' : ''}${locked ? ' locked' : ''}">
       <span class="mod-num">${i + 1}</span>
       <div class="mod-top"><span class="mod-title">${esc(m.title)}</span><span class="mod-count">${locked ? 'закрыт' : `${d} / ${n} · ${pct}%`}</span></div>
@@ -154,8 +157,8 @@
     const open = access.has(c.id);
     const req = (B.db.requests || []).find(r => r.course === c.id); // последняя заявка на этот курс
     // Открытый курс: кнопка «Открыть» ведёт в «Уроки», где показаны только темы этого курса
-    const cl = open ? courseLessons(c) : [], cd = cl.filter(l => E.lessonDone(l, SS)).length;
-    const right = open ? `<div class="course-go"><span class="tagline active">${c === current ? 'ИДЁТ' : 'ОТКРЫТ'}${cl.length ? ` · ${Math.round(cd / cl.length * 100)}%` : ''}</span><a class="btn" href="lessons.html#course-${encodeURIComponent(c.id)}">ОТКРЫТЬ</a></div>`
+    const cl = open ? courseLessons(c) : [], cd = cl.filter(l => E.lessonDone(l, SS)).length, cp = cl.length ? Math.round(cl.reduce((a, l) => a + (lessonAccess(l) === 'open' ? E.lessonProgress(l, SS) : 0), 0) / cl.length * 100) : 0;
+    const right = open ? `<div class="course-go"><span class="tagline active">${c === current ? 'ИДЁТ' : 'ОТКРЫТ'}${cl.length ? ` · ${cp}%` : ''}</span><a class="btn" href="lessons.html#course-${encodeURIComponent(c.id)}">ОТКРЫТЬ</a></div>`
       : req?.status === 'pending' ? '<button type="button" class="btn" disabled>ЗАЯВКА ОТПРАВЛЕНА</button>'
       : `<button type="button" class="btn" data-ask="${c.id}">${req?.status === 'declined' ? 'ПОПРОСИТЬ СНОВА' : 'ПОПРОСИТЬ ДОСТУП'}</button>`;
     const note = open ? (cl.length ? ` · пройдено ${cd} из ${cl.length} уроков` : '') : req?.status === 'pending' ? ' · ждёт ответа преподавателя' : req?.status === 'declined' ? ' · преподаватель пока отклонил заявку' : ' · откроет преподаватель';

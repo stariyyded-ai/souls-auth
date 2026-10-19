@@ -107,7 +107,7 @@
       const isOpen = opened ? opened.includes(m.id) : r === cur;
       return `<details class="plate module${done === ls.length ? ' all-done' : ''}" id="box-${m.id}" data-mod="${m.id}"${isOpen ? ' open' : ''}>
         <summary class="plate-head"><span class="mod-n">${course ? i + 1 : m.n}</span><h2 id="mod-${m.id}">${esc(m.title)}</h2><p class="plate-sub">пройдено ${done} из ${ls.length}</p><span class="chev" aria-hidden="true"></span></summary>
-        <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${done / ls.length * 100}%"></i></div>
+        <div class="bar hp" role="progressbar" aria-label="Модуль «${esc(m.title)}»" aria-valuemin="0" aria-valuemax="${ls.length}" aria-valuenow="${done}"><i style="--w:${Math.round(ls.reduce((a, l, k) => a + (r.st[k].cls === 'locked' ? 0 : window.Economy.lessonProgress(l, St.state)), 0) / ls.length * 100)}%"></i></div>
         <ol class="lesson-list">${ls.map((l, k) => {
           const s = r.st[k], ts = tasksOf(l);
           const taskMeta = !ts.length ? '' : ts.length === 1 ? `<span>задание: ${esc(ts[0].title)}, ${ts[0].minutes} мин</span>`
