@@ -247,3 +247,35 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
 .time-table td small { display: block; }
 .time-table td.over { color: var(--ember-hi); }
 .site-nav { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+
+/* Пользователи: кнопки действий в две строки, чтобы таблица помещалась без прокрутки вбок */
+.users-table { min-width: 0; }
+.users-table .acts { width: 1%; }
+.users-table .acts-row { display: flex; gap: 4px; justify-content: flex-end; }
+.users-table .act { margin: 0; }
+.users-table select.sel { max-width: 130px; }
+/* Меню «Ещё» с редкими действиями: так строка не шире экрана */
+.more { position: relative; }
+.more > summary { list-style: none; }
+.more > summary::-webkit-details-marker { display: none; }
+.more[open] > summary { background: rgba(201,164,92,0.15); }
+.more-menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 15; min-width: 180px;
+  display: grid; padding: 4px; background: #121016; border: 2px solid rgba(201,164,92,0.55); box-shadow: 4px 4px 0 rgba(0,0,0,0.8);
+}
+.more-menu button {
+  font: 13px var(--font-ui); text-align: left; color: var(--bone); background: none; border: 0; padding: 8px 10px; cursor: pointer;
+}
+.more-menu button:hover, .more-menu button:focus-visible { background: rgba(201,164,92,0.15); color: var(--gold-hi); outline: none; }
+.more-menu button.danger { color: #ff8a7c; }
+.more-menu button.danger:hover { background: rgba(224,87,74,0.15); }
+/* на широком экране таблица помещается целиком, и меню не обрезается рамкой прокрутки */
+@media (min-width: 1000px) { .table-wrap:has(> .users-table) { overflow: visible; } }
+/* у нижних строк меню раскрывается вверх */
+.users-table tbody tr:nth-last-child(-n+2):not(:nth-child(-n+2)) .more-menu { top: auto; bottom: calc(100% + 4px); }
+/* средние экраны: поуже выпадающие списки, полоска прогресса и отступы, чтобы строка не вылезала вбок */
+@media (max-width: 1240px) {
+  .users-table select.sel { max-width: 104px; padding-inline: 6px; }
+  .users-table .mini-bar { width: 60px; }
+  .users-table th, .users-table td { padding-inline: 6px; }
+}

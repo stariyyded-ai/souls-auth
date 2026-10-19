@@ -1,5 +1,5 @@
 /* Фон: пиксельные сцены на canvas низкого разрешения.
-   erdtree — заставка входа и регистрации: золотое древо над замком, лучи сквозь туман, кладбище в траве и всадник с мечом.
+   erdtree — золотое древо над замком, лучи сквозь туман, кладбище в траве и всадник с мечом (сейчас нигде не стоит).
    storm — фон после входа (по умолчанию): ночная буря, сияющий знак в небе, дождь, синее пламя и воин с двуручным мечом.
    night — ночь и затмение над замком, day — светлый день, у костра путник, autumn — осенний закат с листопадом.
    Фоны студент покупает в магазине, администратор выбирает бесплатно. Сменить на лету: window.AshScene.set('day'). */
@@ -39,10 +39,11 @@
   // Свои сцены: рисуются целиком функцией draw (ниже), общие частицы и виньетка — поверх
   THEMES.erdtree = { custom: 'erdtree', vignette: 0.62, particles: { kind: 'gold', n: 46, colors: ['242,213,138', '246,196,83', '255,236,170'] } };
   THEMES.storm = { custom: 'storm', vignette: 0.7, particles: { kind: 'none', n: 0, colors: ['0,0,0'] } };
-  // Страницы входа и регистрации (нет данных пользователя) — всегда заставка с древом.
-  // После входа — фон пользователя с сервера (api/boot.js), по умолчанию ночная буря
+  // После входа — фон пользователя с сервера (api/boot.js), по умолчанию ночная буря.
+  // Вход и регистрация — как раньше: последний фон с костром (ночь, день или осень), иначе ночь и затмение
   const DEFAULT = 'storm';
-  let name = window.BOOT ? (window.BOOT.me && window.BOOT.me.theme) || DEFAULT : 'erdtree';
+  const saved = (() => { try { return localStorage.getItem('ash.scene'); } catch (e) { return null; } })();
+  let name = window.BOOT ? (window.BOOT.me && window.BOOT.me.theme) || DEFAULT : ['night', 'day', 'autumn'].includes(saved) ? saved : 'night';
   if (!THEMES[name]) name = DEFAULT;
   let T = THEMES[name];
   function remember() { try { localStorage.setItem('ash.scene', name); } catch (e) {} document.documentElement.dataset.scene = name; }

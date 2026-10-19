@@ -225,7 +225,7 @@
           <select id="u-sort" aria-label="Сортировка">${opt('xp', 'По опыту', st.sort)}${opt('souls', 'По душам', st.sort)}${opt('seen', 'По активности', st.sort)}${opt('name', 'По имени', st.sort)}</select>
         </div>
         <div class="table-wrap">
-          <table class="data-table">
+          <table class="data-table users-table">
             <thead><tr><th>Пользователь</th><th>Роль</th><th>Группа</th><th class="num">Опыт</th><th>Прогресс</th><th>Был в сети</th><th class="acts"><span class="sr">Действия</span></th></tr></thead>
             <tbody>${list.map(u => {
               const pct = total ? userDone(u) / total * 100 : 0;
@@ -237,7 +237,7 @@
                 <td class="num">${fmt(u.xp)}<small>${level(u.xp)}</small></td>
                 <td>${u.role === 'student' ? `${bar(pct, 'hp', 'mini-bar')} <small>${Math.round(pct)}%</small>` : '<small>—</small>'}</td>
                 <td><span class="dot${live ? ' live' : ''}"></span>${ago(u.lastSeen)}</td>
-                <td class="acts"><button type="button" class="act" data-open="${u.id}">Открыть</button><button type="button" class="act" data-grant="${u.id}">Достижения</button><button type="button" class="act" data-pass="${u.id}">Пароль</button>${u.role === 'student' ? `<button type="button" class="act" data-courses="${u.id}">Курсы</button>` : ''}<button type="button" class="act danger" data-reset="${u.id}">Сброс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="act danger" data-del="${u.id}">Удалить</button>`}</td>
+                <td class="acts"><div class="acts-row"><button type="button" class="act" data-open="${u.id}">Открыть</button><details class="more"><summary class="act" data-more="${u.id}" aria-label="Ещё действия: ${esc(u.name)}">Ещё ▾</summary><div class="more-menu"><button type="button" data-grant="${u.id}">Достижения</button><button type="button" data-pass="${u.id}">Новый пароль</button>${u.role === 'student' ? `<button type="button" data-courses="${u.id}">Курсы</button>` : ''}<button type="button" class="danger" data-reset="${u.id}">Сбросить прогресс</button>${u.id === window.BOOT.me.id ? '' : `<button type="button" class="danger" data-del="${u.id}">Удалить</button>`}</div></details></div></td>
               </tr>`; }).join('') || `<tr><td colspan="7" class="empty">Никого не нашлось. Попробуйте другой запрос или фильтр.</td></tr>`}</tbody>
           </table>
         </div>
@@ -256,6 +256,8 @@
       S.setGroup(u.id, s.value); toast(`«${u.name}» теперь в группе ${S.byId('groups', s.value)?.code || '«без группы»'}.`);
     }));
     root.addEventListener('click', e => {
+      // меню «Ещё»: открыто только одно, клик мимо или по пункту закрывает
+      root.querySelectorAll('details.more[open]').forEach(d => { if (!d.contains(e.target) || e.target.closest('.more-menu button')) d.open = false; });
       const b = e.target.closest('[data-open],[data-grant],[data-reset],[data-pass],[data-del],[data-courses]'); if (!b) return;
       if (b.dataset.courses) userCourses(b.dataset.courses);
       if (b.dataset.open) openUser(b.dataset.open);

@@ -181,7 +181,7 @@ try {
   await anon.goto(U + 'cabinet.html'); await anon.waitForTimeout(500);
   ok(await anon.evaluate(() => ['a1', 'a2', 'a3', 'a4'].every(id => window.Student.state.ach[id])), 'студент получил все выданные достижения');
   await ad.goto(U + 'admin.html#users'); await ad.reload(); await ad.waitForTimeout(400);
-  await ad.click(`[data-grant="${kid}"]`); await ad.waitForTimeout(300);
+  await ad.click(`[data-more="${kid}"]`); await ad.click(`[data-grant="${kid}"]`); await ad.waitForTimeout(300);
   const boxes = ad.locator('#modal-body input[name=ach]');
   await boxes.nth(0).check(); await boxes.nth(1).check();
   await ad.click('#modal-actions button:has-text("ВЫДАТЬ")'); await ad.waitForTimeout(900);
@@ -302,7 +302,7 @@ try {
   await ad.goto(U + 'admin.html#users'); await ad.waitForTimeout(500);
   await ad.selectOption(`[data-group="${knight}"]`, 'g3'); await ad.waitForTimeout(600);
   ok((await api(ad, 'GET', 'api/admin/db')).body.users.find(u => u.id === knight).group === 'g3', 'администратор перевёл студента в другую группу');
-  await ad.click(`[data-pass="${knight}"]`); await ad.waitForTimeout(300);
+  await ad.click(`[data-more="${knight}"]`); await ad.click(`[data-pass="${knight}"]`); await ad.waitForTimeout(300);
   await ad.fill('#new-pass', 'abc'); await ad.click('#modal-actions button:has-text("СМЕНИТЬ ПАРОЛЬ")'); await ad.waitForTimeout(300);
   ok((await ad.textContent('#modal-note')).includes('не короче 6'), 'слишком короткий новый пароль не принимается');
   await ad.fill('#new-pass', 'new-pass-77'); await ad.click('#modal-actions button:has-text("СМЕНИТЬ ПАРОЛЬ")'); await ad.waitForTimeout(800);
@@ -312,7 +312,7 @@ try {
   ok((await api(anon, 'POST', 'api/login', { login: 'Рыцарь Тестов', password: 'new-pass-77' })).status === 200, 'новый пароль от администратора подходит');
   await ad.goto(U + 'admin.html#users'); await ad.waitForTimeout(500);
   ok(await ad.locator('[data-del="u1"]').count() === 0, 'удалить себя администратор не может');
-  await ad.click(`[data-del="${knight}"]`); await ad.waitForTimeout(300);
+  await ad.click(`[data-more="${knight}"]`); await ad.click(`[data-del="${knight}"]`); await ad.waitForTimeout(300);
   await ad.click('#modal-actions button:has-text("УДАЛИТЬ")'); await ad.waitForTimeout(800);
   ok(!(await api(ad, 'GET', 'api/admin/db')).body.users.some(u => u.id === knight), 'пользователь удалён');
   ok((await api(anon, 'POST', 'api/login', { login: 'Рыцарь Тестов', password: 'new-pass-77' })).status === 401, 'удалённый пользователь не может войти');
@@ -388,7 +388,7 @@ try {
   await sx.keyboard.press('Escape'); await sx.waitForTimeout(300);
   ok(await sx.locator('.intro').count() === 0, 'Esc закрывает ролик');
 
-  /* ---------- заставки: золотое древо на входе, ночная буря после входа ---------- */
+  /* ---------- фоны: на входе прежний с костром, после входа ночная буря ---------- */
   {
     const q = await ctxPage();
     await q.goto(U + 'register.html'); await q.waitForTimeout(300);
@@ -397,7 +397,7 @@ try {
     await q.waitForFunction(() => window.BOOT && document.documentElement.dataset.scene, null, { timeout: 5000 }).catch(() => {});
     // У этого студента в тестах выше куплен дневной фон; без покупки — ночная буря
     const cabScene = await q.evaluate(() => [document.documentElement.dataset.scene, window.BOOT.me.theme || 'storm', (window.AshScene.set(null), window.AshScene.name)].join(' '));
-    ok(loginScene === 'erdtree' && /^(\w+) \1 storm$/.test(cabScene), `заставка входа — золотое древо, после входа — фон студента, без покупки — ночная буря (${loginScene} → ${cabScene})`);
+    ok(['night', 'day', 'autumn'].includes(loginScene) && /^(\w+) \1 storm$/.test(cabScene), `на входе — прежний фон с костром, после входа — фон студента, без покупки — ночная буря (${loginScene} → ${cabScene})`);
     ok(await q.evaluate(() => (window.BOOT?.db?.shop || []).some(i => i.type === 'theme' && i.art === 'night')), 'прежний ночной фон продаётся в магазине');
     await q.context().close();
   }
