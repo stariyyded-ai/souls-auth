@@ -241,12 +241,12 @@ app.post('/api/me/password', needUser, (req, res) => {
 });
 
 // Фон для администратора: бесплатно и любой; студенту фон надевается через магазин
-const THEMES = ['night', 'day', 'autumn'];
+const THEMES = ['storm', 'night', 'day', 'autumn'];
 app.post('/api/me/theme', needUser, (req, res) => {
   if (req.user.role !== 'admin') fail(403, 'Фон покупается в магазине.');
-  const theme = String(req.body?.theme || 'night');
+  const theme = String(req.body?.theme || 'storm');
   if (!THEMES.includes(theme)) fail(400, 'Нет такого фона.');
-  const p = JSON.parse(req.user.profile); p.theme = theme === 'night' ? null : theme;
+  const p = JSON.parse(req.user.profile); p.theme = theme === 'storm' ? null : theme; // пусто — фон по умолчанию, ночная буря
   D.saveProfile(req.user.id, p);
   res.json({ theme });
 });

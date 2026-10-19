@@ -175,11 +175,17 @@ function dropEmails() {
 }
 
 // Фоны «Привал у костра» и «Осенний привал» появились позже: в уже созданную базу добавляем их один раз
+// Каждый новый фон добавляется один раз (отметка theme:<id>); первые два помечены общей отметкой themes
 function ensureThemes() {
-  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('themes')) return;
   const have = new Set(listColl('shop').map(s => s.id));
+  const mark = k => db.prepare('SELECT value FROM meta WHERE key = ?').get(k);
+  const old = mark('themes');
   tx(() => {
-    loadSeed().shop.filter(s => s.type === 'theme' && !have.has(s.id)).forEach(s => putItem('shop', s));
+    loadSeed().shop.filter(s => s.type === 'theme').forEach(s => {
+      if (mark('theme:' + s.id) || (old && ['s24', 's25'].includes(s.id))) return;
+      if (!have.has(s.id)) putItem('shop', s);
+      db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('theme:' + s.id, now());
+    });
     db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('themes', now());
   });
 }

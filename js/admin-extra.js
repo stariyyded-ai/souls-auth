@@ -327,16 +327,16 @@
 
   /* ================= ФОН АДМИНИСТРАТОРА ================= */
   // Студенты покупают фоны в магазине, администратор меняет свой бесплатно
-  const THEMES = [['night', 'Ночь', 'затмение над замком, пепел'], ['day', 'Привал у костра', 'светлый день, у костра путник'], ['autumn', 'Осенний привал', 'закат, рыжие деревья, листопад']];
+  const THEMES = [['storm', 'Ночная буря', 'по умолчанию: сияющий знак, дождь, синее пламя'], ['night', 'Затмение над замком', 'чёрное солнце, костёр, пепел'], ['day', 'Привал у костра', 'светлый день, у костра путник'], ['autumn', 'Осенний привал', 'закат, рыжие деревья, листопад']];
   $('my-theme').addEventListener('click', async () => {
-    const cur = window.AshScene?.name || 'night';
+    const cur = window.AshScene?.name || 'storm';
     let pick = cur;
     const v = await A.modal({
       title: 'Фон страниц',
       body: `<p>Для вас бесплатно. Студенты получают фоны в магазине.</p><div class="form"><div class="f full"><div class="checks theme-pick" role="radiogroup" aria-label="Фон">${THEMES.map(([k, t, d]) =>
         `<label><input type="radio" name="theme" value="${k}"${k === cur ? ' checked' : ''}> <span class="theme-swatch" data-art="${k}"></span> ${t} <small class="hint">${d}</small></label>`).join('')}</div></div></div>`,
       actions: [{ label: 'ОТМЕНА', value: 'cancel', kind: 'ghost' }, { label: 'ПОСТАВИТЬ', value: 'ok', primary: true }],
-      onSubmit: val => { if (val === 'ok') pick = document.querySelector('#modal-body input[name=theme]:checked')?.value || 'night'; return null; }
+      onSubmit: val => { if (val === 'ok') pick = document.querySelector('#modal-body input[name=theme]:checked')?.value || 'storm'; return null; }
     });
     if (v !== 'ok' || pick === cur) return;
     try { await window.Ash.api('POST', 'api/me/theme', { theme: pick }); window.AshScene?.set(pick); if (sfx.lit) sfx.lit(); toast('Фон изменён на всех страницах.'); }

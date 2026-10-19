@@ -108,6 +108,7 @@ window.ADMIN_SEED = (() => {
     { id: 's14', title: 'Аватар «Ворон»', type: 'avatar', art: 'crow', rarity: 'epic', price: 1200, stock: 0, active: true, description: 'Унесёт вас из Северного прибежища.' },
     { id: 's15', title: 'Аватар «Хранительница огня»', type: 'avatar', art: 'firekeeper', rarity: 'legendary', price: 2500, stock: 0, active: true, description: 'Маска и капюшон хранительницы.' },
     { id: 's24', title: 'Привал у костра', type: 'theme', art: 'day', rarity: 'rare', price: 800, stock: 0, active: true, description: 'Светлый день вместо ночи: у костра стоит путник. Фон меняется на всех страницах.' },
+    { id: 's26', title: 'Затмение над замком', type: 'theme', art: 'night', rarity: 'rare', price: 600, stock: 0, active: true, description: 'Прежний ночной фон: чёрное солнце над замком, костёр и пепел вместо ночной бури. Меняется на всех страницах.' },
     { id: 's25', title: 'Осенний привал', type: 'theme', art: 'autumn', rarity: 'epic', price: 1500, stock: 0, active: true, description: 'Закат, рыжие деревья и листопад, путник греется у костра. Фон меняется на всех страницах.' },
     { id: 's16', title: 'Звание «Негорящий»', type: 'title', rarity: 'common', price: 200, stock: 0, active: true, description: 'Показывается под именем в кабинете и в таблице лидеров.' },
     { id: 's17', title: 'Звание «Рыцарь семантики»', type: 'title', rarity: 'rare', price: 600, stock: 0, active: true, description: 'Для тех, кто не верстает на div.' },

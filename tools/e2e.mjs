@@ -388,6 +388,20 @@ try {
   await sx.keyboard.press('Escape'); await sx.waitForTimeout(300);
   ok(await sx.locator('.intro').count() === 0, 'Esc закрывает ролик');
 
+  /* ---------- заставки: золотое древо на входе, ночная буря после входа ---------- */
+  {
+    const q = await ctxPage();
+    await q.goto(U + 'register.html'); await q.waitForTimeout(300);
+    const loginScene = await q.evaluate(() => document.documentElement.dataset.scene);
+    await login(q, 'Солер из Асторы', 'astora123');
+    await q.waitForFunction(() => window.BOOT && document.documentElement.dataset.scene, null, { timeout: 5000 }).catch(() => {});
+    // У этого студента в тестах выше куплен дневной фон; без покупки — ночная буря
+    const cabScene = await q.evaluate(() => [document.documentElement.dataset.scene, window.BOOT.me.theme || 'storm', (window.AshScene.set(null), window.AshScene.name)].join(' '));
+    ok(loginScene === 'erdtree' && /^(\w+) \1 storm$/.test(cabScene), `заставка входа — золотое древо, после входа — фон студента, без покупки — ночная буря (${loginScene} → ${cabScene})`);
+    ok(await q.evaluate(() => (window.BOOT?.db?.shop || []).some(i => i.type === 'theme' && i.art === 'night')), 'прежний ночной фон продаётся в магазине');
+    await q.context().close();
+  }
+
   /* ---------- правки по замечаниям: «Назад», таймер, рамка при масштабе, ссылки в предпросмотре, копипаст, меню, лидеры ---------- */
   {
     // Масштаб браузера 125% и часы компьютера отстают на 5 минут

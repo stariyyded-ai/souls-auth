@@ -223,6 +223,10 @@ a.btn { text-decoration: none; box-sizing: border-box; }
 /* Светлые темы фона (js/scene.js ставит html[data-scene]): панели плотнее, подписи вокруг с тенью, чтобы текст читался */
 html[data-scene="day"] { --glass: rgba(16,14,22,0.84); }
 html[data-scene="autumn"] { --glass: rgba(22,13,18,0.76); }
+/* Золотое древо на входе светлое в центре: окно плотнее, чтобы поля читались */
+html[data-scene="erdtree"] { --glass: rgba(14,12,9,0.8); }
+html[data-scene="erdtree"] .top, html[data-scene="erdtree"] .foot { text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6); }
+html[data-scene="storm"] { --glass: rgba(10,10,26,0.62); }
 html[data-scene="day"] body, html[data-scene="autumn"] body { text-shadow: 0 1px 2px rgba(0,0,0,0.85); }
 html[data-scene="day"] .top, html[data-scene="day"] .foot,
 html[data-scene="autumn"] .top, html[data-scene="autumn"] .foot { text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6); }
@@ -238,6 +242,9 @@ html[data-scene="day"] .foot { color: #f3ead6; }
 .theme-swatch[data-art="autumn"] { background: linear-gradient(#2f2142, #a24d6b 55%, #f3a252); }
 .theme-swatch[data-art="autumn"]::before { top: 18px; background: #f6a64a; box-shadow: 0 0 10px #e8772e; }
 .theme-swatch[data-art="autumn"]::after { background: repeating-linear-gradient(90deg, #3c2418 0 5px, #e8772e 5px 6px, #3c2418 6px 11px, #f6c453 11px 12px); }
+.theme-swatch[data-art="storm"] { background: radial-gradient(circle at 50% 35%, #e8e0ff 0 3px, #8a6ad0 4px, transparent 12px), linear-gradient(#0b0c22, #2a2050 60%, #8a4f78 75%, #121838 76%); }
+.theme-swatch[data-art="storm"]::before { width: 1px; height: 30px; top: 0; right: 27px; background: #e8e0ff; }
+.theme-swatch[data-art="storm"]::after { background: repeating-linear-gradient(90deg, #121838 0 6px, #4aa8ff 6px 7px); }
 .theme-swatch[data-art="night"] { background: linear-gradient(#1b1520, #050406); }
 .theme-swatch[data-art="night"]::before { border-radius: 50%; background: #050304; box-shadow: 0 0 0 2px #e8772e; }
 .theme-swatch[data-art="night"]::after { background: #0b090c; }

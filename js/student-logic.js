@@ -221,7 +221,7 @@
       if (item.type === 'title') st.equipped.title = titleOf(item);
       if (item.type === 'avatar') st.equipped.avatar = item.art;
       if (item.type === 'frame') st.equipped.frame = item.art;
-      if (item.type === 'theme') st.equipped.theme = item.art; // фон всех страниц: day или autumn (js/scene.js)
+      if (item.type === 'theme') st.equipped.theme = item.art; // фон всех страниц: night, day или autumn (js/scene.js); без покупки — ночная буря
     }
   }
 

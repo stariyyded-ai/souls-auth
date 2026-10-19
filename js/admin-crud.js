@@ -15,7 +15,7 @@
   const SHOP_TYPES = { theme: 'Фон', title: 'Звание', avatar: 'Аватар', frame: 'Рамка', booster: 'Бустер', bonus: 'Бонус', merch: 'Мерч' };
   const EFFECTS = { xp2: 'Опыт ×2', souls15: 'Души ×1,5', speed: 'Полный бонус за скорость' };
   const artOpts = () => [['', '— не нужно —'], ...Object.entries(window.ASH_AVATARS).filter(([k]) => k !== 'knight').map(([k, a]) => [k, 'Аватар: ' + a.title]),
-    ...Object.entries(window.ASH_FRAMES).map(([k, t]) => [k, 'Рамка: ' + t]), ['day', 'Фон: день, путник у костра'], ['autumn', 'Фон: осенний закат']];
+    ...Object.entries(window.ASH_FRAMES).map(([k, t]) => [k, 'Рамка: ' + t]), ['night', 'Фон: затмение над замком'], ['day', 'Фон: день, путник у костра'], ['autumn', 'Фон: осенний закат']];
   const shopArt = s => s.type === 'theme' ? `<span class="theme-swatch" data-art="${esc(s.art || '')}"></span>` : s.type === 'avatar' ? `<span class="ava sm">${window.ASH_AVATAR_SVG(s.art, 4)}</span>`
     : s.type === 'frame' ? `<span class="ava sm" data-frame="${esc(s.art || '')}">${window.ASH_AVATAR_SVG('knight', 4)}</span>`
     : icon(s.type === 'booster' ? 'flame' : s.type === 'title' ? 'badge' : s.type === 'bonus' ? 'key' : 'scroll', { X: '#f2d58a', Y: '#7a5f2e', O: '#e8772e', W: '#fff0b0' }, 5);
