@@ -246,3 +246,4 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
 .time-table { min-width: 640px; }
 .time-table td small { display: block; }
 .time-table td.over { color: var(--ember-hi); }
+.site-nav { display: flex; flex-wrap: wrap; gap: 12px 28px; }

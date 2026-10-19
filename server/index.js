@@ -78,7 +78,7 @@ function me(row) {
 function adminDb() {
   const out = {};
   D.COLLS.forEach(c => { out[c] = D.listColl(c); });
-  return { ...out, users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), lessonList: lessonList(), taskList: taskList() };
+  return { ...out, site: D.getSite(), users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), lessonList: lessonList(), taskList: taskList() };
 }
 // Заявки студентов на доступ к курсу: новые сверху
 const listRequests = () => D.listColl('requests').sort((a, b) => b.date.localeCompare(a.date));
@@ -118,7 +118,7 @@ app.get('/api/boot.js', (req, res) => {
   if (!req.user) return res.send(`window.BOOT = null; location.replace('index.html');`);
   const row = req.user;
   const boot = {
-    me: me(row), state: parseState(row), rev: row.rev, demo: D.DEMO,
+    me: me(row), state: parseState(row), rev: row.rev, demo: D.DEMO, now: new Date().toISOString(), site: D.getSite(),
     db: row.role === 'admin' ? adminDb() : studentDb(row)
   };
   res.send(`window.BOOT = ${JSON.stringify(boot).replace(/</g, '\\u003c')};`);
@@ -270,6 +270,14 @@ const label = (req, it) => `${String(req.body?.label || 'запись')} «${it.
 const adminLog = (req, text, extra = {}) => D.addLog({ kind: 'action', user: req.user.id, text, ...extra });
 
 app.get('/api/admin/db', needAdmin, (req, res) => res.json(adminDb()));
+// Пункты меню, скрытые от студентов (у администратора они видны с пометкой)
+const NAV_TITLE = { lessons: 'Уроки', tasks: 'Задания', shop: 'Магазин', leaders: 'Лидеры' };
+app.post('/api/admin/site', needAdmin, (req, res) => {
+  const before = D.getSite().hideNav, site = D.setSite(req.body);
+  const on = site.hideNav.filter(x => !before.includes(x)), off = before.filter(x => !site.hideNav.includes(x));
+  if (on.length || off.length) adminLog(req, [on.length ? `скрыл в меню студентов: ${on.map(x => NAV_TITLE[x]).join(', ')}` : '', off.length ? `вернул в меню: ${off.map(x => NAV_TITLE[x]).join(', ')}` : ''].filter(Boolean).join('; '));
+  res.json(site);
+});
 app.get('/api/admin/requests', needAdmin, (req, res) => res.json(listRequests()));
 // Заявка на курс: «открыть» добавляет курс студенту лично, «отклонить» только закрывает заявку
 app.post('/api/admin/requests/:id/:verdict', needAdmin, (req, res) => {

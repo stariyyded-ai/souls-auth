@@ -139,8 +139,13 @@
     const c = codeNow(), pv = $('preview');
     const sb = hasJs() || (task && task.sandbox) ? 'allow-scripts allow-forms allow-modals' : '';
     if (pv.getAttribute('sandbox') !== sb) pv.setAttribute('sandbox', sb);
-    pv.srcdoc = R.page(c.html, c.css, c.js || '');
+    pv.srcdoc = R.page(c.html, c.css, c.js || '', sb ? PV_HEAD + PV_LINKS : PV_HEAD);
   }
+  // Ссылки и формы в предпросмотре не должны открывать вместо работы страницу сайта:
+  // base target="_blank" отправляет переход в новое окно, а песочница без allow-popups его не пускает.
+  // Где разрешены скрипты, ссылки на якоря (#services) прокручивают к нужному блоку.
+  const PV_HEAD = '<base target="_blank">';
+  const PV_LINKS = `<script>document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();const id=decodeURIComponent(a.getAttribute('href').slice(1));const t=id&&document.getElementById(id);if(t)t.scrollIntoView({block:'start'});else if(!id)scrollTo(0,0)})<\/script>`;
   function updateLintSum() {
     const c = codeNow();
     const n = R.lint(c.html, c.css, c.js || '').filter(m => m.type === 'error').length;
@@ -160,9 +165,20 @@
 
   function clock() {
     if (!task || task.sandbox) return;
-    const sec = (Date.now() - startedAt) / 1000, norm = task.minutes * 60;
+    const tm = $('timer'), s = St.taskState(task.id);
+    // Решённое задание (после последнего «Начать заново») — таймер стоит на времени решения и больше не тикает
+    if (s && s.solved && s.solvedAt && Date.parse(s.solvedAt) >= startedAt) {
+      clearInterval(tick); tick = null;
+      const took = Math.max(0, (Date.parse(s.solvedAt) - startedAt) / 1000);
+      $('clock').textContent = E.clock(took);
+      tm.classList.remove('late', 'burnt'); tm.classList.add('done');
+      $('norm').textContent = 'решено, таймер остановлен';
+      return;
+    }
+    tm.classList.remove('done');
+    if (!tick) tick = setInterval(clock, 1000);
+    const sec = Math.max(0, (St.now() - startedAt) / 1000), norm = task.minutes * 60;
     $('clock').textContent = E.clock(sec);
-    const tm = $('timer');
     tm.classList.toggle('late', sec > norm);
     tm.classList.toggle('burnt', sec > norm * 2);
     $('norm').textContent = sec <= norm ? `норма ${task.minutes} мин` : sec < norm * 2 ? 'бонус за скорость тает' : 'бонус за скорость сгорел';
@@ -224,8 +240,8 @@
     const code = task.sandbox ? (task.code || { html: task.html, css: '', js: '' }) : s && s.code ? s.code : { html: task.html, css: task.css, js: task.js };
     ed.html.setValue(code.html || ''); ed.css.setValue(code.css || ''); ed.js.setValue(code.js != null ? code.js : (task.js || ''));
     FILES.forEach(k => ed[k].clearHistory());
-    if (task.sandbox) { clearInterval(tick); try { sessionStorage.setItem('ash.sandbox.code', JSON.stringify({ ...codeNow(), from: task.html })); } catch (e) { } }
-    else { startedAt = Date.parse(St.startTask(task.id)); clearInterval(tick); clock(); tick = setInterval(clock, 1000); }
+    if (task.sandbox) { clearInterval(tick); tick = null; try { sessionStorage.setItem('ash.sandbox.code', JSON.stringify({ ...codeNow(), from: task.html })); } catch (e) { } }
+    else { startedAt = Date.parse(St.startTask(task.id)); clearInterval(tick); tick = null; clock(); }
     // Фрагменты для «Собери макет»
     $('frag-box').hidden = !task.fragments;
     $('frags').innerHTML = (task.fragments || []).map((f, i) => `<button type="button" class="frag" data-f="${i}"><span class="lang">${f.lang.toUpperCase()}</span>${esc(f.label.replace(/ \(ловушка\)$/, ''))}<code>${esc(f.code.split('\n')[0].slice(0, 60))}${f.code.length > 60 || f.code.includes('\n') ? '…' : ''}</code></button>`).join('');
@@ -238,7 +254,7 @@
   }
   function close() {
     sendWork();
-    task = null; clearInterval(tick);
+    task = null; clearInterval(tick); tick = null;
     $('task-view').hidden = true; $('list-view').hidden = false;
     document.title = 'Задания · Пепельный Пиксель';
     renderList();
@@ -254,11 +270,17 @@
     workSec = 0;
   }
   setInterval(() => {
-    if (!task || task.sandbox || document.hidden || Date.now() - lastAct > IDLE_MS) return;
+    // !tick — задание решено и таймер остановлен: время работы больше не копим
+    if (!task || task.sandbox || !tick || document.hidden || Date.now() - lastAct > IDLE_MS) return;
     if (workTask !== task.id) { sendWork(); workTask = task.id; }
     if (++workSec >= 60) sendWork();
   }, 1000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) { sendWork(); St.flush(); } });
+  // Сервер прислал своё состояние: начало задания берём его, чтобы таймер совпадал с тем, по чему считаются очки
+  St.on(() => {
+    const s = task && !task.sandbox && St.taskState(task.id);
+    if (s && s.startedAt) { startedAt = Date.parse(s.startedAt); clock(); }
+  });
 
   const route = () => { const id = location.hash.slice(1); if (/^(t\d\d|k\d{4}|sandbox)$/.test(id)) open(id); else close(); };
   window.addEventListener('hashchange', route);
@@ -304,6 +326,7 @@
     if (res.ok === false) { toast(res.msg); return; }
     const sc = res.sc;
     renderResult(sc, res, rep);
+    clock();
     if (sc.solved) { if (sfx.lit) sfx.lit(); banner('bn-lit'); }
     else { if (sfx.death) sfx.death(); banner('bn-dead'); }
     announce(res.got);

@@ -94,11 +94,18 @@
     ['leaders', 'leaderboard.html', 'Лидеры', ['.........', 'X...X...X', 'XX.XXX.XX', 'XXXXXXXXX', 'XXXXXXXXX', 'X.X.X.X.X', 'XXXXXXXXX', 'XXXXXXXXX', '.........']],
     ['admin', 'admin.html', 'Админка', ['.........', '.XXX.....', 'X...X....', 'X...XXXXX', 'X...X.X.X', '.XXX..X.X', '.........', '.........', '.........'], 'admin']
   ];
+  // Пункты, которые администратор скрыл в настройках сайта: студент их не видит, администратор — с пометкой
+  function renderNav() {
+  const hiddenNav = (window.BOOT && window.BOOT.site && window.BOOT.site.hideNav) || [];
   document.querySelectorAll('nav.topnav[data-page]').forEach(nav => {
     const page = nav.dataset.page;
-    nav.innerHTML = NAV.filter(n => !n[4] || isAdmin()).map(([id, href, label, ico]) =>
-      `<a href="${href}"${id === page ? ' class="on" aria-current="page"' : ' data-fade'}><span class="nav-ico">${svg(ico, { X: 'currentColor' }, 2)}</span><span class="nav-label">${label}</span></a>`).join('');
+    nav.innerHTML = NAV.filter(n => (!n[4] || isAdmin()) && (isAdmin() || !hiddenNav.includes(n[0]))).map(([id, href, label, ico]) => {
+      const off = hiddenNav.includes(id);
+      return `<a href="${href}" class="${id === page ? 'on' : ''}${off ? ' off' : ''}"${id === page ? ' aria-current="page"' : ' data-fade'}${off ? ' title="Скрыто от студентов"' : ''}><span class="nav-ico">${svg(ico, { X: 'currentColor' }, 2)}</span><span class="nav-label">${label}</span></a>`;
+    }).join('');
   });
+  }
+  renderNav();
 
   // Плашка игрока в шапке: аватар, уровень, полоска опыта и души. Есть на страницах, где загружены данные студента.
   function chip() {
@@ -120,6 +127,10 @@
   document.addEventListener('DOMContentLoaded', () => { chip(); window.Student?.on?.(chip); });
   // На телефоне пояснение под заголовком свёрнуто (css/shell.css): нажатие показывает его целиком
   document.addEventListener('click', e => { const l = e.target.closest('.page-head .lead'); if (l && !e.target.closest('a')) l.classList.add('full'); });
+
+  // Кнопка «Назад» в браузере достаёт страницу из памяти такой, какой её оставили: с погашенной панелью
+  // (или рассыпанным окном входа). Такую страницу загружаем заново.
+  addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
 
   // Плавное появление панели при загрузке и уход со страницы
   const panel = document.getElementById('panel');
@@ -162,5 +173,43 @@
     draw(); inp.after(b);
   });
 
-  window.Ash = Object.assign(window.Ash || {}, { reduce, wait, banner, go, store, isAdmin, api, notice, me, svg, S, C });
+  /* ---------- Защита от копипаста (у студентов; администратору ничего не мешает) ----------
+     Текст уроков, условий и примеров нельзя выделить и скопировать. В редакторе задания можно вставить только то,
+     что скопировано в редакторах самого сайта (свой же код), — чужой готовый код вставить не получится.
+     Поля входа и обычные поля форм не трогаем: пароль из менеджера паролей вставляется как обычно. */
+  if (me && !isAdmin()) {
+    document.documentElement.classList.add('no-copy');
+    const EDIT = '.CodeMirror, textarea, input, [contenteditable="true"]';
+    const CODE = '.CodeMirror';
+    const norm = t => String(t || '').replace(/\r\n?/g, '\n').trim();
+    const clip = { get: () => store.get('clip') || '', set: v => store.set('clip', norm(v)) };
+    const selected = e => {
+      const cm = e.target.closest && e.target.closest(CODE);
+      if (cm && cm.CodeMirror) return cm.CodeMirror.getSelection();
+      const f = e.target;
+      if (f && typeof f.selectionStart === 'number') return f.value.slice(f.selectionStart, f.selectionEnd);
+      return String(getSelection() || '');
+    };
+    ['copy', 'cut'].forEach(type => document.addEventListener(type, e => {
+      if (e.target.closest && e.target.closest(EDIT)) { clip.set(selected(e)); return; }
+      e.preventDefault();
+      notice('Копировать текст с сайта нельзя: перепишите своими руками, так лучше запоминается.');
+    }, true));
+    // Вставка и перетаскивание текста в редактор кода — только своего, скопированного здесь же
+    const foreign = text => { const t = norm(text); return t && t !== clip.get(); };
+    document.addEventListener('paste', e => {
+      if (!(e.target.closest && e.target.closest(CODE))) return;
+      if (foreign(e.clipboardData && e.clipboardData.getData('text/plain'))) {
+        e.preventDefault(); e.stopPropagation();
+        notice('Вставлять в редактор можно только свой код, скопированный здесь же. Наберите решение сами.');
+      }
+    }, true);
+    document.addEventListener('drop', e => {
+      if (!(e.target.closest && e.target.closest(CODE))) return;
+      if (foreign(e.dataTransfer && e.dataTransfer.getData('text/plain'))) { e.preventDefault(); e.stopPropagation(); notice('Перетаскивать чужой текст в редактор нельзя.'); }
+    }, true);
+    document.addEventListener('dragstart', e => { if (!(e.target.closest && e.target.closest(EDIT))) e.preventDefault(); }, true);
+  }
+
+  window.Ash = Object.assign(window.Ash || {}, { renderNav, reduce, wait, banner, go, store, isAdmin, api, notice, me, svg, S, C });
 })();

@@ -18,9 +18,14 @@
 
   let st = B.state && B.state.v === 1 ? B.state : L.fresh(ME);
 
+  // Часы сервера: таймер задания считает от времени сервера, иначе при спешащих или отстающих часах компьютера
+  // после перезагрузки страницы он показывал минус или лишние минуты
+  const skew = B.now ? Date.parse(B.now) - Date.now() : 0;
+  const now = () => Date.now() + skew;
+
   // Справочники для правил: на каждой странице есть то, что ей нужно (магазин, задания или уроки)
   const env = {
-    now: () => new Date().toISOString(),
+    now: () => new Date(now()).toISOString(),
     uid: p => p + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
     achievements: D.achievements, Economy: E,
     shopItem: id => B.db.shop.find(s => s.id === id),
@@ -115,6 +120,7 @@
     // Черновик кода, чтобы не потерять при перезагрузке
     saveDraft(taskId, code) { run({ type: 'draft', task: taskId, code }); },
     taskState(taskId) { return st.tasks[taskId] || null; },
+    now,
     startTask(taskId) { return run({ type: 'start', task: taskId }).startedAt; },
     restartTask(taskId) { return run({ type: 'restart', task: taskId }).startedAt; },
     // Сколько секунд студент реально работал над заданием (считает страница заданий)

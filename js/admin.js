@@ -187,8 +187,18 @@
           <div class="plate-head"><h2>Последние покупки</h2><p class="plate-sub"><a href="#shop">магазин</a></p></div>
           <ol class="rank-list">${recent.map(p => `<li><span class="pos">${icon('soul', { Y: '#7fb0ff', W: '#e8f1ff' }, 3)}</span><div class="who-n"><p>${esc(S.byId('shop', p.item)?.title || 'Удалённый товар')}</p><small>${esc(userName(p.user))} · ${ago(p.date)}</small></div><span class="val">${fmt(p.price)}<small>душ</small></span></li>`).join('') || '<li class="empty">Покупок пока нет</li>'}</ol>
         </section>
+        <section class="plate wide">
+          <div class="plate-head"><h2>Меню для студентов</h2><p class="plate-sub">отмеченные разделы пропадают из меню у всех студентов; страницы остаются, ссылки из кабинета работают</p></div>
+          <div class="site-nav">${[['lessons', 'Уроки'], ['tasks', 'Задания'], ['shop', 'Магазин'], ['leaders', 'Лидеры']].map(([id, t]) =>
+            `<label class="check"><input type="checkbox" data-hide-nav="${id}"${(db.site?.hideNav || []).includes(id) ? ' checked' : ''}> Скрыть «${t}»</label>`).join('')}</div>
+        </section>
       </div>`;
     root.querySelector('[data-logs-kind]')?.addEventListener('click', () => { state.logs = { ...(state.logs || {}), kind: 'error' }; });
+    root.querySelectorAll('[data-hide-nav]').forEach(c => c.addEventListener('change', async () => {
+      const hideNav = [...root.querySelectorAll('[data-hide-nav]:checked')].map(x => x.dataset.hideNav);
+      const name = c.parentElement.textContent.trim().replace(/^Скрыть /, '');
+      if (await S.saveSite({ hideNav })) toast(c.checked ? `Раздел ${name} скрыт из меню студентов.` : `Раздел ${name} снова в меню студентов.`);
+    }));
   });
 
   /* ================= ПОЛЬЗОВАТЕЛИ ================= */

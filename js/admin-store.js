@@ -32,6 +32,13 @@
     get db() { return db; },
     on(fn) { listeners.add(fn); },
     byId(coll, id) { return db[coll].find(x => x.id === id); },
+    // Пункты меню, скрытые от студентов
+    async saveSite(site) {
+      const r = await send('POST', 'api/admin/site', site);
+      if (!r) return false;
+      db.site = r; if (window.BOOT) window.BOOT.site = r;
+      Ash.renderNav(); save(); return true;
+    },
     log(kind, text, extra = {}) {
       db.logs.unshift({ id: uid('e'), kind, user: extra.user || ADMIN_ID, text, date: new Date().toISOString(), ...extra });
     },

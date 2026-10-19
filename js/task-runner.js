@@ -67,6 +67,13 @@
   }
 
   /* ---------- помощник для проверок ---------- */
+  // При масштабе браузера не 100% (125%, 150%) Chrome отдаёт толщину рамки дробной: 2px → 1.6px.
+  // Рамку тоньше пикселя экрана браузер не рисует, поэтому возвращаем толщину, которую написал студент.
+  const LINE_W = /^(border(-(top|right|bottom|left))?-width|outline-width|column-rule-width)$/;
+  const fixStyle = (p, v) => LINE_W.test(p) ? v.replace(/(\d*\.\d+)px/g, (m, n) => Math.ceil(+n - 0.01) + 'px') : v;
+  // В подсказках цвета пишем так же, как студент обычно пишет в CSS: #2d6a4f, а не rgb(45, 106, 79)
+  const hex = note => String(note || '').replace(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/g, (m, r, g, b, a) =>
+    a !== undefined && +a < 1 ? m : '#' + [r, g, b].map(x => (+x).toString(16).padStart(2, '0')).join(''));
   function helper(f, html, css, js = '') {
     const doc = f.contentDocument, win = f.contentWindow;
     const el = s => typeof s === 'string' ? doc.querySelector(s) : s;
@@ -81,8 +88,8 @@
       $: s => doc.querySelector(s),
       $$: s => [...doc.querySelectorAll(s)],
       count: s => doc.querySelectorAll(s).length,
-      cs: (s, p) => { const e = el(s); return e ? win.getComputedStyle(e).getPropertyValue(p) : ''; },
-      px: (s, p) => { const e = el(s); return e ? parseFloat(win.getComputedStyle(e).getPropertyValue(p)) : NaN; },
+      cs: (s, p) => { const e = el(s); return e ? fixStyle(p, win.getComputedStyle(e).getPropertyValue(p)) : ''; },
+      px: (s, p) => { const e = el(s); return e ? parseFloat(fixStyle(p, win.getComputedStyle(e).getPropertyValue(p))) : NaN; },
       rect: s => { const e = el(s); return e ? e.getBoundingClientRect() : null; },
       text: s => (el(s)?.textContent || '').replace(/\s+/g, ' ').trim(),
       overflow: () => Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth) > win.innerWidth + 1,
@@ -115,12 +122,13 @@ addEventListener('unhandledrejection',e=>E.errors.push(String(e.reason&&e.reason
 const L=console.log.bind(console);console.log=(...a)=>{E.logs.push(a.map(x=>typeof x==='object'?JSON.stringify(x):String(x)).join(' '));L(...a)};
 window.alert=m=>{E.alerts.push(String(m))};window.confirm=m=>{E.alerts.push(String(m));return true};window.prompt=(m,d)=>{E.alerts.push(String(m));return d==null?'':String(d)};})()<\/script>`;
   const JS_HELPER = `const D=document,E=window.__ash,el=s=>typeof s==='string'?D.querySelector(s):s,
+FX=(p,v)=>/^(border(-(top|right|bottom|left))?-width|outline-width|column-rule-width)$/.test(p)?v.replace(/(\\d*\\.\\d+)px/g,(m,n)=>Math.ceil(+n-0.01)+'px'):v,
 need=s=>{const e=el(s);if(!e)throw new Error('не найден элемент '+s);return e;};
 const h={doc:D,win:window,errors:E.errors,logs:E.logs,alerts:E.alerts,
 $:s=>D.querySelector(s),$$:s=>[...D.querySelectorAll(s)],count:s=>D.querySelectorAll(s).length,
 text:s=>(el(s)?.textContent||'').replace(/\\s+/g,' ').trim(),
-cs:(s,p)=>{const e=el(s);return e?getComputedStyle(e).getPropertyValue(p):''},
-px:(s,p)=>{const e=el(s);return e?parseFloat(getComputedStyle(e).getPropertyValue(p)):NaN},
+cs:(s,p)=>{const e=el(s);return e?FX(p,getComputedStyle(e).getPropertyValue(p)):''},
+px:(s,p)=>{const e=el(s);return e?parseFloat(FX(p,getComputedStyle(e).getPropertyValue(p))):NaN},
 visible:s=>{const e=el(s);if(!e)return false;const c=getComputedStyle(e);return c.display!=='none'&&c.visibility!=='hidden'&&e.getClientRects().length>0},
 click:s=>{need(s).click()},
 type:(s,v)=>{const e=need(s);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}))},
@@ -330,6 +338,7 @@ if(D.readyState==='complete')run();else addEventListener('load',run);})()<\/scri
       ...(t.js ? { name: t.name, ...(await jsCheck(t, html, css, js)) } : exec(t, t.at === 360 ? H.phone : H.desk)),
       at: t.at === 360 ? 'телефон 360px' : ''
     })));
+    [...func, ...quality].forEach(r => { r.note = hex(r.note); });
     const report = { func, quality, lint: lint(html, css, js) };
     Object.values(frames).forEach(f => f.remove());
     return report;

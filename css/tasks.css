@@ -187,3 +187,5 @@
   .course-lesson { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 16px 24px; align-items: start; }
   .course-lesson .task-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+.timer.done { border-color: var(--ok); }
+.timer.done .clock { color: var(--ok); }

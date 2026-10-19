@@ -388,6 +388,64 @@ try {
   await sx.keyboard.press('Escape'); await sx.waitForTimeout(300);
   ok(await sx.locator('.intro').count() === 0, 'Esc закрывает ролик');
 
+  /* ---------- правки по замечаниям: «Назад», таймер, рамка при масштабе, ссылки в предпросмотре, копипаст, меню, лидеры ---------- */
+  {
+    // Масштаб браузера 125% и часы компьютера отстают на 5 минут
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 1.25 });
+    await ctx.clock.install({ time: new Date(Date.now() - 5 * 60000) });
+    const z = await ctx.newPage(); z.on('pageerror', e => errs.push(e.message));
+    await login(z, 'Солер из Асторы', 'astora123');
+    await z.click('nav.topnav a[href="leaderboard.html"]'); await z.waitForURL(/leaderboard/);
+    await z.goBack();
+    const backOk = await z.waitForFunction(() => { const p = document.getElementById('panel'); return /cabinet/.test(location.href) && p && !p.classList.contains('out') && getComputedStyle(p).opacity === '1'; }, null, { timeout: 5000 }).then(() => true, () => false);
+    ok(backOk, 'после «Назад» в браузере страница видна');
+    await z.goto(U + 'tasks.html#t01'); await z.waitForTimeout(1200);
+    await z.reload(); await z.waitForTimeout(1500);
+    const clk = await z.textContent('#clock');
+    ok(!clk.startsWith('-') && /^0:0\d$/.test(clk), `таймер после перезагрузки идёт от нуля по часам сервера (${clk})`);
+    const bw = await z.evaluate(async () => {
+      const t = { id: 'x', tests: [{ name: 'рамка', check: h => h.px('.b', 'border-top-width') === 2 || h.cs('.b', 'border-top-width') }, { name: 'цвет', check: h => h.cs('.b', 'color') === 'x' || h.cs('.b', 'color') }] };
+      const r = await window.TaskRunner.run(t, '<button class="b">Кнопка</button>', '.b { border: 2px solid #2d6a4f; color: #ffffff; }');
+      return r.func.map(f => f.ok + ':' + f.note);
+    });
+    ok(bw[0] === 'true:' && bw[1] === 'false:#ffffff', `при масштабе 125% рамка 2px засчитана, цвет в подсказке как в CSS (${bw.join(' / ')})`);
+    // Ссылка-якорь в предпросмотре не открывает вместо работы страницу сайта
+    await z.evaluate(() => document.querySelector('#task-view .CodeMirror').CodeMirror.setValue('<a id="go" href="#far">к записи</a><div style="height:3000px"></div><p id="far">Запись</p><a id="out" href="tasks.html">сайт</a>'));
+    await z.waitForTimeout(800);
+    const pv = z.frameLocator('#preview');
+    await pv.locator('#go').click(); await pv.locator('#out').click({ timeout: 3000 }).catch(() => {}); await z.waitForTimeout(800);
+    ok(await pv.locator('#far').count() === 1 && await pv.locator('.topnav').count() === 0, 'ссылки в предпросмотре не уводят на страницу сайта');
+    // Копипаст: текст страницы не копируется, чужой код в редактор не вставляется, свой — вставляется
+    const cp = await z.evaluate(() => {
+      const ta = document.querySelector('#task-view .CodeMirror textarea'), cm = document.querySelector('#task-view .CodeMirror').CodeMirror;
+      // CodeMirror сам отменяет стандартную вставку и вставляет текст, поэтому смотрим на содержимое редактора
+      const paste = text => { cm.setValue(''); cm.focus(); const dt = new DataTransfer(); dt.setData('text/plain', text); ta.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); return cm.getValue(); };
+      const copy = el => { const e = new ClipboardEvent('copy', { bubbles: true, cancelable: true }); el.dispatchEvent(e); return e.defaultPrevented; };
+      const pageCopy = copy(document.getElementById('t-goal'));
+      const foreign = paste('body { color: red; }');
+      cm.setValue('<p>своё</p>'); cm.execCommand('selectAll'); copy(ta);
+      return { pageCopy, foreign, own: paste('<p>своё</p>') };
+    });
+    ok(cp.pageCopy && cp.foreign === '' && cp.own === '<p>своё</p>', `копировать текст страницы и вставлять чужой код нельзя, свой код вставляется (${JSON.stringify(cp)})`);
+    // Лидеры по группам
+    await z.goto(U + 'leaderboard.html'); await z.waitForTimeout(600);
+    await z.click('#lb-filter [data-g="groups"]'); await z.waitForTimeout(200);
+    const grp = await z.locator('#lb-body tr.grp-row').count();
+    await z.selectOption('#lb-group', { index: 1 }); await z.waitForTimeout(200);
+    const one = await z.evaluate(() => new Set([...document.querySelectorAll('#lb-body tr td:nth-child(3)')].map(td => td.textContent)).size);
+    ok(grp >= 2 && one === 1, `таблица лидеров разбивается по группам (${grp}) и показывает одну выбранную группу`);
+    // Администратор скрывает «Уроки» из меню студентов
+    const ad2 = await ctxPage(); await login(ad2, '123', '123123123'); await ad2.waitForURL(/admin\.html/, { timeout: 10000 });
+    await ad2.check('[data-hide-nav="lessons"]'); await ad2.waitForTimeout(600);
+    await z.goto(U + 'cabinet.html'); await z.waitForTimeout(500);
+    const studentNav = await z.locator('nav.topnav a[href="lessons.html"]').count();
+    ok(studentNav === 0 && await ad2.locator('nav.topnav a.off[href="lessons.html"]').count() === 1, 'скрытые «Уроки» пропали из меню студента, у администратора — с пометкой');
+    await ad2.uncheck('[data-hide-nav="lessons"]'); await ad2.waitForTimeout(600);
+    await z.goto(U + 'cabinet.html'); await z.waitForTimeout(500);
+    ok(await z.locator('nav.topnav a[href="lessons.html"]').count() === 1, '«Уроки» вернулись в меню студента');
+    await ctx.close(); await ad2.context().close();
+  }
+
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);
   await login(m, '123', '123123123'); await m.waitForURL(/admin\.html/, { timeout: 10000 });

@@ -101,3 +101,8 @@
   .page-head .lead:not(.full) { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .page-head .lead:not(.full)::after { content: ""; }
 }
+.topnav a.off { opacity: 0.55; text-decoration: line-through; text-decoration-thickness: 2px; }
+
+/* Защита от копипаста у студентов (js/common.js): текст страниц не выделяется, поля и редактор — как обычно */
+html.no-copy body { -webkit-user-select: none; user-select: none; }
+html.no-copy :is(input, textarea, select, .CodeMirror, .CodeMirror *, [contenteditable="true"]) { -webkit-user-select: text; user-select: text; }

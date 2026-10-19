@@ -218,7 +218,21 @@ ensureInvites();
 ensureThemes();
 dropEmails();
 
+// Настройки сайта (какие пункты меню скрыты от студентов) — одна запись в meta
+const SITE_NAV = ['lessons', 'tasks', 'shop', 'leaders'];
+function getSite() {
+  const row = db.prepare('SELECT value FROM meta WHERE key = ?').get('site');
+  let v = {}; try { v = row ? JSON.parse(row.value) : {}; } catch (e) { v = {}; }
+  return { hideNav: (Array.isArray(v.hideNav) ? v.hideNav : []).filter(x => SITE_NAV.includes(x)) };
+}
+function setSite(v) {
+  const site = { hideNav: [...new Set((Array.isArray(v?.hideNav) ? v.hideNav : []).filter(x => SITE_NAV.includes(x)))] };
+  db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('site', JSON.stringify(site));
+  return site;
+}
+
 module.exports = {
+  SITE_NAV, getSite, setSite,
   db, tx, now, uid, key, COLLS, UPLOADS,
   getUser, findLogin, nameTaken, emailTaken, insertUser, saveProfile, userOut, allUsers,
   listColl, getItem, putItem, removeItem, addLog, listLogs, addPurchase, listPurchases, seed,

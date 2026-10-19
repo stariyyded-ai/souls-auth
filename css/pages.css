@@ -108,3 +108,9 @@
 }
 .to-shop { font-size: 14px; }
 .who .title-tag { margin: 0 0 4px; }
+
+/* Таблица лидеров по группам */
+.lb-group { height: 36px; padding: 0 10px; background: rgba(0,0,0,0.45); color: var(--bone); border: 2px solid var(--stone); font: 14px var(--font-ui); }
+.lb-group:focus-visible { outline: 2px solid var(--ember-hi); outline-offset: 2px; }
+.lb-table tr.grp-row td { padding-top: 18px; background: rgba(201,164,92,0.08); border-bottom-color: rgba(201,164,92,0.45); color: var(--gold-hi); font-size: 14px; }
+.lb-table tr.grp-row .pl { color: var(--gold-hi); }
