@@ -203,7 +203,26 @@ function ensureCourse() {
   });
 }
 
-if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) { seed(); db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('mdk0801', now()); }
+// Курс МДК.09.01 (уроки m9-*): в уже созданную базу один раз добавляем курс и его темы, курсу МДК.08.01 — код для страницы заданий.
+// Группы не трогаем: уроки группе открывает преподаватель в разделе «Уроки групп»
+function ensureCourse0901() {
+  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('mdk0901')) return;
+  const s = loadSeed();
+  const have = c => new Set(listColl(c).map(x => x.id));
+  const mods = have('modules'), courses = have('courses');
+  tx(() => {
+    s.modules.filter(m => m.id.startsWith('mdk9') && !mods.has(m.id)).forEach(m => putItem('modules', m));
+    s.courses.filter(c => c.id === 'c7' && !courses.has(c.id)).forEach(c => putItem('courses', c));
+    const c6 = getItem('courses', 'c6');
+    if (c6 && !c6.code) putItem('courses', { ...c6, code: 'МДК.08.01' });
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('mdk0901', now());
+  });
+}
+
+if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) {
+  seed();
+  ['mdk0801', 'mdk0901'].forEach(k => db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(k, now()));
+}
 // Темы курса (кнопка «Открыть» в кабинете): старым базам проставляем их из начальных данных, если поля ещё нет
 function ensureCourseModules() {
   if (db.prepare('SELECT value FROM meta WHERE key = ?').get('courseModules')) return;
@@ -219,6 +238,7 @@ function ensureCourseModules() {
 }
 
 ensureCourse();
+ensureCourse0901();
 ensureCourseModules();
 ensureInvites();
 ensureThemes();

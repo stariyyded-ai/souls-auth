@@ -8340,4 +8340,2597 @@ const statusText = document.querySelector('#status');
     }
   );
 })();
+/* ---- content/tasks/w20.js ---- */
+/* Занятие 20. ПР10. Разминка HTML/CSS: семантика, блочная модель, Flexbox, Grid */
+(() => {
+  const { rgb } = window.COURSE_KIT;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2001', lesson: 'm9-pr10', module: 'mdk93', mech: 'fix', title: 'Каркас страницы «Мои заявки»', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Одногруппник начал страницу «Мои заявки» портала «ЧистоДом», но собрал её из одних div, взял устаревший <font>, а на телефоне карточка вылезает за край экрана. Приведите каркас в порядок — на нём будут стоять все пять страниц портала.',
+      goal: 'HTML: шапку .top замените на <header class="header">, обёртку меню — на <nav class="nav">, общую обёртку содержимого — на <main class="page">. «Мои заявки» — единственный <h1> без <font> и <b>, карточка — <article class="card">, её название — <h2>. CSS: включите box-sizing: border-box для всех элементов (*, *::before, *::after); переименуйте .top в .header и сделайте её flex: логотип слева, меню справа (justify-content: space-between), по вертикали по центру (align-items: center); .nav — тоже flex с gap не меньше 8px. На 360px не должно быть горизонтальной прокрутки.',
+      hints: [
+        'Каркас: <header class="header"> <a class="logo" …>…</a> <nav class="nav">…две ссылки…</nav> </header> <main class="page"> <h1>Мои заявки</h1> <article class="card">…</article> </main>',
+        'Заголовок карточки: <h2>Генеральная уборка</h2> вместо <div class="card-title">. Размер заголовков задаётся в CSS, а не тегом <font>.',
+        'Первое правило CSS: *, *::before, *::after { box-sizing: border-box; } — тогда width: 100% включает padding и рамку.',
+        '.header { display: flex; justify-content: space-between; align-items: center; … } и .nav { display: flex; gap: 16px; }'
+      ],
+      html: `<div class="top">
+  <div><a class="logo" href="#requests">ЧистоДом</a></div>
+  <div class="nav">
+    <a href="#new">Новая заявка</a>
+    <a href="#exit">Выход</a>
+  </div>
+</div>
+<div>
+  <div><b><font size="6">Мои заявки</font></b></div>
+  <div class="card">
+    <div class="card-title">Генеральная уборка</div>
+    <p>12.11.2026, 10:00 · ул. Ленина, 5</p>
+  </div>
+</div>`,
+      css: `body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.top { padding: 12px 16px; background: #0f766e; }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.nav a { color: #ffffff; }
+.card { width: 100%; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; }`,
+      tests: [
+        { name: 'Шапка — <header class="header">, в ней логотип и <nav class="nav"> с двумя ссылками', check: h => {
+          if (!h.$('header.header')) return 'нет <header class="header">';
+          if (!h.$('header.header .logo')) return 'логотип должен быть внутри шапки';
+          return h.count('header.header nav.nav a') === 2 || 'внутри шапки нужен <nav class="nav"> с двумя ссылками';
+        } },
+        { name: 'Содержимое в <main class="page">, «Мои заявки» — единственный <h1>', check: h => {
+          if (h.count('main.page') !== 1) return 'нужен один <main class="page">';
+          if (h.count('h1') !== 1) return `заголовков h1: ${h.count('h1')}, нужен один`;
+          return h.text('main h1') === 'Мои заявки' || 'h1 «Мои заявки» должен быть внутри main';
+        } },
+        { name: 'Нет <font> и <b>, карточка — <article class="card"> с <h2>', check: h => {
+          if (h.$('font, b')) return 'остались <font> или <b>';
+          return h.text('main article.card h2') === 'Генеральная уборка' || 'карточка — <article class="card">, внутри <h2>Генеральная уборка</h2>';
+        } },
+        { name: 'box-sizing: border-box у всех элементов', check: h => ['.card', 'main', 'p'].every(s => h.cs(s, 'box-sizing') === 'border-box') || 'добавьте *, *::before, *::after { box-sizing: border-box; }' },
+        { name: 'Шапка на Flexbox: логотип слева, меню справа, по центру по вертикали', check: h => {
+          if (h.cs('header', 'display') !== 'flex') return `у шапки display: ${h.cs('header', 'display')}`;
+          if (h.cs('header', 'justify-content') !== 'space-between') return 'нужно justify-content: space-between';
+          if (h.cs('header', 'align-items') !== 'center') return 'нужно align-items: center';
+          const a = h.rect('header .logo'), n = h.rect('header nav');
+          if (!a || !n) return 'нет логотипа или меню';
+          return a.right <= n.left || 'меню должно стоять правее логотипа';
+        } },
+        { name: 'Меню .nav — flex с промежутком gap не меньше 8px', check: h => h.cs('.nav', 'display') === 'flex' && h.px('.nav', 'column-gap') >= 8 || 'нужно .nav { display: flex; gap: … }' },
+        { name: 'Цвета не потерялись: шапка #0f766e', check: h => h.cs('header', 'background-color') === rgb('#0f766e') || 'перенесите фон .top в .header' },
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана: карточка с padding вылезает' }
+      ]
+    },
+    {
+      id: 'w2002', lesson: 'm9-pr10', module: 'mdk93', mech: 'build', title: 'Карточки заявок на Grid', level: 'Среднее', minutes: 25, points: 150,
+      story: 'В каждой карточке заявки «ЧистоДома» есть подписи «Дата», «Адрес», «Оплата» и значения к ним. Сейчас всё идёт столбиком, а сами карточки стоят друг под другом даже на большом мониторе. Разложим всё сеткой.',
+      goal: 'Список .request-info сделайте Grid с колонками 100px и 1fr (gap: 4px 12px, margin: 0), у dd уберите отступ браузера (margin: 0). Ошибку в правиле .request-info dt (display: grid стоит у ребёнка, а не у контейнера) исправьте: у dt оставьте только цвет. Контейнер .requests — Grid с grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) и gap 16px. На 1024px три карточки встанут в ряд, на 360px — в одну колонку без прокрутки.',
+      hints: [
+        'Grid включается у контейнера: .request-info { display: grid; grid-template-columns: 100px 1fr; gap: 4px 12px; margin: 0; }',
+        'У <dd> браузер ставит margin-left: 40px — сбросьте: .request-info dd { margin: 0; }',
+        '.requests { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <section class="requests" aria-label="Список заявок">
+    <article class="request-card">
+      <h2>Генеральная уборка</h2>
+      <dl class="request-info">
+        <dt>Дата</dt><dd>12.11.2026, 10:00</dd>
+        <dt>Адрес</dt><dd>ул. Ленина, 5, кв. 12</dd>
+        <dt>Оплата</dt><dd>Банковская карта</dd>
+      </dl>
+    </article>
+    <article class="request-card">
+      <h2>Химчистка ковров</h2>
+      <dl class="request-info">
+        <dt>Дата</dt><dd>03.11.2026, 14:30</dd>
+        <dt>Адрес</dt><dd>пр. Мира, 18</dd>
+        <dt>Оплата</dt><dd>Наличные</dd>
+      </dl>
+    </article>
+    <article class="request-card">
+      <h2>Общий клининг</h2>
+      <dl class="request-info">
+        <dt>Дата</dt><dd>20.10.2026, 09:00</dd>
+        <dt>Адрес</dt><dd>ул. Ленина, 5, кв. 12</dd>
+        <dt>Оплата</dt><dd>Наличные</dd>
+      </dl>
+    </article>
+  </section>
+</main>`,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.page { padding: 24px 16px; }
+h1 { margin: 0 0 16px; font-size: 28px; }
+.request-card { padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; }
+.request-card h2 { margin: 0 0 8px; font-size: 18px; }
+.request-info dt { display: grid; color: #64748b; }
+`,
+      tests: [
+        { name: 'Список .request-info — Grid с колонками 100px и 1fr', check: h => {
+          if (h.cs('.request-info', 'display') !== 'grid') return `у .request-info display: ${h.cs('.request-info', 'display')}`;
+          const cols = h.cs('.request-info', 'grid-template-columns').split(' ');
+          return cols.length === 2 && cols[0] === '100px' || `колонки сейчас: ${h.cs('.request-info', 'grid-template-columns')}`;
+        } },
+        { name: 'Подпись и значение стоят в одной строке', check: h => {
+          const dt = h.$('.request-info dt'), dd = h.$('.request-info dd');
+          return h.sameRow([dt, dd]) && h.rect(dd).left > h.rect(dt).left || 'значение должно стоять справа от подписи';
+        } },
+        { name: 'У dd и dl нет отступов браузера (margin: 0)', check: h => h.px('.request-info dd', 'margin-left') === 0 && h.px('.request-info', 'margin-top') === 0 || 'сбросьте margin у .request-info и dd' },
+        { name: 'У dt больше нет display: grid', check: h => h.cs('.request-info dt', 'display') !== 'grid' || 'grid включают у контейнера, а не у dt' },
+        { name: '.requests — Grid с repeat(auto-fill, minmax(280px, 1fr)) и gap 16px', check: h => {
+          if (h.cs('.requests', 'display') !== 'grid') return 'у .requests нет display: grid';
+          if (!h.has(/repeat\(\s*auto-fill\s*,\s*minmax\(\s*280px\s*,\s*1fr\s*\)\s*\)/)) return 'нужно repeat(auto-fill, minmax(280px, 1fr))';
+          return h.px('.requests', 'row-gap') === 16 && h.px('.requests', 'column-gap') === 16 || 'промежуток должен быть 16px';
+        } },
+        { name: '1024px: три карточки в одном ряду', check: h => h.sameRow(h.$$('.request-card')) || 'карточки не встали в ряд' },
+        { name: '360px: карточки в одну колонку, без прокрутки', at: 360, check: h => {
+          const l = h.$$('.request-card').map(c => h.rect(c).left);
+          if (Math.max(...l) - Math.min(...l) > 1) return 'на телефоне карточки должны стоять одна под другой';
+          return !h.overflow() || 'страница шире экрана';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w21.js ---- */
+/* Занятие 21. ЛР11. Перенос макета в код: шаблон страниц, общие стили */
+(() => {
+  const { rgb, near } = window.COURSE_KIT;
+  const varOf = (h, name) => h.win.getComputedStyle(h.doc.documentElement).getPropertyValue(name).trim().toLowerCase();
+  const VARS = [['--color-primary', '#0f766e'], ['--color-primary-dark', '#115e59'], ['--color-on-primary', '#ffffff'], ['--color-bg', '#f8fafc'],
+    ['--color-surface', '#ffffff'], ['--color-text', '#0f172a'], ['--color-muted', '#64748b'], ['--color-border', '#cbd5e1']];
+  const STYLE_ROOT = `:root {
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --radius: 12px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --shadow: 0 2px 8px rgb(15 23 42 / 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+h1, h2 { margin: 0 0 var(--space-2); line-height: 1.2; }`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2101', lesson: 'm9-lr11', module: 'mdk93', mech: 'optimize', title: 'Стайл-гайд в переменных', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Заказчик «ЧистоДома» уже дважды просил «чуть другой бирюзовый». Сейчас цвет вписан в CSS в четырёх местах, и каждый раз его ищут по всему файлу. Перенесём стайл-гайд в CSS-переменные — тогда перекраска портала займёт одну строку.',
+      goal: 'В начале CSS объявите в :root переменные: --color-primary #0f766e, --color-primary-dark #115e59, --color-on-primary #ffffff, --color-bg #f8fafc, --color-surface #ffffff, --color-text #0f172a, --color-muted #64748b, --color-border #cbd5e1, --radius 12px, --space-2 16px, --space-3 24px. Во всех остальных правилах замените цвета, радиусы и отступы 16px/24px на var(…): вне :root в CSS не должно остаться ни одного #цвета. Внешний вид страницы не меняется.',
+      hints: [
+        ':root { --color-primary: #0f766e; --color-primary-dark: #115e59; … } — переменная начинается с двух дефисов.',
+        'Использование: .btn { background: var(--color-primary); color: var(--color-on-primary); border-radius: var(--radius); }',
+        'Белый фон карточки — var(--color-surface), белый текст на бирюзовом — var(--color-on-primary). Отступ 16px — var(--space-2), 24px — var(--space-3).',
+        'Проверьте себя поиском по CSS: символ # должен встречаться только внутри :root.'
+      ],
+      html: `<header class="header">
+  <a class="logo" href="#requests">ЧистоДом</a>
+  <nav class="nav" aria-label="Меню">
+    <a href="#new">Новая заявка</a>
+    <a href="#exit">Выход</a>
+  </nav>
+</header>
+<main class="page">
+  <h1>Набор компонентов</h1>
+  <p class="muted">Так выглядят кнопка и карточка во всех страницах портала.</p>
+  <button class="btn" type="button">Создать заявку</button>
+  <article class="card">
+    <h2>Генеральная уборка</h2>
+    <p class="muted">12.11.2026, 10:00 · ул. Ленина, 5</p>
+  </article>
+</main>`,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #0f766e; }
+.header a { color: #ffffff; text-decoration: none; }
+.nav { display: flex; gap: 16px; }
+.page { padding: 24px 16px; }
+.muted { color: #64748b; }
+.btn { padding: 12px 24px; border: 0; border-radius: 12px; background: #0f766e; color: #ffffff; font: inherit; cursor: pointer; }
+.btn:hover { background: #115e59; }
+.card { margin-top: 24px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; }
+.card h2 { margin: 0 0 8px; color: #0f766e; }`,
+      tests: [
+        { name: ':root: восемь цветов стайл-гайда', check: h => {
+          for (const [n, v] of VARS) { const got = varOf(h, n); if (got !== v) return got ? `${n}: ${got}, нужно ${v}` : `нет переменной ${n}`; }
+          return true;
+        } },
+        { name: ':root: --radius 12px, --space-2 16px, --space-3 24px', check: h => varOf(h, '--radius') === '12px' && varOf(h, '--space-2') === '16px' && varOf(h, '--space-3') === '24px' || 'объявите --radius, --space-2 и --space-3' },
+        { name: 'Вне :root нет ни одного #цвета', check: h => {
+          const rest = h.css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/:root\s*\{[^}]*\}/g, '');
+          const m = rest.match(/#[0-9a-f]{3,8}\b/i);
+          return !m || `в правилах остался ${m[0]}: замените на var(…)`;
+        } },
+        { name: 'var(--color-primary) используется у шапки, кнопки и заголовка карточки', check: h => h.occurrences('var(--color-primary)') >= 3 || `var(--color-primary) встречается ${h.occurrences('var(--color-primary)')} раз(а), нужно не меньше 3` },
+        { name: 'Радиусы и отступы тоже из переменных', check: h => h.occurrences('var(--radius)') >= 2 && h.occurrences('var(--space-2)') >= 2 && h.occurrences('var(--space-3)') >= 1 || 'замените 12px, 16px и 24px на var(--radius), var(--space-2), var(--space-3)' },
+        { name: 'Внешний вид не изменился: шапка и кнопка #0f766e, фон #f8fafc, радиус 12px', check: h => {
+          if (h.cs('.header', 'background-color') !== rgb('#0f766e')) return 'шапка не бирюзовая';
+          if (h.cs('.btn', 'background-color') !== rgb('#0f766e')) return 'кнопка не бирюзовая';
+          if (h.cs('body', 'background-color') !== rgb('#f8fafc')) return 'фон страницы изменился';
+          return h.px('.card', 'border-top-left-radius') === 12 && h.px('.page', 'padding-left') === 16 || 'радиус карточки или отступ страницы изменились';
+        } }
+      ]
+    },
+    {
+      id: 'w2102', lesson: 'm9-lr11', module: 'mdk93', mech: 'build', title: 'Кнопки и карточка — компоненты', level: 'Среднее', minutes: 30, points: 150,
+      story: 'В style.css «ЧистоДома» уже есть переменные стайл-гайда. Теперь нужны детали конструктора: кнопка с двумя вариантами, карточка и контейнер страницы. Из них потом соберём все пять страниц портала.',
+      goal: 'Используя переменные из :root, напишите: .page — width: 100%, max-width: 480px, по центру (margin: 0 auto), padding var(--space-3) var(--space-2). .btn — display: inline-flex, текст по центру (justify-content и align-items: center), min-height: 48px, padding 0 var(--space-3), без рамки, радиус var(--radius), фон var(--color-primary), белый текст, font: inherit, жирность 600, без подчёркивания. .btn:hover — фон var(--color-primary-dark). .btn--block — width: 100%. .btn--outline — прозрачный фон, рамка 2px solid var(--color-primary), текст var(--color-primary). .card — фон var(--color-surface), радиус var(--radius), тень var(--shadow), padding var(--space-2).',
+      hints: [
+        '.page { width: 100%; max-width: 480px; margin: 0 auto; padding: var(--space-3) var(--space-2); }',
+        '.btn { display: inline-flex; justify-content: center; align-items: center; min-height: 48px; padding: 0 var(--space-3); border: none; border-radius: var(--radius); background: var(--color-primary); color: #ffffff; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }',
+        'Модификаторы пишутся отдельными классами: .btn--block { width: 100%; } .btn--outline { background: transparent; color: var(--color-primary); border: 2px solid var(--color-primary); }',
+        '.card { background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--space-2); }'
+      ],
+      html: `<main class="page">
+  <h1>Набор компонентов</h1>
+  <p>Ссылка-кнопка и две кнопки формы:</p>
+  <p>
+    <a class="btn" href="#new">Новая заявка</a>
+    <button class="btn btn--outline" type="button">Отмена</button>
+  </p>
+  <button class="btn btn--block" type="submit">Войти</button>
+  <h2>Карточка</h2>
+  <article class="card">
+    <h3>Генеральная уборка</h3>
+    <p>12.11.2026, 10:00 · ул. Ленина, 5</p>
+  </article>
+</main>`,
+      css: `${STYLE_ROOT}
+/* Ниже — компоненты: .page, .btn, .btn:hover, .btn--block, .btn--outline, .card */
+`,
+      tests: [
+        { name: '.page не шире 480px и стоит по центру', check: h => {
+          const r = h.rect('.page');
+          if (r.width > 481) return `ширина .page ${Math.round(r.width)}px`;
+          return near(r.left, (h.width - r.width) / 2, 2) || 'контейнер не по центру: margin: 0 auto';
+        } },
+        { name: '.page: внутренние отступы 24px сверху и 16px по бокам', check: h => h.px('.page', 'padding-top') === 24 && h.px('.page', 'padding-left') === 16 || 'padding: var(--space-3) var(--space-2)' },
+        { name: '.btn: inline-flex, текст по центру, высота не меньше 48px', check: h => {
+          if (h.cs('a.btn', 'display') !== 'inline-flex') return `display: ${h.cs('a.btn', 'display')}`;
+          if (h.cs('a.btn', 'justify-content') !== 'center' || h.cs('a.btn', 'align-items') !== 'center') return 'нужно justify-content и align-items: center';
+          return h.$$('.btn').every(b => h.rect(b).height >= 47.5) || 'кнопки ниже 48px';
+        } },
+        { name: '.btn: бирюзовый фон, белый текст, без рамки, радиус 12px', check: h => {
+          if (h.cs('a.btn', 'background-color') !== rgb('#0f766e')) return 'фон — var(--color-primary)';
+          if (h.cs('a.btn', 'color') !== rgb('#ffffff')) return 'текст белый';
+          if (h.px('.btn--block', 'border-top-width') !== 0) return 'у кнопки осталась рамка браузера: border: none';
+          return h.px('a.btn', 'border-top-left-radius') === 12 || 'радиус — var(--radius)';
+        } },
+        { name: '.btn: шрифт страницы (font: inherit), ссылка без подчёркивания', check: h => {
+          if (h.cs('button.btn', 'font-family') !== h.cs('body', 'font-family')) return 'у кнопки шрифт браузера: font: inherit';
+          return h.cs('a.btn', 'text-decoration-line') === 'none' || 'уберите подчёркивание у ссылки-кнопки';
+        } },
+        { name: '.btn:hover — фон var(--color-primary-dark)', check: h => h.rules.some(r => /\.btn:hover/.test(r.selector) && /var\(--color-primary-dark\)/.test(r.style.cssText)) || 'нет правила .btn:hover с var(--color-primary-dark)' },
+        { name: '.btn--block — на всю ширину контейнера', check: h => {
+          const p = h.rect('.page'), inner = p.width - h.px('.page', 'padding-left') - h.px('.page', 'padding-right');
+          return near(h.rect('.btn--block').width, inner, 1) || 'кнопка «Войти» должна быть шириной во весь контейнер';
+        } },
+        { name: '.btn--outline: прозрачный фон, рамка 2px и текст бирюзового цвета', check: h => {
+          const s = '.btn--outline', bg = h.cs(s, 'background-color');
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return 'фон должен быть прозрачным';
+          if (h.px(s, 'border-top-width') !== 2 || h.cs(s, 'border-top-color') !== rgb('#0f766e')) return 'рамка 2px solid var(--color-primary)';
+          return h.cs(s, 'color') === rgb('#0f766e') || 'текст — var(--color-primary)';
+        } },
+        { name: '.card: белый фон, радиус 12px, отступ 16px, тень', check: h => {
+          if (h.cs('.card', 'background-color') !== rgb('#ffffff')) return 'фон карточки белый';
+          if (h.px('.card', 'border-top-left-radius') !== 12) return 'радиус 12px';
+          if (h.px('.card', 'padding-left') !== 16) return 'padding 16px';
+          return h.cs('.card', 'box-shadow') !== 'none' || 'нужна тень var(--shadow)';
+        } },
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w22.js ---- */
+/* Занятие 22. ПР11. Формы HTML: типы input, label, required, pattern, select, radio */
+(() => {
+  // Проверяет, пропустит ли браузер значение v в поле sel; значение поля потом возвращается обратно
+  const valid = (h, sel, v) => {
+    const e = typeof sel === 'string' ? h.$(sel) : sel;
+    if (!e) return null;
+    const old = e.value; e.value = v;
+    const ok = e.checkValidity(); e.value = old;
+    return ok;
+  };
+  const FORM_CSS = `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: #0f172a; background: #f8fafc; }
+.page { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.btn { min-height: 48px; border: 0; border-radius: 12px; background: #0f766e; color: #ffffff; font: inherit; font-weight: 600; }`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2201', lesson: 'm9-pr11', module: 'mdk93', mech: 'build', title: 'Регистрация: правила проверки', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Форма регистрации «ЧистоДома» свёрстана, но пропускает что угодно: логин «a», ФИО латиницей, телефон без скобок. А ещё ни у одного поля нет name — сервер не получит ни одного значения. Научим форму требованиям ТЗ.',
+      goal: 'У каждого поля задайте name, совпадающий с его id (login, password, fio, phone, email), и required. Типы: пароль — password, телефон — tel, email — email. Логин и пароль — не короче 6 символов (minlength). ФИО — только русские буквы, пробелы и дефис, включая Ёё: pattern="[А-Яа-яЁё\\s\\-]+". Телефон — формат +7(XXX)-XXX-XX-XX: pattern="\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}" и placeholder с примером.',
+      hints: [
+        'Пример поля: <input type="text" id="login" name="login" required minlength="6" autocomplete="username">',
+        'ФИО: <input type="text" id="fio" name="fio" required pattern="[А-Яа-яЁё\\s\\-]+" title="Только русские буквы, пробелы и дефис">. Без Ёё «Артём» не пройдёт.',
+        'Телефон: <input type="tel" id="phone" name="phone" required pattern="\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}" placeholder="+7(900)-123-45-67">. Плюс и скобки в шаблоне экранируются обратным слешем.',
+        'Email: <input type="email" id="email" name="email" required> — формат браузер проверит сам.'
+      ],
+      html: `<main class="page">
+  <h1>Регистрация</h1>
+  <form class="form" action="#" method="post">
+    <div class="field">
+      <label for="login">Логин</label>
+      <input type="text" id="login">
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input type="text" id="password">
+    </div>
+    <div class="field">
+      <label for="fio">ФИО</label>
+      <input type="text" id="fio">
+    </div>
+    <div class="field">
+      <label for="phone">Телефон</label>
+      <input type="text" id="phone">
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="text" id="email">
+    </div>
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: `${FORM_CSS}
+input { font: inherit; }`,
+      tests: [
+        { name: 'У каждого поля есть name, такой же, как id', check: h => {
+          const bad = ['login', 'password', 'fio', 'phone', 'email'].filter(id => h.$('#' + id)?.getAttribute('name') !== id);
+          return !bad.length || `нет name у: ${bad.join(', ')}`;
+        } },
+        { name: 'Все пять полей обязательные (required)', check: h => {
+          const bad = ['login', 'password', 'fio', 'phone', 'email'].filter(id => !h.$('#' + id)?.required);
+          return !bad.length || `нет required у: ${bad.join(', ')}`;
+        } },
+        { name: 'Типы: пароль — password, телефон — tel, email — email', check: h => {
+          if (h.$('#password').type !== 'password') return 'пароль должен быть скрыт: type="password"';
+          if (h.$('#phone').type !== 'tel') return 'телефон: type="tel"';
+          return h.$('#email').type === 'email' || 'email: type="email"';
+        } },
+        { name: 'Логин и пароль — не короче 6 символов (minlength="6")', check: h => {
+          const bad = ['login', 'password'].filter(id => h.$('#' + id)?.minLength !== 6);
+          return !bad.length || `нет minlength="6" у: ${bad.join(', ')}`;
+        } },
+        { name: 'ФИО — кириллица, пробелы и дефис, буква Ё тоже', check: h => {
+          if (valid(h, '#fio', 'Ivanov Petr') !== false) return '«Ivanov Petr» проходит, а не должен';
+          if (valid(h, '#fio', 'Анна1') !== false) return '«Анна1» с цифрой проходит, а не должен';
+          return valid(h, '#fio', 'Артём Семёнов-Ёлкин') === true || '«Артём Семёнов-Ёлкин» не проходит: проверьте Ёё и экранирование дефиса';
+        } },
+        { name: 'Телефон — строго +7(XXX)-XXX-XX-XX, есть placeholder', check: h => {
+          if (valid(h, '#phone', '89001234567') !== false) return '«89001234567» проходит, а не должен';
+          if (valid(h, '#phone', '+7(900)-123-45-6') !== false) return '«+7(900)-123-45-6» (не хватает цифры) проходит';
+          if (valid(h, '#phone', '+7(900)-123-45-67') !== true) return '«+7(900)-123-45-67» не проходит';
+          return !!h.$('#phone').placeholder || 'добавьте placeholder с примером формата';
+        } },
+        { name: 'Email проверяется браузером', check: h => valid(h, '#email', 'ivanov') === false && valid(h, '#email', 'ivanov@mail.ru') === true || '«ivanov» должен не проходить, «ivanov@mail.ru» — проходить' }
+      ]
+    },
+    {
+      id: 'w2202', lesson: 'm9-pr11', module: 'mdk93', mech: 'build', title: 'Новая заявка: список, переключатели, дата', level: 'Сложное', minutes: 30, points: 200,
+      story: 'В форме новой заявки «ЧистоДома» готовы адрес и телефон. Осталось самое интересное: выбор услуги, дата и время уборки, тип оплаты, комментарий и согласие на обработку данных.',
+      goal: 'Допишите в форму поля, у каждого — подпись label. Вид услуги: <select id="service" name="service_id" required>, первый пункт «— Выберите услугу —» с value="", затем 4 услуги со значениями 1–4: Общий клининг, Генеральная уборка, Послестроительная уборка, Химчистка ковров и мебели. Дата: type="date", id и name date, required, не раньше 01.12.2026 (min="2026-12-01"). Время: type="time", id и name time, required. Тип оплаты: <fieldset> с <legend>Тип оплаты</legend> и двумя radio с name="payment" и value cash/card («Наличными», «Банковской картой»), required. Комментарий: <textarea id="comment" name="comment">, необязательный, maxlength="300". Согласие: checkbox name="agree", required.',
+      hints: [
+        '<label for="service">Вид услуги</label> <select id="service" name="service_id" required> <option value="">— Выберите услугу —</option> <option value="1">Общий клининг</option> … </select>',
+        '<input type="date" id="date" name="date" required min="2026-12-01"> — дату в min пишут в формате ГГГГ-ММ-ДД.',
+        'Радиокнопки одной группы — один name: <fieldset> <legend>Тип оплаты</legend> <label><input type="radio" name="payment" value="cash" required> Наличными</label> <label><input type="radio" name="payment" value="card"> Банковской картой</label> </fieldset>',
+        '<textarea id="comment" name="comment" rows="3" maxlength="300"></textarea> и <label><input type="checkbox" name="agree" required> Согласен на обработку персональных данных</label>'
+      ],
+      html: `<main class="page">
+  <h1>Новая заявка</h1>
+  <form class="form" action="#" method="post">
+    <div class="field">
+      <label for="address">Адрес</label>
+      <input type="text" id="address" name="address" required autocomplete="street-address">
+    </div>
+    <div class="field">
+      <label for="phone">Контактный телефон</label>
+      <input type="tel" id="phone" name="phone" required pattern="\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}" placeholder="+7(900)-123-45-67">
+    </div>
+    <!-- Допишите: вид услуги, дата, время, тип оплаты, комментарий, согласие -->
+
+    <button class="btn" type="submit">Отправить заявку</button>
+  </form>
+</main>`,
+      css: `${FORM_CSS}
+input, select, textarea { font: inherit; }
+fieldset { margin: 0; padding: 0; border: 0; }`,
+      tests: [
+        { name: 'Вид услуги: select#service с name="service_id", required и пустым первым пунктом', check: h => {
+          const s = h.$('select#service');
+          if (!s) return 'нет <select id="service">';
+          if (s.name !== 'service_id') return 'name="service_id"';
+          if (!s.required) return 'нет required';
+          return s.options[0]?.value === '' && !s.checkValidity() || 'первый пункт должен быть с value="" — тогда выбор обязателен';
+        } },
+        { name: 'В списке 4 услуги со значениями-номерами', check: h => {
+          const o = h.$$('#service option').filter(x => x.value !== '');
+          if (o.length !== 4) return `услуг: ${o.length}, нужно 4`;
+          return o.every(x => /^\d+$/.test(x.value)) && valid(h, '#service', '2') === true || 'value услуг — номера 1–4';
+        } },
+        { name: 'Дата: type="date", name="date", обязательна, не раньше 01.12.2026', check: h => {
+          const d = h.$('#date');
+          if (!d || d.type !== 'date' || d.name !== 'date') return 'нужно <input type="date" id="date" name="date">';
+          if (valid(h, d, '') !== false) return 'пустая дата проходит: добавьте required';
+          if (valid(h, d, '2026-11-15') !== false) return '15.11.2026 проходит: добавьте min="2026-12-01"';
+          return valid(h, d, '2026-12-05') === true || '05.12.2026 не проходит';
+        } },
+        { name: 'Время: type="time", name="time", обязательно', check: h => {
+          const t = h.$('#time');
+          return t && t.type === 'time' && t.name === 'time' && t.required || 'нужно <input type="time" id="time" name="time" required>';
+        } },
+        { name: 'Оплата: 2 radio с name="payment" в fieldset с legend', check: h => {
+          const r = h.$$('input[type="radio"][name="payment"]');
+          if (r.length !== 2) return `radio с name="payment": ${r.length}, нужно 2`;
+          if (!r.every(x => x.closest('fieldset')?.querySelector('legend'))) return 'оберните кнопки в <fieldset> с <legend>';
+          return r[0].value !== r[1].value && r.every(x => x.value) || 'у кнопок разные value: cash и card';
+        } },
+        { name: 'Тип оплаты нельзя не выбрать (required)', check: h => {
+          const r = h.$$('input[type="radio"][name="payment"]');
+          if (!r.length) return 'нет кнопок оплаты';
+          if (r[0].checkValidity()) return 'без выбора оплаты форма проходит: добавьте required';
+          r[1].checked = true; const ok = r[0].checkValidity(); r[1].checked = false;
+          return ok || 'после выбора оплаты проверка всё ещё не проходит';
+        } },
+        { name: 'Комментарий: textarea name="comment", необязательный, до 300 символов', check: h => {
+          const t = h.$('textarea#comment');
+          return t && t.name === 'comment' && t.maxLength === 300 && !t.required || 'нужно <textarea id="comment" name="comment" maxlength="300"> без required';
+        } },
+        { name: 'Согласие: checkbox name="agree", обязательный', check: h => {
+          const c = h.$('input[type="checkbox"][name="agree"]');
+          return c && c.required && !c.checkValidity() || 'нужен <input type="checkbox" name="agree" required>';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w23.js ---- */
+/* Занятие 23. ЛР12. Вёрстка форм регистрации, входа и заявки по макету */
+(() => {
+  const { rgb } = window.COURSE_KIT;
+  const ROOT = `:root {
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-accent: #f59e0b;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #cbd5e1;
+  --color-error: #dc2626;
+  --fs-small: 0.875rem;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+h1 { margin: 0 0 var(--space-2); font-size: 1.75rem; }
+.page { width: 100%; max-width: 480px; margin: 0 auto; padding: var(--space-3) var(--space-2); }
+.btn { min-height: 48px; padding: 0 var(--space-3); border: none; border-radius: var(--radius); background: var(--color-primary); color: #ffffff; font: inherit; font-weight: 600; cursor: pointer; }`;
+  const FIELDS = `.form { display: flex; flex-direction: column; gap: var(--space-2); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field__label { font-weight: 600; font-size: var(--fs-small); }
+.field__input { width: 100%; min-height: 48px; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 16px; }
+.field__input:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 1px; border-color: var(--color-primary); }
+.btn--block { width: 100%; }`;
+  const ruleWith = (h, re) => h.rules.find(r => re.test(r.selector));
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2301', lesson: 'm9-lr12', module: 'mdk93', mech: 'build', title: 'Компонент «поле» с ошибкой', level: 'Среднее', minutes: 30, points: 150,
+      story: 'В макете регистрации «ЧистоДома» поля крупные, со скруглением, а под ними — подсказка или красная ошибка. Браузерные поля мелкие и серые. Сверстаем компонент «поле» и демо-состояние ошибки «Логин уже занят», которое в модуле 5 будет подставлять PHP.',
+      goal: 'Разметка уже готова. Напишите CSS: .form и .field — flex-колонки с gap var(--space-2) и 4px. .field__label — жирность 600, размер var(--fs-small). .field__input — width: 100%, min-height: 48px, padding 0 var(--space-2), рамка 1px solid var(--color-border), радиус var(--radius), фон var(--color-surface), font: inherit и font-size: 16px. .field__input:focus-visible — outline 3px solid var(--color-accent). .field__hint — без отступов (margin: 0), размер var(--fs-small), цвет var(--color-muted). .field__error — margin: 0, размер var(--fs-small), цвет var(--color-error). .field--error .field__input — рамка цвета var(--color-error).',
+      hints: [
+        '.form { display: flex; flex-direction: column; gap: var(--space-2); } и .field { display: flex; flex-direction: column; gap: 4px; }',
+        '.field__input { width: 100%; min-height: 48px; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); font: inherit; font-size: 16px; } — font-size после font, иначе font его перебьёт.',
+        'Фокус: .field__input:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 1px; }',
+        'Ошибка через модификатор родителя: .field--error .field__input { border-color: var(--color-error); }'
+      ],
+      html: `<main class="page">
+  <h1>Регистрация</h1>
+  <form class="form" action="#" method="post">
+    <div class="field field--error">
+      <label class="field__label" for="login">Логин</label>
+      <input class="field__input" type="text" id="login" name="login" value="ivanov" required minlength="6" aria-invalid="true" aria-describedby="login-error">
+      <p class="field__error" id="login-error">Логин уже занят</p>
+    </div>
+    <div class="field">
+      <label class="field__label" for="password">Пароль</label>
+      <input class="field__input" type="password" id="password" name="password" required minlength="6" aria-describedby="password-hint">
+      <p class="field__hint" id="password-hint">Не менее 6 символов</p>
+    </div>
+    <div class="field">
+      <label class="field__label" for="email">Email</label>
+      <input class="field__input" type="email" id="email" name="email" required>
+    </div>
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: `${ROOT}
+/* Ниже — компонент «поле»: .form, .field, .field__label, .field__input, .field__hint, .field__error, .field--error */
+`,
+      tests: [
+        { name: '.form и .field — колонки на Flexbox с промежутками 16px и 4px', check: h => {
+          for (const [s, g] of [['.form', 16], ['.field', 4]]) {
+            if (h.cs(s, 'display') !== 'flex' || h.cs(s, 'flex-direction') !== 'column') return `${s}: нужно display: flex и flex-direction: column`;
+            if (h.px(s, 'row-gap') !== g) return `${s}: gap должен быть ${g}px`;
+          }
+          return true;
+        } },
+        { name: '.field__label: жирность 600, размер 0.875rem', check: h => +h.cs('.field__label', 'font-weight') >= 600 && h.px('.field__label', 'font-size') === 14 || 'font-weight: 600; font-size: var(--fs-small)' },
+        { name: '.field__input: на всю ширину, высота не меньше 48px', check: h => {
+          const f = h.rect('.field'), i = h.rect('#password');
+          if (Math.abs(f.width - i.width) > 1) return 'поле должно быть шириной во весь блок .field';
+          return i.height >= 47.5 || `высота поля ${Math.round(i.height)}px`;
+        } },
+        { name: '.field__input: шрифт страницы и размер 16px', check: h => h.cs('#password', 'font-family') === h.cs('body', 'font-family') && h.px('#password', 'font-size') === 16 || 'нужно font: inherit и font-size: 16px' },
+        { name: '.field__input: рамка 1px цвета --color-border, радиус 12px, белый фон', check: h => {
+          if (h.px('#password', 'border-top-width') !== 1 || h.cs('#password', 'border-top-color') !== rgb('#cbd5e1')) return 'рамка 1px solid var(--color-border)';
+          if (h.cs('#password', 'background-color') !== rgb('#ffffff')) return 'фон — var(--color-surface)';
+          return h.px('#password', 'border-top-left-radius') === 12 || 'радиус — var(--radius)';
+        } },
+        { name: 'Фокус заметен: :focus-visible с обводкой 3px', check: h => {
+          const r = ruleWith(h, /field__input:focus-visible/);
+          return r && /outline/.test(r.style.cssText) && /3px/.test(r.style.cssText) || 'нужно .field__input:focus-visible { outline: 3px solid var(--color-accent); }';
+        } },
+        { name: 'Подсказка серая, ошибка красная, обе без отступов, размер 0.875rem', check: h => {
+          if (h.cs('.field__hint', 'color') !== rgb('#64748b')) return 'подсказка — var(--color-muted)';
+          if (h.cs('.field__error', 'color') !== rgb('#dc2626')) return 'ошибка — var(--color-error)';
+          if (h.px('.field__hint', 'margin-top') !== 0 || h.px('.field__error', 'margin-bottom') !== 0) return 'уберите margin у подсказки и ошибки';
+          return h.px('.field__error', 'font-size') === 14 && h.px('.field__hint', 'font-size') === 14 || 'размер — var(--fs-small)';
+        } },
+        { name: 'Поле с ошибкой: рамка цвета --color-error, у обычных полей — серая', check: h => h.cs('#login', 'border-top-color') === rgb('#dc2626') && h.cs('#email', 'border-top-color') === rgb('#cbd5e1') || '.field--error .field__input { border-color: var(--color-error); }' }
+      ]
+    },
+    {
+      id: 'w2302', lesson: 'm9-lr12', module: 'mdk93', mech: 'build', title: 'Вход: форма по центру и общее сообщение', level: 'Среднее', minutes: 25, points: 150,
+      story: 'В макете страница входа «ЧистоДома» стоит ровно посередине экрана телефона, а при неверном пароле сверху появляется плашка «Неверный логин или пароль». Сейчас форма прилипла к верху, а плашка выглядит как обычный текст.',
+      goal: 'CSS: .page--auth — на всю высоту экрана (min-height: 100dvh), flex-колонка, содержимое по центру по вертикали (justify-content: center). .alert — padding 12px var(--space-2), радиус var(--radius), размер var(--fs-small). .alert--error — фон #fef2f2, текст #991b1b, рамка 1px solid #fecaca. .auth__link — текст по центру. HTML: блоку ошибки добавьте role="alert", полю логина — autocomplete="username", паролю — autocomplete="current-password".',
+      hints: [
+        '.page--auth { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; } — dvh учитывает панели мобильного браузера.',
+        '.alert { padding: 12px var(--space-2); border-radius: var(--radius); font-size: var(--fs-small); } и .alert--error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }',
+        'В HTML: <div class="alert alert--error" role="alert">…</div>, <input … autocomplete="username">, <input … autocomplete="current-password">',
+        '.auth__link { text-align: center; }'
+      ],
+      html: `<main class="page page--auth">
+  <img class="auth__logo" src="img/icon.svg" alt="ЧистоДом" width="48" height="48">
+  <h1>Вход</h1>
+  <div class="alert alert--error">Неверный логин или пароль</div>
+  <form class="form" action="#" method="post">
+    <div class="field">
+      <label class="field__label" for="login">Логин</label>
+      <input class="field__input" type="text" id="login" name="login" required>
+    </div>
+    <div class="field">
+      <label class="field__label" for="password">Пароль</label>
+      <input class="field__input" type="password" id="password" name="password" required>
+    </div>
+    <button class="btn btn--block" type="submit">Войти</button>
+  </form>
+  <p class="auth__link">Ещё нет аккаунта? <a href="#register">Зарегистрироваться</a></p>
+</main>`,
+      css: `${ROOT}
+${FIELDS}
+.auth__logo { display: block; margin: 0 auto var(--space-2); }
+/* Ниже — .page--auth, .alert, .alert--error, .auth__link */
+`,
+      tests: [
+        { name: 'Страница входа на всю высоту экрана: min-height: 100dvh', check: h => h.has(/min-height\s*:\s*100dvh/) && h.rect('.page--auth').height >= h.height - 1 || 'нужно .page--auth { min-height: 100dvh; }' },
+        { name: 'Содержимое по центру по вертикали: flex, column, justify-content: center', check: h => {
+          if (h.cs('.page--auth', 'display') !== 'flex' || h.cs('.page--auth', 'flex-direction') !== 'column') return 'нужно display: flex; flex-direction: column';
+          return h.cs('.page--auth', 'justify-content') === 'center' || 'нужно justify-content: center';
+        } },
+        { name: 'Сообщение .alert--error: фон #fef2f2, текст #991b1b, рамка 1px #fecaca', check: h => {
+          const s = '.alert--error';
+          if (h.cs(s, 'background-color') !== rgb('#fef2f2')) return 'фон #fef2f2';
+          if (h.cs(s, 'color') !== rgb('#991b1b')) return 'текст #991b1b';
+          return h.px(s, 'border-top-width') === 1 && h.cs(s, 'border-top-color') === rgb('#fecaca') || 'рамка 1px solid #fecaca';
+        } },
+        { name: '.alert: отступы 12px и 16px, радиус 12px, размер 0.875rem', check: h => h.px('.alert', 'padding-top') === 12 && h.px('.alert', 'padding-left') === 16 && h.px('.alert', 'border-top-left-radius') === 12 && h.px('.alert', 'font-size') === 14 || 'padding: 12px var(--space-2); border-radius: var(--radius); font-size: var(--fs-small)' },
+        { name: 'Сообщение объявляется экранным диктором: role="alert"', check: h => h.$('.alert')?.getAttribute('role') === 'alert' || 'добавьте role="alert"' },
+        { name: 'Подсказки браузеру: autocomplete="username" и "current-password"', check: h => h.$('#login').getAttribute('autocomplete') === 'username' && h.$('#password').getAttribute('autocomplete') === 'current-password' || 'добавьте autocomplete полям логина и пароля' },
+        { name: 'Ссылка на регистрацию по центру', check: h => h.cs('.auth__link', 'text-align') === 'center' || 'text-align: center' },
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w24.js ---- */
+/* Занятие 24. ПР12. Адаптив: mobile-first, media queries, относительные единицы */
+(() => {
+  const { IMG } = window.COURSE_KIT;
+  const card = (t, d) => `    <article class="request-card">
+      <h2>${t}</h2>
+      <p>${d}</p>
+    </article>`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2401', lesson: 'm9-pr12', module: 'mdk93', mech: 'adaptive', title: 'Mobile-first: список заявок', level: 'Среднее', minutes: 30, points: 150,
+      story: 'Страницу «Мои заявки» «ЧистоДома» сверстали под монитор: ширина 1100px гвоздями, а телефон «чинят» медиазапросом max-width. На ноутбуке 1024px уже появилась прокрутка вбок. Перепишем стили по принципу mobile-first.',
+      goal: 'Базовые правила (без медиазапросов) — для телефона: .page — width: min(100% - 32px, 1100px) и margin: 0 auto; .requests — одна колонка (grid-template-columns: 1fr) с gap 16px; h1 — font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem); размер заголовка карточки — 1.125rem. Затем @media (min-width: 768px) — .requests в две колонки (1fr 1fr), @media (min-width: 1200px) — в три (repeat(3, 1fr)). Медиазапросов с max-width быть не должно, размеры шрифтов — без px.',
+      hints: [
+        'Удалите блок @media (max-width: 768px) — его правила станут базовыми.',
+        '.page { width: min(100% - 32px, 1100px); margin: 0 auto; } — 16px полей по бокам на телефоне и не шире 1100px на мониторе.',
+        'Внутри медиазапроса пишите только то, что меняется: @media (min-width: 768px) { .requests { grid-template-columns: 1fr 1fr; } }',
+        'Запросы идут от меньшего к большему: сначала 768px, потом @media (min-width: 1200px) { .requests { grid-template-columns: repeat(3, 1fr); } }'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <section class="requests" aria-label="Список заявок">
+${[['Генеральная уборка', '12.11.2026, 10:00 · ул. Ленина, 5'], ['Химчистка ковров', '03.11.2026, 14:30 · пр. Мира, 18'], ['Общий клининг', '20.10.2026, 09:00 · ул. Ленина, 5'],
+    ['Мойка окон', '25.11.2026, 11:00 · ул. Садовая, 3'], ['Уборка после ремонта', '01.12.2026, 09:30 · ул. Мира, 7'], ['Химчистка дивана', '05.12.2026, 15:00 · ул. Ленина, 5']].map(x => card(...x)).join('\n')}
+  </section>
+</main>`,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.page { width: 1100px; margin: 0 auto; }
+h1 { font-size: 40px; }
+.requests { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.request-card { padding: 16px; border-radius: 12px; background: #ffffff; }
+.request-card h2 { margin: 0 0 8px; font-size: 18px; }
+.request-card p { margin: 0; color: #64748b; }
+@media (max-width: 768px) {
+  .page { width: 100%; }
+  .requests { grid-template-columns: 1fr; }
+  h1 { font-size: 28px; }
+}`,
+      tests: [
+        { name: 'Медиазапросы только с min-width, есть запрос от 768px', check: h => {
+          if (h.rules.some(r => /max-width/.test(r.media))) return 'остался медиазапрос с max-width';
+          return h.rules.some(r => /min-width:\s*768px/.test(r.media)) || 'нет @media (min-width: 768px)';
+        } },
+        { name: 'Телефон 360px: одна колонка, поля 16px по бокам, без прокрутки', at: 360, check: h => {
+          if (h.overflow()) return 'страница шире экрана';
+          const l = h.$$('.request-card').map(c => h.rect(c).left);
+          if (Math.max(...l) - Math.min(...l) > 1) return 'на телефоне карточки должны стоять в одну колонку';
+          return Math.abs(h.rect('.page').left - 16) <= 1 || `слева ${Math.round(h.rect('.page').left)}px, нужно 16px`;
+        } },
+        { name: '1024px: две колонки, без прокрутки', check: h => {
+          if (h.overflow()) return 'на 1024px страница шире экрана';
+          const c = h.$$('.request-card');
+          return h.sameRow([c[0], c[1]]) && h.rect(c[2]).top > h.rect(c[0]).bottom || 'на 1024px карточки должны стоять по две в ряд';
+        } },
+        { name: 'От 1200px — три колонки repeat(3, 1fr)', check: h => h.rules.some(r => /min-width:\s*1200px/.test(r.media) && /repeat\(\s*3/.test(r.style.gridTemplateColumns)) || 'нет @media (min-width: 1200px) с repeat(3, 1fr)' },
+        { name: 'Ширина .page через min(100% - 32px, 1100px)', check: h => h.rules.some(r => r.selector === '.page' && !r.media && /min\(/.test(r.style.width)) || 'нужно .page { width: min(100% - 32px, 1100px); }' },
+        { name: 'Заголовок h1 через clamp(), на телефоне не меньше 1.75rem', at: 360, check: h => {
+          if (!h.rules.some(r => r.selector === 'h1' && /clamp\(/.test(r.style.fontSize))) return 'задайте h1 размер через clamp()';
+          return h.px('h1', 'font-size') >= 27.5 || `на 360px h1 ${h.px('h1', 'font-size')}px`;
+        } },
+        { name: 'Размеры шрифтов без px', check: h => {
+          const r = h.rules.find(x => /px/.test(x.style.fontSize));
+          return !r || `${r.selector}: font-size ${r.style.fontSize} — переведите в rem`;
+        } }
+      ]
+    },
+    {
+      id: 'w2402', lesson: 'm9-pr12', module: 'mdk93', mech: 'adaptive', title: 'Шапка и фото без прокрутки на 360px', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Одногруппник открыл «ЧистоДом» на своём Android шириной 360px: фото в карточке рвёт страницу, ссылки меню слиплись и в них трудно попасть пальцем, а тень у карточки «залипает» после касания.',
+      goal: 'Шапка .header — с переносом (flex-wrap: wrap). Меню .nav — flex с переносом и gap не меньше 8px; у ссылок уберите margin-left, сделайте их зоной нажатия не ниже 44px (display: inline-flex, align-items: center, min-height: 44px). Картинка в карточке — не шире карточки (max-width: 100%) и с сохранением пропорций (height: auto). Тень при наведении на .request-card оставьте только для устройств с мышью: перенесите правило в @media (hover: hover). На 360px не должно быть горизонтальной прокрутки.',
+      hints: [
+        '.header { …; flex-wrap: wrap; gap: 8px; } и .nav { display: flex; flex-wrap: wrap; gap: 8px; }',
+        '.nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; color: #ffffff; } — margin-left больше не нужен.',
+        'img { display: block; max-width: 100%; height: auto; }',
+        '@media (hover: hover) { .request-card:hover { box-shadow: … } } — и удалите старое правило :hover вне медиазапроса.'
+      ],
+      html: `<header class="header">
+  <a class="logo" href="#requests">ЧистоДом</a>
+  <nav class="nav" aria-label="Меню">
+    <a href="#requests">Мои заявки</a>
+    <a href="#new">Новая заявка</a>
+    <a href="#exit">Выход</a>
+  </nav>
+</header>
+<main class="page">
+  <h1>Мои заявки</h1>
+  <article class="request-card">
+    <img src="${IMG}" alt="Квартира после генеральной уборки" width="800" height="600">
+    <h2>Генеральная уборка</h2>
+    <p>12.11.2026, 10:00 · ул. Ленина, 5</p>
+  </article>
+</main>`,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: #0f766e; }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.nav a { margin-left: 32px; color: #ffffff; font-size: 1.125rem; }
+.page { padding: 24px 16px; }
+.request-card { padding: 16px; border-radius: 12px; background: #ffffff; }
+.request-card:hover { box-shadow: 0 8px 20px rgb(15 23 42 / 0.12); }`,
+      tests: [
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана' },
+        { name: 'Картинка не шире карточки и не растянута по высоте', at: 360, check: h => {
+          if (!h.inside('.request-card img', '.request-card')) return 'картинка шире карточки: max-width: 100%';
+          return h.rect('.request-card img').height < 400 || 'картинка вытянута по высоте: height: auto';
+        } },
+        { name: 'Шапка и меню переносятся: flex-wrap: wrap, у меню gap от 8px', check: h => {
+          if (h.cs('.header', 'flex-wrap') !== 'wrap') return 'у .header нет flex-wrap: wrap';
+          if (h.cs('.nav', 'display') !== 'flex' || h.cs('.nav', 'flex-wrap') !== 'wrap') return '.nav: display: flex; flex-wrap: wrap';
+          return h.px('.nav', 'column-gap') >= 8 || 'у .nav gap меньше 8px';
+        } },
+        { name: 'Ссылки меню без margin-left: 32px', check: h => h.$$('.nav a').every(a => h.px(a, 'margin-left') === 0) || 'уберите margin-left у ссылок' },
+        { name: 'Телефон: каждая ссылка меню не ниже 44px', at: 360, check: h => {
+          const low = h.$$('.nav a').find(a => h.rect(a).height < 43.5);
+          return !low || `«${low.textContent}»: высота ${Math.round(h.rect(low).height)}px`;
+        } },
+        { name: 'Тень при наведении — только в @media (hover: hover)', check: h => {
+          const hov = h.rules.filter(r => /\.request-card:hover/.test(r.selector));
+          if (!hov.length) return 'нет правила .request-card:hover';
+          return hov.every(r => /hover:\s*hover/.test(r.media)) || 'правило :hover должно быть только внутри @media (hover: hover)';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w25.js ---- */
+/* Занятие 25. ЛР13. Вёрстка списка заявок (карточки) и админ-таблицы */
+(() => {
+  const { rgb } = window.COURSE_KIT;
+  const ROOT = `:root {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #cbd5e1;
+  --status-new: #2563eb;
+  --status-work: #f59e0b;
+  --status-done: #15803d;
+  --status-cancel: #dc2626;
+  --fs-small: 0.875rem;
+  --space-1: 8px;
+  --space-2: 16px;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgb(15 23 42 / 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+.page { width: min(100% - 32px, 1100px); margin: 0 auto; padding: 24px 0; }`;
+  const card = (title, badge, label, date, addr, pay, reason) => `    <article class="request-card">
+      <header class="request-card__head">
+        <h2 class="request-card__title">${title}</h2>
+        <span class="badge badge--${badge}">${label}</span>
+      </header>
+      <dl class="request-card__info">
+        <dt>Дата</dt><dd>${date}</dd>
+        <dt>Адрес</dt><dd>${addr}</dd>
+        <dt>Оплата</dt><dd>${pay}</dd>
+      </dl>${reason ? `
+      <p class="request-card__reason"><strong>Причина отмены:</strong> ${reason}</p>` : ''}
+    </article>`;
+  const row = (n, fio, tel, service, date, badge, label) => `      <tr>
+        <td data-label="№">${n}</td>
+        <td data-label="Клиент">${fio}<br>${tel}</td>
+        <td data-label="Услуга">${service}</td>
+        <td data-label="Дата">${date}</td>
+        <td data-label="Статус"><span class="badge badge--${badge}">${label}</span></td>
+        <td data-label="Действие">
+          <form class="status-form" action="#" method="post">
+            <input type="hidden" name="id" value="${n}">
+            <select name="status" aria-label="Новый статус заявки ${n}">
+              <option value="work">В работе</option>
+              <option value="done">Выполнена</option>
+              <option value="cancel">Отменена</option>
+            </select>
+            <button class="btn" type="submit">Сохранить</button>
+          </form>
+        </td>
+      </tr>`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2501', lesson: 'm9-lr13', module: 'mdk93', mech: 'build', title: 'Карточки заявок и бейджи статусов', level: 'Среднее', minutes: 30, points: 150,
+      story: 'Страница «Мои заявки» «ЧистоДома»: разметка карточек одинаковая (потом её повторит PHP в цикле), осталось оформление. Главное — бейджи статусов: по цвету и надписи сразу видно, что с заявкой.',
+      goal: 'Напишите CSS. .request-card__head — flex: заголовок слева, бейдж справа (justify-content: space-between, align-items: flex-start, gap var(--space-1)). .request-card__title — margin: 0, размер 1.125rem. .request-card__info — Grid с колонками 80px и 1fr, margin: 0, у dd margin: 0, у dt цвет var(--color-muted). .request-card__reason — полоса слева 3px solid var(--status-cancel), фон #fef2f2, padding var(--space-1). .badge — «таблетка»: border-radius: 999px, padding 2px 10px, размер 0.75rem, жирность 600, white-space: nowrap, белый текст. Модификаторы .badge--new, --work, --done, --cancel берут фон из переменных --status-*. Контраст текста каждого бейджа — не ниже 4,5:1: на жёлтом «В работе» белый текст не читается, сделайте его тёмным #1f2937.',
+      hints: [
+        '.request-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-1); margin-bottom: var(--space-1); }',
+        '.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; color: #ffffff; }',
+        '.badge--new { background: var(--status-new); } … .badge--work { background: var(--status-work); color: #1f2937; }',
+        '.request-card__info { display: grid; grid-template-columns: 80px 1fr; gap: 4px var(--space-1); margin: 0; font-size: var(--fs-small); }'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <section class="requests" aria-label="Список заявок">
+${card('Генеральная уборка', 'work', 'В работе', '12.11.2026, 10:00', 'ул. Ленина, 5, кв. 12', 'Банковская карта')}
+${card('Химчистка ковров', 'cancel', 'Отменена', '03.11.2026, 14:30', 'пр. Мира, 18', 'Наличные', 'нет свободных мастеров на это время')}
+${card('Общий клининг', 'done', 'Выполнена', '20.10.2026, 09:00', 'ул. Ленина, 5, кв. 12', 'Наличные')}
+${card('Мойка окон', 'new', 'Новая', '25.11.2026, 11:00', 'ул. Ленина, 5, кв. 12', 'Банковская карта')}
+  </section>
+</main>`,
+      css: `${ROOT}
+h1 { margin: 0 0 var(--space-2); }
+.requests { display: grid; gap: var(--space-2); }
+.request-card { padding: var(--space-2); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow); }
+/* Ниже — элементы карточки и бейджи */
+`,
+      tests: [
+        { name: 'Шапка карточки — flex: заголовок слева, бейдж справа', check: h => {
+          if (h.cs('.request-card__head', 'display') !== 'flex') return 'у .request-card__head нет display: flex';
+          if (h.cs('.request-card__head', 'justify-content') !== 'space-between') return 'нужно justify-content: space-between';
+          if (h.cs('.request-card__head', 'align-items') !== 'flex-start') return 'нужно align-items: flex-start';
+          return h.rect('.request-card__head .badge').left > h.rect('.request-card__title').right || 'бейдж должен стоять справа от заголовка';
+        } },
+        { name: 'Заголовок без отступов, 1.125rem', check: h => h.px('.request-card__title', 'margin-top') === 0 && h.px('.request-card__title', 'font-size') === 18 || 'margin: 0; font-size: 1.125rem' },
+        { name: '.badge — «таблетка»: радиус 999px, nowrap, жирность 600, 0.75rem', check: h => {
+          if (h.px('.badge', 'border-top-left-radius') < 999) return 'border-radius: 999px';
+          if (h.cs('.badge', 'white-space') !== 'nowrap') return 'white-space: nowrap';
+          return +h.cs('.badge', 'font-weight') >= 600 && h.px('.badge', 'font-size') === 12 || 'font-weight: 600; font-size: 0.75rem';
+        } },
+        { name: 'Фон каждого бейджа — из переменной своего статуса', check: h => {
+          for (const [m, c] of [['new', '#2563eb'], ['work', '#f59e0b'], ['done', '#15803d'], ['cancel', '#dc2626']])
+            if (h.cs('.badge--' + m, 'background-color') !== rgb(c)) return `.badge--${m}: фон var(--status-${m})`;
+          return true;
+        } },
+        { name: 'Текст каждого бейджа читается: контраст не ниже 4,5:1', check: h => {
+          for (const b of h.$$('.badge')) { const c = h.contrast(b); if (c != null && c < 4.5) return `«${b.textContent}»: ${c.toFixed(2)}:1`; }
+          return true;
+        } },
+        { name: 'Строки .request-card__info — Grid 80px + 1fr без отступов, dt серые', check: h => {
+          if (h.cs('.request-card__info', 'display') !== 'grid' || h.cs('.request-card__info', 'grid-template-columns').split(' ')[0] !== '80px') return 'нужно display: grid; grid-template-columns: 80px 1fr';
+          if (h.px('.request-card__info', 'margin-top') !== 0 || h.px('.request-card__info dd', 'margin-left') !== 0) return 'уберите margin у dl и dd';
+          return h.cs('.request-card__info dt', 'color') === rgb('#64748b') || 'dt — var(--color-muted)';
+        } },
+        { name: 'Причина отмены: полоса слева 3px красная, фон #fef2f2', check: h => {
+          const s = '.request-card__reason';
+          return h.px(s, 'border-left-width') === 3 && h.cs(s, 'border-left-color') === rgb('#dc2626') && h.cs(s, 'background-color') === rgb('#fef2f2') || 'border-left: 3px solid var(--status-cancel); background: #fef2f2';
+        } },
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана' }
+      ]
+    },
+    {
+      id: 'w2502', lesson: 'm9-lr13', module: 'mdk93', mech: 'adaptive', title: 'Админ-таблица: карточки на телефоне', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Администратор «ЧистоДома» видит все заявки в таблице и меняет статус прямо в строке. На мониторе таблица хороша, а на телефоне шесть столбцов не помещаются. Превратим строки в карточки, а подписи столбцов возьмём из data-label.',
+      goal: 'HTML: каждому <th> в <thead> добавьте scope="col". CSS для всех экранов: .table-wrap — overflow-x: auto; .admin-table — width: 100%, border-collapse: collapse; th и td — padding var(--space-1), text-align: left, нижняя рамка 1px solid var(--color-border). В @media (max-width: 767px): thead спрятать только визуально (position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%) — не display: none); tr — display: block, margin-bottom var(--space-2), белый фон, радиус var(--radius); td — Grid с колонками 90px и 1fr; td::before — content: attr(data-label), жирный, цвет var(--color-muted). На 360px страница не прокручивается вбок, на 1024px таблица остаётся таблицей.',
+      hints: [
+        '<th scope="col">Клиент</th> — так экранный диктор прочитает «Клиент: Петрова Анна».',
+        '.admin-table { width: 100%; border-collapse: collapse; } .admin-table th, .admin-table td { padding: var(--space-1); text-align: left; border-bottom: 1px solid var(--color-border); }',
+        '@media (max-width: 767px) { .admin-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); } .admin-table tr { display: block; … } .admin-table td { display: grid; grid-template-columns: 90px 1fr; gap: var(--space-1); } }',
+        'Подпись: .admin-table td::before { content: attr(data-label); font-weight: 600; color: var(--color-muted); } — тоже внутри медиазапроса.'
+      ],
+      html: `<main class="page">
+  <h1>Панель администратора</h1>
+  <div class="table-wrap">
+    <table class="admin-table">
+      <caption>Все заявки</caption>
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Клиент</th>
+          <th>Услуга</th>
+          <th>Дата</th>
+          <th>Статус</th>
+          <th>Действие</th>
+        </tr>
+      </thead>
+      <tbody>
+${row(17, 'Петрова Анна Сергеевна', '+7(912)-345-67-89', 'Общий клининг', '15.11.2026 12:00', 'new', 'Новая')}
+${row(14, 'Иванов Пётр Алексеевич', '+7(900)-111-22-33', 'Генеральная уборка', '12.11.2026 10:00', 'work', 'В работе')}
+      </tbody>
+    </table>
+  </div>
+</main>`,
+      css: `${ROOT}
+h1 { margin: 0 0 var(--space-2); }
+caption { padding-bottom: var(--space-1); font-weight: 700; text-align: left; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; color: #ffffff; }
+.badge--new { background: var(--status-new); }
+.badge--work { background: var(--status-work); color: #1f2937; }
+.status-form { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.btn { min-height: 40px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius); background: #0f766e; color: #ffffff; font: inherit; }
+/* Ниже — .table-wrap, .admin-table и медиазапрос для телефона */
+`,
+      tests: [
+        { name: 'Заголовки столбцов: th scope="col"', check: h => h.$$('thead th').every(th => th.getAttribute('scope') === 'col') || 'у каждого th в thead нужен scope="col"' },
+        { name: '.table-wrap прокручивает таблицу внутри себя: overflow-x: auto', check: h => h.cs('.table-wrap', 'overflow-x') === 'auto' || 'нужно .table-wrap { overflow-x: auto; }' },
+        { name: '1024px: таблица на всю ширину, border-collapse: collapse, ячейки с рамкой снизу', check: h => {
+          if (h.cs('.admin-table', 'border-collapse') !== 'collapse') return 'border-collapse: collapse';
+          if (Math.abs(h.rect('.admin-table').width - h.rect('.table-wrap').width) > 1) return 'width: 100%';
+          return h.px('.admin-table td', 'border-bottom-width') === 1 && h.px('.admin-table td', 'padding-left') === 8 && h.cs('.admin-table th', 'text-align') === 'left' || 'th, td: padding var(--space-1), text-align: left, border-bottom 1px';
+        } },
+        { name: '1024px: строки остаются строками таблицы, шапка видна', check: h => h.cs('.admin-table tbody tr', 'display') === 'table-row' && h.rect('.admin-table thead').height > 10 || 'на компьютере таблица должна оставаться таблицей: медиазапрос только до 767px' },
+        { name: '360px: строка — карточка (display: block), ячейка — Grid 90px + 1fr', at: 360, check: h => {
+          if (h.cs('.admin-table tbody tr', 'display') !== 'block') return 'tr: display: block';
+          if (h.cs('.admin-table td', 'display') !== 'grid') return 'td: display: grid';
+          return h.cs('.admin-table td', 'grid-template-columns').split(' ')[0] === '90px' || 'grid-template-columns: 90px 1fr';
+        } },
+        { name: '360px: шапка таблицы спрятана только визуально, не display: none', at: 360, check: h => {
+          if (h.cs('.admin-table thead', 'display') === 'none') return 'display: none прячет шапку и от экранного диктора';
+          return h.rect('.admin-table thead').width <= 1 || 'шапка таблицы видна на телефоне';
+        } },
+        { name: '360px: подпись ячейки из data-label через ::before', at: 360, check: h => {
+          const c = h.win.getComputedStyle(h.$('.admin-table td'), '::before').getPropertyValue('content');
+          return h.has(/attr\(\s*data-label\s*\)/) && c && c !== 'none' && c !== 'normal' || 'нужно td::before { content: attr(data-label); }';
+        } },
+        { name: '360px: нет горизонтальной прокрутки страницы', at: 360, check: h => !h.overflow() || 'страница шире экрана' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w26.js ---- */
+/* Занятие 26. ЛР14. Bootstrap 5: сетка и компоненты */
+(() => {
+  const { rgb } = window.COURSE_KIT;
+  const varOf = (h, el, name) => h.win.getComputedStyle(typeof el === 'string' ? h.$(el) : el).getPropertyValue(name).trim().toLowerCase();
+  // Сайт заданий не подключает внешние файлы, поэтому в шаблоне — упрощённый кусочек bootstrap.min.css
+  // с теми же классами и переменными --bs-*, что в настоящем Bootstrap 5.3.
+  const BS = `/* ===== Фрагмент bootstrap.min.css 5.3 (упрощён для задания, не меняйте) ===== */
+:root { --bs-primary: #0d6efd; --bs-primary-rgb: 13, 110, 253; --bs-body-font-family: system-ui, sans-serif; --bs-body-color: #212529; --bs-body-bg: #ffffff; --bs-border-radius: 0.375rem; --bs-border-color: #dee2e6; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--bs-body-font-family); line-height: 1.5; color: var(--bs-body-color); background: var(--bs-body-bg); }
+.container { width: 100%; max-width: 960px; margin-inline: auto; padding-inline: 0.75rem; }
+.row { --bs-gutter-x: 1.5rem; --bs-gutter-y: 0; display: flex; flex-wrap: wrap; margin-top: calc(-1 * var(--bs-gutter-y)); margin-inline: calc(-0.5 * var(--bs-gutter-x)); }
+.row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-inline: calc(var(--bs-gutter-x) * 0.5); margin-top: var(--bs-gutter-y); }
+.g-3 { --bs-gutter-x: 1rem; --bs-gutter-y: 1rem; }
+.col-12 { flex: 0 0 auto; width: 100%; }
+@media (min-width: 768px) { .col-md-6 { flex: 0 0 auto; width: 50%; } }
+.navbar { padding-block: 0.5rem; }
+.bg-primary { background-color: rgb(var(--bs-primary-rgb)); }
+.navbar-brand { color: #ffffff; font-size: 1.25rem; text-decoration: none; }
+.card { height: 100%; border: 1px solid var(--bs-border-color); border-radius: var(--bs-border-radius); background: #ffffff; }
+.card-body { padding: 1rem; }
+.card-title { margin: 0 0 0.5rem; font-size: 1.25rem; }
+.badge { display: inline-block; padding: 0.35em 0.65em; border-radius: var(--bs-border-radius); font-size: 0.75em; font-weight: 700; }
+.text-bg-warning { background-color: #ffc107; color: #000000; }
+.text-bg-success { background-color: #146c43; color: #ffffff; }
+.text-bg-primary { background-color: rgb(var(--bs-primary-rgb)); color: #ffffff; }
+.btn { --bs-btn-bg: transparent; --bs-btn-border-color: transparent; --bs-btn-hover-bg: transparent; display: inline-block; padding: 0.375rem 0.75rem; border: 1px solid var(--bs-btn-border-color); border-radius: var(--bs-border-radius); background-color: var(--bs-btn-bg); color: #ffffff; font: inherit; }
+.btn:hover { background-color: var(--bs-btn-hover-bg); }
+.btn-primary { --bs-btn-bg: #0d6efd; --bs-btn-border-color: #0d6efd; --bs-btn-hover-bg: #0b5ed7; }
+.mt-3 { margin-top: 1rem; }
+/* ===== Конец фрагмента. Ниже — ваш bs-theme.css ===== */
+`;
+  const card = (title, cls, label, text) => `      <div>
+        <article class="card">
+          <div class="card-body">
+            <h2 class="card-title">${title}</h2>
+            <span class="badge ${cls}">${label}</span>
+            <p>${text}</p>
+          </div>
+        </article>
+      </div>`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2601', lesson: 'm9-lr14', module: 'mdk93', mech: 'build', title: 'Bootstrap в цветах «ЧистоДома»', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Страницу «Мои заявки» перевели на Bootstrap: шапка navbar, карточки card, бейджи text-bg-*. Но пока это стандартный синий Bootstrap, а у «ЧистоДома» фирменный бирюзовый и радиус 12px. Да и карточки стоят столбиком даже на мониторе. Доведём до макета.',
+      goal: 'HTML: блоку .requests добавьте классы row g-3, каждой из трёх обёрток карточек — col-12 col-md-6 (на телефоне колонка во всю ширину, от 768px — половина). CSS-фрагмент Bootstrap не меняйте, свои правила пишите ниже (как в bs-theme.css): в :root переопределите --bs-primary: #0f766e, --bs-primary-rgb: 15, 118, 110 и --bs-border-radius: 12px; у .btn-primary — --bs-btn-bg и --bs-btn-border-color #0f766e, --bs-btn-hover-bg #115e59.',
+      hints: [
+        'Сетка: <div class="requests row g-3"> <div class="col-12 col-md-6"> <article class="card">…</article> </div> … </div> — всё внутри .container.',
+        'Тема: :root { --bs-primary: #0f766e; --bs-primary-rgb: 15, 118, 110; --bs-border-radius: 12px; } — ваше правило ниже, поэтому оно перебивает Bootstrap.',
+        'Одного --bs-primary мало: у кнопки свои переменные. .btn-primary { --bs-btn-bg: #0f766e; --bs-btn-border-color: #0f766e; --bs-btn-hover-bg: #115e59; }'
+      ],
+      // Тема Bootstrap по своей природе переопределяет те же селекторы (:root, .btn-primary), что и библиотека, поэтому проверку повторов отключаем
+      skipQuality: ['dupes'],
+      html: `<nav class="navbar bg-primary" aria-label="Главное меню">
+  <div class="container">
+    <a class="navbar-brand" href="#requests">ЧистоДом</a>
+  </div>
+</nav>
+<main class="container">
+  <h1>Мои заявки</h1>
+  <div class="requests">
+${card('Генеральная уборка', 'text-bg-warning', 'В работе', '12.11.2026, 10:00 · ул. Ленина, 5')}
+${card('Общий клининг', 'text-bg-success', 'Выполнена', '20.10.2026, 09:00 · ул. Ленина, 5')}
+${card('Мойка окон', 'text-bg-primary', 'Новая', '25.11.2026, 11:00 · ул. Садовая, 3')}
+  </div>
+  <a class="btn btn-primary mt-3" href="#new">Новая заявка</a>
+</main>`,
+      css: BS,
+      tests: [
+        { name: 'Сетка: .requests — row g-3, у трёх обёрток карточек col-12 col-md-6', check: h => {
+          const row = h.$('.container .requests');
+          if (!row || !row.classList.contains('row') || !row.classList.contains('g-3')) return 'у .requests нужны классы row g-3';
+          const cols = [...row.children];
+          return cols.length === 3 && cols.every(c => c.classList.contains('col-12') && c.classList.contains('col-md-6')) || 'у каждой обёртки карточки — col-12 col-md-6';
+        } },
+        { name: '1024px: карточки по две в ряд', check: h => {
+          const c = h.$$('.card');
+          return h.sameRow([c[0], c[1]]) && h.rect(c[2]).top > h.rect(c[0]).bottom || 'на 1024px первые две карточки должны стоять рядом, третья — ниже';
+        } },
+        { name: '360px: карточки в одну колонку, без прокрутки', at: 360, check: h => {
+          const c = h.$$('.card');
+          if (h.sameRow([c[0], c[1]])) return 'на телефоне карточки должны стоять одна под другой';
+          return !h.overflow() || 'страница шире экрана';
+        } },
+        { name: ':root: --bs-primary #0f766e и --bs-primary-rgb 15, 118, 110', check: h => {
+          if (varOf(h, 'html', '--bs-primary') !== '#0f766e') return '--bs-primary должен быть #0f766e';
+          return varOf(h, 'html', '--bs-primary-rgb').replace(/\s/g, '') === '15,118,110' || '--bs-primary-rgb: 15, 118, 110';
+        } },
+        { name: 'Шапка .navbar.bg-primary и бейдж «Новая» стали бирюзовыми', check: h => h.cs('.navbar', 'background-color') === rgb('#0f766e') && h.cs('.text-bg-primary', 'background-color') === rgb('#0f766e') || 'bg-primary берёт цвет из --bs-primary-rgb' },
+        { name: 'Кнопка .btn-primary: фон и рамка #0f766e, наведение #115e59', check: h => {
+          if (h.cs('.btn-primary', 'background-color') !== rgb('#0f766e')) return 'фон кнопки не бирюзовый: переопределите --bs-btn-bg у .btn-primary';
+          if (h.cs('.btn-primary', 'border-top-color') !== rgb('#0f766e')) return 'рамка: --bs-btn-border-color';
+          return varOf(h, '.btn-primary', '--bs-btn-hover-bg') === '#115e59' || '--bs-btn-hover-bg: #115e59';
+        } },
+        { name: 'Скругление карточек и кнопки 12px через --bs-border-radius', check: h => h.px('.card', 'border-top-left-radius') === 12 && h.px('.btn', 'border-top-left-radius') === 12 || '--bs-border-radius: 12px' },
+        { name: 'Фрагмент Bootstrap не тронут', check: h => h.css.includes(BS.trim()) || 'верните фрагмент bootstrap.min.css как был: свои правила пишите ниже' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w27.js ---- */
+/* Занятие 27. ЛР15. CSS-анимации: transition, keyframes, prefers-reduced-motion */
+(() => {
+  const ROOT = `:root {
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgb(15 23 42 / 0.08);
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+.page { width: min(100% - 32px, 960px); margin: 0 auto; padding: var(--space-3) 0; }
+.requests { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-2); }
+.request-card h2 { margin: 0 0 var(--space-1); font-size: 1.125rem; }
+.request-card p { margin: 0; color: var(--color-muted); }`;
+  // Длительность '0.2s' или '200ms' → секунды
+  const sec = v => /ms$/.test(v.trim()) ? parseFloat(v) / 1000 : parseFloat(v);
+  const list = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
+  const keyframes = (h, name) => {
+    const out = [];
+    const walk = rules => { for (const r of rules) { if (r.type === 7 && r.name === name) out.push(r); else if (r.cssRules && r.type !== 7) walk(r.cssRules); } };
+    try { walk(h.doc.styleSheets[0].cssRules); } catch (e) { }
+    return out[0];
+  };
+  const frame = (k, keys) => [...k.cssRules].find(f => keys.includes(f.keyText));
+  const cards = n => Array.from({ length: n }, (_, i) => `    <article class="request-card">
+      <h2>${['Генеральная уборка', 'Химчистка ковров', 'Общий клининг'][i]}</h2>
+      <p>${['12.11.2026, 10:00 · ул. Ленина, 5', '03.11.2026, 14:30 · пр. Мира, 18', '20.10.2026, 09:00 · ул. Ленина, 5'][i]}</p>
+    </article>`).join('\n');
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2701', lesson: 'm9-lr15', module: 'mdk93', mech: 'fix', title: 'Отклик кнопки и карточки', level: 'Среднее', minutes: 25, points: 150,
+      story: 'В ТЗ «ЧистоДома» записано: кнопка откликается на наведение и нажатие, карточка заявки приподнимается под курсором. Анимации уже есть, но с ошибками: кнопка плывёт целую секунду и только в одну сторону, а карточка подпрыгивает через top и дёргается на телефоне.',
+      goal: 'Кнопка: перенесите transition из .btn:hover в .btn и замените all на два свойства: background-color и transform, каждое не дольше 0.2s. Добавьте .btn:active { transform: scale(0.97); }. Карточка: уберите position и top из .request-card:hover, поднимайте её через transform: translateY(-4px) и усиливайте тень (box-shadow). У самой .request-card задайте transition для transform и box-shadow: 0.2s ease-out.',
+      hints: [
+        'transition пишут у исходного состояния — тогда анимация идёт в обе стороны: .btn { …; transition: background-color 0.2s ease, transform 0.15s ease; }',
+        '.btn:active { transform: scale(0.97); } — кнопка «вжимается» при нажатии.',
+        'Двигаем через transform, а не top: .request-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgb(15 23 42 / 0.12); }',
+        '.request-card { …; transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <p><button class="btn" type="button">Новая заявка</button></p>
+  <section class="requests" aria-label="Список заявок">
+${cards(3)}
+  </section>
+</main>`,
+      css: `${ROOT}
+.btn { min-height: 48px; padding: 0 var(--space-3); border: none; border-radius: var(--radius); background: var(--color-primary); color: #ffffff; font: inherit; font-weight: 600; cursor: pointer; }
+.btn:hover { background: var(--color-primary-dark); transition: all 1s; }
+.request-card { padding: var(--space-2); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow); }
+.request-card:hover { position: relative; top: -4px; }`,
+      tests: [
+        { name: 'transition написан у .btn, а не у .btn:hover', check: h => {
+          if (h.rules.some(r => /:hover/.test(r.selector) && /\.btn/.test(r.selector) && /transition/.test(r.style.cssText))) return 'уберите transition из .btn:hover';
+          return list(h.cs('.btn', 'transition-property')).some(p => p !== 'all') || 'у .btn нет transition';
+        } },
+        { name: 'Кнопка: анимируются background-color и transform, каждое не дольше 0.2s, без all', check: h => {
+          const p = list(h.cs('.btn', 'transition-property')), d = list(h.cs('.btn', 'transition-duration')).map(sec);
+          if (p.includes('all')) return 'transition: all анимирует всё подряд — перечислите свойства';
+          if (!p.includes('background-color') || !p.includes('transform')) return `сейчас анимируется: ${p.join(', ')}`;
+          return d.every(x => x > 0 && x <= 0.2) || 'длительность каждого перехода — не больше 0.2s';
+        } },
+        { name: '.btn:active «вжимает» кнопку: transform: scale(0.97)', check: h => h.rules.some(r => /\.btn:active/.test(r.selector) && /scale\(\s*0?\.97\s*\)/.test(r.style.transform)) || 'нет .btn:active { transform: scale(0.97); }' },
+        { name: 'Карточка поднимается через transform: translateY(-4px), без top и position', check: h => {
+          const r = h.rules.find(x => /\.request-card:hover/.test(x.selector));
+          if (!r) return 'нет правила .request-card:hover';
+          if (r.style.top || r.style.position || r.style.marginTop) return 'уберите top, position и margin из :hover — они пересчитывают раскладку';
+          return /translateY\(\s*-4px\s*\)/.test(r.style.transform) || 'нужно transform: translateY(-4px)';
+        } },
+        { name: 'При наведении тень карточки усиливается', check: h => h.rules.some(r => /\.request-card:hover/.test(r.selector) && /box-shadow/.test(r.style.cssText)) || 'добавьте box-shadow в .request-card:hover' },
+        { name: 'У карточки плавный переход transform и box-shadow: 0.2s ease-out', check: h => {
+          const p = list(h.cs('.request-card', 'transition-property')), d = list(h.cs('.request-card', 'transition-duration')).map(sec), f = list(h.cs('.request-card', 'transition-timing-function'));
+          if (!p.includes('transform') || !p.includes('box-shadow')) return 'у .request-card нужен transition для transform и box-shadow';
+          if (!d.every(x => Math.abs(x - 0.2) < 0.001)) return 'длительность 0.2s';
+          return f.every(x => x === 'ease-out') || 'функция плавности ease-out';
+        } }
+      ]
+    },
+    {
+      id: 'w2702', lesson: 'm9-lr15', module: 'mdk93', mech: 'build', title: 'Лесенка карточек и reduced motion', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Пользователь «ЧистоДома» создал заявку и попал на «Мои заявки»: сверху мягко выезжает сообщение «Заявка создана», а карточки появляются по очереди, лесенкой. А если в настройках телефона включено «Уменьшить движение», всё сразу стоит на месте.',
+      goal: 'Напишите @keyframes fade-up (from: opacity 0 и transform: translateY(16px); to: opacity 1 и translateY(0)) и @keyframes slide-down (from: opacity 0 и translateY(-12px); to: opacity 1 и translateY(0)). В кадрах меняйте только opacity и transform. .request-card — animation: fade-up 0.4s ease-out both; вторая карточка (.request-card:nth-child(2)) — animation-delay 80ms, третья — 160ms. .alert — animation: slide-down 0.3s ease-out both. В конце — @media (prefers-reduced-motion: reduce), где у .request-card и .alert анимация выключена (animation: none).',
+      hints: [
+        '@keyframes fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }',
+        '.request-card { …; animation: fade-up 0.4s ease-out both; } — both: до старта карточка уже прозрачная и не мелькает.',
+        'Лесенка: .request-card:nth-child(2) { animation-delay: 80ms; } .request-card:nth-child(3) { animation-delay: 160ms; }',
+        '@media (prefers-reduced-motion: reduce) { .request-card, .alert { animation: none; } } — карточки просто видны сразу. !important здесь не нужен.'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <div class="alert" role="status">Заявка создана. Мы позвоним вам в течение часа.</div>
+  <section class="requests" aria-label="Список заявок">
+${cards(3)}
+  </section>
+</main>`,
+      css: `${ROOT}
+.alert { margin-bottom: var(--space-2); padding: 12px var(--space-2); border: 1px solid #bbf7d0; border-radius: var(--radius); background: #f0fdf4; color: #166534; }
+.request-card { padding: var(--space-2); border-radius: var(--radius); background: var(--color-surface); box-shadow: var(--shadow); }
+/* Ниже — @keyframes, анимации и prefers-reduced-motion */
+`,
+      tests: [
+        { name: '@keyframes fade-up: из прозрачности и сдвига вниз в обычное состояние', check: h => {
+          const k = keyframes(h, 'fade-up');
+          if (!k) return 'нет @keyframes fade-up';
+          const a = frame(k, ['from', '0%']), b = frame(k, ['to', '100%']);
+          if (!a || !b) return 'нужны кадры from и to';
+          if (a.style.opacity !== '0' || !/translateY\(\s*16px\s*\)/.test(a.style.transform)) return 'from: opacity: 0; transform: translateY(16px)';
+          return b.style.opacity === '1' || 'to: opacity: 1; transform: translateY(0)';
+        } },
+        { name: 'Карточки: fade-up 0.4s ease-out both', check: h => {
+          const s = '.request-card';
+          if (h.cs(s, 'animation-name') !== 'fade-up') return 'у .request-card нет animation: fade-up';
+          if (Math.abs(sec(h.cs(s, 'animation-duration')) - 0.4) > 0.001) return 'длительность 0.4s';
+          return h.cs(s, 'animation-fill-mode') === 'both' && h.cs(s, 'animation-timing-function') === 'ease-out' || 'нужно ease-out и both';
+        } },
+        { name: 'Лесенка: 0, 80ms и 160ms через nth-child', check: h => {
+          const d = h.$$('.request-card').map(c => Math.round(sec(h.cs(c, 'animation-delay')) * 1000));
+          if (!h.rules.some(r => /nth-child/.test(r.selector))) return 'задержки задайте через .request-card:nth-child(…)';
+          return d.join(',') === '0,80,160' || `задержки сейчас: ${d.join(', ')} мс`;
+        } },
+        { name: 'Сообщение .alert выезжает сверху: slide-down 0.3s ease-out both', check: h => {
+          const k = keyframes(h, 'slide-down');
+          if (!k) return 'нет @keyframes slide-down';
+          const a = frame(k, ['from', '0%']);
+          if (!a || a.style.opacity !== '0' || !/translateY\(\s*-12px\s*\)/.test(a.style.transform)) return 'from: opacity: 0; transform: translateY(-12px)';
+          if (h.cs('.alert', 'animation-name') !== 'slide-down') return 'у .alert нет animation: slide-down';
+          return Math.abs(sec(h.cs('.alert', 'animation-duration')) - 0.3) < 0.001 && h.cs('.alert', 'animation-fill-mode') === 'both' || 'нужно 0.3s ease-out both';
+        } },
+        { name: 'В кадрах меняются только opacity и transform', check: h => {
+          for (const name of ['fade-up', 'slide-down']) {
+            const k = keyframes(h, name); if (!k) return `нет @keyframes ${name}`;
+            for (const f of k.cssRules) for (let i = 0; i < f.style.length; i++) if (!['opacity', 'transform'].includes(f.style[i])) return `${name}: свойство ${f.style[i]} — двигайте через transform`;
+          }
+          return true;
+        } },
+        { name: '@media (prefers-reduced-motion: reduce) выключает анимацию карточек и сообщения', check: h => {
+          const rs = h.rules.filter(r => /prefers-reduced-motion:\s*reduce/.test(r.media));
+          if (!rs.length) return 'нет @media (prefers-reduced-motion: reduce)';
+          const off = s => rs.some(r => r.selector.split(',').some(x => x.trim() === s) && (r.style.animationName === 'none' || (r.style.animationDuration && sec(r.style.animationDuration) <= 0.0001)));
+          if (!off('.request-card')) return 'в медиазапросе выключите анимацию .request-card';
+          return off('.alert') || 'в медиазапросе выключите анимацию .alert';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w28.js ---- */
+/* Занятие 28. ЛР16. Контрольная: 5 страниц по чужому макету за 90 минут */
+(() => {
+  const { rgb } = window.COURSE_KIT;
+  const varOf = (h, name) => h.win.getComputedStyle(h.doc.documentElement).getPropertyValue(name).trim().toLowerCase();
+  window.COURSE_TASKS.push(
+    {
+      id: 'w2801', lesson: 'm9-lr16', module: 'mdk93', mech: 'build', title: 'Каркас под чужой стайл-гайд: «ТехноПульс»', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Контрольная: вариант не ваш, а сервиса ремонта техники «ТехноПульс». Правило №2 — заготовки разрешены: берём свою страницу «Новая заявка» от «ЧистоДома», перекрашиваем через переменные и сверяем поля с ТЗ. В макете забыли тип оплаты, но ТЗ важнее макета.',
+      goal: 'В :root замените значения переменных на стайл-гайд «ТехноПульса»: --color-primary #1d4ed8, --color-primary-dark #1e3a8a, --color-accent #f97316, --color-bg #f1f5f9, --color-text #111827, --color-error #b91c1c, --radius 8px. Вне :root цвета пишите только через var(…). Логотип в шапке — «ТехноПульс». В списке «Вид услуги» после пустого пункта — услуги из ТЗ: Ремонт смартфона, Ремонт ноутбука, Ремонт бытовой техники, Иная услуга (value 1–4). Перед кнопкой добавьте тип оплаты: <fieldset class="field"> с <legend class="field__label">Тип оплаты</legend> и двумя радиокнопками name="payment" (value cash и card, «Наличные» и «Банковская карта»), обязательный выбор; каждую радиокнопку оберните в <label class="choice">. На 360px — без прокрутки вбок.',
+      hints: [
+        'Перекраска — это только :root: --color-primary: #1d4ed8; --color-primary-dark: #1e3a8a; … --radius: 8px; Правила ниже трогать не нужно, если в них var(…).',
+        'Логотип: <a class="logo" href="#requests">ТехноПульс</a>. Услуги: <option value="1">Ремонт смартфона</option> … <option value="4">Иная услуга</option>',
+        'Оплата: <fieldset class="field"> <legend class="field__label">Тип оплаты</legend> <label class="choice"><input type="radio" name="payment" value="cash" required> Наличные</label> <label class="choice"><input type="radio" name="payment" value="card"> Банковская карта</label> </fieldset>',
+        'Для .choice в CSS уже есть правило — оно найдёт вашу разметку. Проверьте страницу на 360px.'
+      ],
+      html: `<header class="header">
+  <a class="logo" href="#requests">ЧистоДом</a>
+  <nav class="nav" aria-label="Меню">
+    <a href="#requests">Мои заявки</a>
+    <a href="#exit">Выход</a>
+  </nav>
+</header>
+<main class="page">
+  <h1>Новая заявка</h1>
+  <form class="form" action="#" method="post">
+    <div class="field">
+      <label class="field__label" for="address">Адрес</label>
+      <input class="field__input" type="text" id="address" name="address" required>
+    </div>
+    <div class="field">
+      <label class="field__label" for="phone">Телефон</label>
+      <input class="field__input" type="tel" id="phone" name="phone" required pattern="\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}" placeholder="+7(900)-123-45-67">
+    </div>
+    <div class="form__row">
+      <div class="field">
+        <label class="field__label" for="date">Дата</label>
+        <input class="field__input" type="date" id="date" name="date" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="time">Время</label>
+        <input class="field__input" type="time" id="time" name="time" required>
+      </div>
+    </div>
+    <div class="field field--error">
+      <label class="field__label" for="service">Вид услуги</label>
+      <select class="field__input" id="service" name="service_id" required aria-describedby="service-error">
+        <option value="">— Выберите услугу —</option>
+        <option value="1">Общий клининг</option>
+        <option value="2">Генеральная уборка</option>
+        <option value="3">Послестроительная уборка</option>
+        <option value="4">Химчистка ковров и мебели</option>
+      </select>
+      <p class="field__error" id="service-error">Выберите услугу</p>
+    </div>
+    <div class="field">
+      <label class="field__label" for="comment">Описание (для иной услуги)</label>
+      <textarea class="field__input" id="comment" name="comment" rows="3"></textarea>
+    </div>
+    <button class="btn" type="submit">Отправить заявку</button>
+  </form>
+</main>`,
+      css: `:root {
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-accent: #f59e0b;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-border: #94a3b8;
+  --color-error: #dc2626;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --radius: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; line-height: 1.5; color: var(--color-text); background: var(--color-bg); }
+.header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); background: var(--color-primary); }
+.logo { color: var(--color-surface); font-weight: 700; text-decoration: none; }
+.nav { display: flex; gap: var(--space-2); }
+.nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-surface); }
+.page { width: min(100% - 32px, 480px); margin: 0 auto; padding: var(--space-3) 0; }
+.form { display: flex; flex-direction: column; gap: var(--space-2); }
+.form__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.field__label { padding: 0; font-weight: 600; font-size: 0.875rem; }
+.field__input { width: 100%; min-height: 48px; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 16px; }
+textarea.field__input { padding: 12px var(--space-2); resize: vertical; }
+.field__input:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 1px; }
+.field--error .field__input { border-color: var(--color-error); }
+.field__error { margin: 0; font-size: 0.875rem; color: var(--color-error); }
+.choice { display: flex; align-items: center; gap: var(--space-1); min-height: 44px; }
+.btn { min-height: 48px; border: none; border-radius: var(--radius); background: var(--color-primary); color: var(--color-surface); font: inherit; font-weight: 600; cursor: pointer; }
+.btn:hover { background: var(--color-primary-dark); }`,
+      tests: [
+        { name: 'Цвета «ТехноПульса»: основной #1d4ed8, тёмный #1e3a8a, акцент #f97316', check: h => {
+          for (const [n, v] of [['--color-primary', '#1d4ed8'], ['--color-primary-dark', '#1e3a8a'], ['--color-accent', '#f97316']]) if (varOf(h, n) !== v) return `${n}: ${varOf(h, n) || 'нет'}, нужно ${v}`;
+          return true;
+        } },
+        { name: 'Фон #f1f5f9, текст #111827, ошибка #b91c1c, радиус 8px', check: h => {
+          for (const [n, v] of [['--color-bg', '#f1f5f9'], ['--color-text', '#111827'], ['--color-error', '#b91c1c'], ['--radius', '8px']]) if (varOf(h, n) !== v) return `${n}: ${varOf(h, n) || 'нет'}, нужно ${v}`;
+          return true;
+        } },
+        { name: 'Страница перекрасилась: шапка и кнопка синие, фон светло-серый, поля скруглены на 8px', check: h => {
+          if (h.cs('.header', 'background-color') !== rgb('#1d4ed8') || h.cs('.btn', 'background-color') !== rgb('#1d4ed8')) return 'шапка и кнопка должны быть #1d4ed8';
+          if (h.cs('body', 'background-color') !== rgb('#f1f5f9')) return 'фон страницы #f1f5f9';
+          if (h.cs('#service', 'border-top-color') !== rgb('#b91c1c')) return 'рамка поля с ошибкой — #b91c1c';
+          return h.px('#address', 'border-top-left-radius') === 8 && h.px('.btn', 'border-top-left-radius') === 8 || 'радиус полей и кнопки 8px';
+        } },
+        { name: 'Вне :root цвета только через var(…)', check: h => {
+          const m = h.css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/:root\s*\{[^}]*\}/g, '').match(/#[0-9a-f]{3,8}\b/i);
+          return !m || `в правилах есть ${m[0]}: используйте переменную`;
+        } },
+        { name: 'Логотип — «ТехноПульс»', check: h => h.text('.header .logo') === 'ТехноПульс' || `сейчас логотип: «${h.text('.header .logo')}»` },
+        { name: 'Вид услуги по ТЗ: пустой пункт и 4 услуги ремонта', check: h => {
+          const o = h.$$('#service option');
+          if (o[0]?.value !== '') return 'первый пункт — пустой, value=""';
+          const want = ['Ремонт смартфона', 'Ремонт ноутбука', 'Ремонт бытовой техники', 'Иная услуга'];
+          const got = o.slice(1).map(x => x.textContent.trim());
+          if (got.join('|') !== want.join('|')) return `услуги сейчас: ${got.join(', ')}`;
+          return o.slice(1).map(x => x.value).join('') === '1234' || 'value услуг: 1, 2, 3, 4';
+        } },
+        { name: 'Тип оплаты по ТЗ: 2 radio name="payment" в fieldset с legend, выбор обязателен', check: h => {
+          const r = h.$$('input[type="radio"][name="payment"]');
+          if (r.length !== 2) return `radio с name="payment": ${r.length}, нужно 2`;
+          if (!r.every(x => x.closest('fieldset')?.querySelector('legend'))) return 'оберните кнопки в <fieldset> с <legend>';
+          if (r.map(x => x.value).sort().join() !== 'card,cash') return 'value: cash и card';
+          if (!r.every(x => x.closest('label.choice'))) return 'каждую радиокнопку оберните в <label class="choice">';
+          return !r[0].checkValidity() || 'добавьте required';
+        } },
+        { name: 'Оплата стоит перед кнопкой отправки', check: h => h.before('input[name="payment"]', '.btn') || 'тип оплаты — перед кнопкой «Отправить заявку»' },
+        { name: 'Телефон 360px: нет горизонтальной прокрутки', at: 360, check: h => !h.overflow() || 'страница шире экрана' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w53.js ---- */
+/* Занятие 53. ПР21. JS для форм: DOM, события, условия */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  const FORM_CSS = `${BASE}
+.reg { max-width: 420px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; margin-bottom: 4px; font-weight: 700; }
+.field input { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 2px solid #c5cad3; border-radius: 8px; font: inherit; }
+.field input.is-invalid { border-color: #c62828; }
+.error { min-height: 1em; margin-top: 4px; color: #b42318; font-size: 14px; }
+.hint { margin-top: 4px; color: #555555; font-size: 14px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+.btn:disabled { background: #6b7280; cursor: not-allowed; }`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5301', lesson: 'm9-pr21', module: 'mdk96', mech: 'build', title: 'Ошибки под полями', level: 'Среднее', minutes: 30, points: 150,
+      story: 'Форма регистрации портала заявок уходит на сервер с любыми данными, а пользователь узнаёт об ошибке только после перезагрузки. Сделаем проверку в браузере: ошибка появляется прямо под нужным полем, и форма не отправляется.',
+      goal: 'Напишите функции showError(name, message) и clearError(name): первая находит поле [name="…"] и блок #ИМЯ-error, добавляет полю класс is-invalid и aria-invalid="true", пишет текст через textContent; вторая всё это убирает. Обработчик submit формы #register-form: логин (после trim) короче 6 символов — ошибка под логином «Логин — не менее 6 символов»; пароль пустой — «Введите пароль»; password2 не совпадает с password — «Пароли не совпадают» под password2. Верное поле очищается через clearError. Проверяются все три поля сразу, и при любой ошибке вызывается event.preventDefault().',
+      hints: [
+        'showError: const input = document.querySelector(`[name="${name}"]`); const box = document.getElementById(`${name}-error`); input.classList.add(\'is-invalid\'); input.setAttribute(\'aria-invalid\', \'true\'); box.textContent = message;',
+        'clearError делает обратное: classList.remove, removeAttribute(\'aria-invalid\'), box.textContent = \'\'.',
+        'В обработчике заведите let ok = true; и три отдельных if/else: if (login.length < 6) { showError(\'login\', \'…\'); ok = false; } else { clearError(\'login\'); }',
+        'В конце: if (!ok) event.preventDefault(); Поля удобно читать как form.login.value.trim(), form.password.value, form.password2.value.'
+      ],
+      html: `<main class="reg">
+  <h1>Регистрация</h1>
+  <form id="register-form" novalidate>
+    <div class="field">
+      <label for="login">Логин</label>
+      <input id="login" name="login" autocomplete="username">
+      <div class="error" id="login-error"></div>
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" autocomplete="new-password">
+      <div class="error" id="password-error"></div>
+    </div>
+    <div class="field">
+      <label for="password2">Повторите пароль</label>
+      <input id="password2" name="password2" type="password" autocomplete="new-password">
+      <div class="error" id="password2-error"></div>
+    </div>
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: FORM_CSS,
+      js: `// Проверка формы регистрации
+const form = document.getElementById('register-form');
+
+// 1. showError(name, message) и clearError(name)
+
+// 2. Обработчик submit: логин, пароль, совпадение паролей
+`,
+      tests: [
+        { name: 'Короткий логин: ошибка под логином, класс is-invalid, aria-invalid, форма не отправлена', js: true, check: h => {
+          h.type('#login', 'ivan'); h.type('#password', 'secret1'); h.type('#password2', 'secret1');
+          if (h.submit('#register-form')) return 'форма отправилась: нужен event.preventDefault()';
+          if (h.text('#login-error') !== 'Логин — не менее 6 символов') return `текст под логином: «${h.text('#login-error')}»`;
+          const i = h.$('#login');
+          return i.classList.contains('is-invalid') && i.getAttribute('aria-invalid') === 'true' || 'у поля логина нет класса is-invalid или aria-invalid="true"';
+        } },
+        { name: 'Пробелы по краям логина не считаются', js: true, check: h => {
+          h.type('#login', '  abc  '); h.type('#password', 'secret1'); h.type('#password2', 'secret1');
+          return h.submit('#register-form') === false && h.text('#login-error') !== '' || 'логин «  abc  » должен считаться коротким: используйте trim()';
+        } },
+        { name: 'Пустой пароль и разные пароли — ошибки под своими полями', js: true, check: h => {
+          h.type('#login', 'ivanov'); h.type('#password', ''); h.type('#password2', 'qwerty');
+          if (h.submit('#register-form')) return 'форма отправилась';
+          if (h.text('#password-error') !== 'Введите пароль') return `под паролем: «${h.text('#password-error')}»`;
+          if (h.text('#password2-error') !== 'Пароли не совпадают') return `под повтором: «${h.text('#password2-error')}»`;
+          return h.text('#login-error') === '' || 'у верного логина не должно быть ошибки';
+        } },
+        { name: 'Все ошибки видны сразу, а не по одной', js: true, check: h => {
+          h.type('#login', 'iv'); h.type('#password', ''); h.type('#password2', 'x');
+          h.submit('#register-form');
+          return h.$$('.is-invalid').length === 3 || `подсвечено полей: ${h.$$('.is-invalid').length}, нужно 3`;
+        } },
+        { name: 'Исправили — ошибки исчезли, форма уходит', js: true, check: h => {
+          h.type('#login', 'iv'); h.type('#password', ''); h.type('#password2', 'x');
+          h.submit('#register-form');
+          h.type('#login', 'ivanov'); h.type('#password', 'secret1'); h.type('#password2', 'secret1');
+          if (!h.submit('#register-form')) return 'верная форма не отправляется';
+          if (h.$$('.is-invalid').length) return 'класс is-invalid остался';
+          if (h.$$('[aria-invalid]').length) return 'aria-invalid остался: нужен removeAttribute';
+          return h.$$('.error').every(e => e.textContent === '') || 'текст ошибки остался';
+        } },
+        { name: 'Текст ошибки — через textContent, а не innerHTML', check: h => !/innerHTML/.test(h.js) || 'для текста ошибок используйте textContent' }
+      ]
+    },
+    {
+      id: 'w5302', lesson: 'm9-pr21', module: 'mdk96', mech: 'build', title: 'Живая форма: счётчик и кнопка', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Проверка при отправке уже есть. Теперь форма должна реагировать, пока человек печатает: ошибка исчезает, как только поле начали исправлять, под ФИО растёт счётчик символов, а кнопка «Отправить» неактивна, пока не заполнено всё.',
+      goal: 'Повесьте на форму #register-form один обработчик input (делегирование). В нём: стереть ошибку того поля, в которое печатают (event.target.name и готовая clearError); обновить счётчик #fio-counter текстом «Символов: N», где N — длина ФИО после trim; кнопке #send ставить disabled = true, пока хотя бы одно из четырёх полей пустое (после trim). Готовую проверку при отправке не трогайте.',
+      hints: [
+        'Каркас: form.addEventListener(\'input\', (event) => { … }); — событие всплывает от любого поля до формы.',
+        'Ошибка: if (event.target.name) clearError(event.target.name);',
+        'Счётчик: counter.textContent = `Символов: ${form.fio.value.trim().length}`;',
+        'Кнопка: const names = [\'login\', \'password\', \'password2\', \'fio\']; send.disabled = names.some((n) => form[n].value.trim() === \'\');'
+      ],
+      html: `<main class="reg">
+  <h1>Регистрация</h1>
+  <form id="register-form" novalidate>
+    <div class="field">
+      <label for="login">Логин</label>
+      <input id="login" name="login" autocomplete="username">
+      <div class="error" id="login-error"></div>
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input id="password" name="password" type="password" autocomplete="new-password">
+      <div class="error" id="password-error"></div>
+    </div>
+    <div class="field">
+      <label for="password2">Повторите пароль</label>
+      <input id="password2" name="password2" type="password" autocomplete="new-password">
+      <div class="error" id="password2-error"></div>
+    </div>
+    <div class="field">
+      <label for="fio">ФИО</label>
+      <input id="fio" name="fio" autocomplete="name">
+      <div class="hint" id="fio-counter">Символов: 0</div>
+      <div class="error" id="fio-error"></div>
+    </div>
+    <button class="btn" id="send" type="submit" disabled>Отправить</button>
+  </form>
+</main>`,
+      css: FORM_CSS,
+      js: `// Живая форма
+const form = document.getElementById('register-form');
+const send = document.getElementById('send');
+const counter = document.getElementById('fio-counter');
+
+function showError(name, message) {
+  const input = form[name];
+  input.classList.add('is-invalid');
+  input.setAttribute('aria-invalid', 'true');
+  document.getElementById(name + '-error').textContent = message;
+}
+
+function clearError(name) {
+  const input = form[name];
+  input.classList.remove('is-invalid');
+  input.removeAttribute('aria-invalid');
+  document.getElementById(name + '-error').textContent = '';
+}
+
+// Готовая проверка при отправке — не меняйте
+form.addEventListener('submit', (event) => {
+  let ok = true;
+  if (form.login.value.trim().length < 6) { showError('login', 'Логин — не менее 6 символов'); ok = false; }
+  if (form.password.value === '') { showError('password', 'Введите пароль'); ok = false; }
+  if (form.password2.value !== form.password.value) { showError('password2', 'Пароли не совпадают'); ok = false; }
+  if (form.fio.value.trim() === '') { showError('fio', 'Введите ФИО'); ok = false; }
+  if (!ok) event.preventDefault();
+});
+
+// Ваш код: один обработчик input на всю форму
+`,
+      tests: [
+        { name: 'Ввод в поле с ошибкой стирает ошибку только этого поля', js: true, check: h => {
+          h.$('#login').value = 'iv'; h.$('#password2').value = 'x';
+          h.submit('#register-form');
+          if (!h.$('#login').classList.contains('is-invalid')) return 'готовая проверка не сработала — не меняли ли вы её?';
+          h.type('#login', 'iva');
+          if (h.$('#login').classList.contains('is-invalid') || h.text('#login-error')) return 'ошибка логина не стёрлась при вводе';
+          return h.$('#password').classList.contains('is-invalid') && h.text('#password-error') !== '' || 'ошибка пароля тоже стёрлась, а в него не печатали';
+        } },
+        { name: 'Счётчик под ФИО: «Символов: N» без пробелов по краям', js: true, check: h => {
+          h.type('#fio', ' Иванов Иван ');
+          return h.text('#fio-counter') === 'Символов: 11' || `сейчас: «${h.text('#fio-counter')}», нужно «Символов: 11»`;
+        } },
+        { name: 'Кнопка активна только когда заполнены все четыре поля', js: true, check: h => {
+          const b = h.$('#send');
+          h.type('#login', 'ivanov'); h.type('#password', 'secret1'); h.type('#password2', 'secret1');
+          if (!b.disabled) return 'кнопка активна, а ФИО пустое';
+          h.type('#fio', 'Иванов Иван');
+          if (b.disabled) return 'все поля заполнены, а кнопка неактивна';
+          h.type('#password', '   ');
+          return b.disabled || 'пароль из пробелов считается пустым: кнопка должна стать неактивной';
+        } },
+        { name: 'Один обработчик input на форме (делегирование)', check: h => /form\.addEventListener\(\s*['"]input['"]/.test(h.js) || 'повесьте form.addEventListener(\'input\', …)' },
+        { name: 'Скрипт работает без ошибок', js: true, check: h => { h.type('#fio', 'Пётр'); h.submit('#register-form'); return !h.errors.length || h.errors[0]; } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w54.js ---- */
+/* Занятие 54. ЛР33. Клиентская валидация регулярками и маска телефона +7(XXX)-XXX-XX-XX */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  const FORM_CSS = `${BASE}
+.reg { max-width: 420px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; margin-bottom: 4px; font-weight: 700; }
+.field input { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 2px solid #c5cad3; border-radius: 8px; font: inherit; }
+.field input.is-invalid { border-color: #c62828; }
+.field input.is-valid { border-color: #146c43; }
+.invalid-feedback { min-height: 1em; margin-top: 4px; color: #b42318; font-size: 14px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }`;
+  const field = (name, label, attrs = '') => `    <div class="field">
+      <label for="${name}">${label}</label>
+      <input id="${name}" name="${name}"${attrs}>
+      <div class="invalid-feedback" id="${name}-error"></div>
+    </div>`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5401', lesson: 'm9-lr33', module: 'mdk96', mech: 'build', title: 'Регулярки для регистрации', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Это прямой кусок задания 3 демоэкзамена: эксперт будет вводить в регистрацию портала заведомо неправильные данные. Форма должна ответить понятным сообщением под каждым полем, а Пётр Алёшин и Анна Петрова-Водкина — спокойно зарегистрироваться.',
+      goal: 'Допишите объект rules: для fio — только кириллица (с Ё), слова через один пробел или дефис; для phone — ровно формат +7(XXX)-XXX-XX-XX (с дефисом после скобки); для email — «без пробелов и @, затем @, домен, точка и зона от 2 символов»; для login — не меньше 6 символов. Функция validateField(input) уже готова: пустое поле — «Поле обязательно», не прошло test — rule.msg. Подключите проверку: событие focusout на форме проверяет поле, которое покинули; submit проверяет ВСЕ поля (map, а не every) и при ошибке отменяет отправку. Не забудьте ^ и $.',
+      hints: [
+        'ФИО: /^[А-ЯЁа-яё]+(?:[ -][А-ЯЁа-яё]+)*$/ — Ё стоит в Unicode отдельно, поэтому её пишут явно.',
+        'Телефон: /^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}$/ — плюс и скобки экранируются обратным слешем.',
+        'Email: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/, логин: (v) => v.length >= 6.',
+        'Подключение: form.addEventListener(\'focusout\', (e) => { if (e.target.name) validateField(e.target); }); и в submit: const results = [...form.querySelectorAll(\'input[name]\')].map(validateField); if (results.includes(false)) e.preventDefault();'
+      ],
+      html: `<main class="reg">
+  <h1>Регистрация</h1>
+  <form id="register-form" novalidate>
+${field('fio', 'ФИО', ' autocomplete="name"')}
+${field('phone', 'Телефон', ' type="tel" inputmode="tel" placeholder="+7(XXX)-XXX-XX-XX" autocomplete="tel"')}
+${field('email', 'Email', ' type="email" autocomplete="email"')}
+${field('login', 'Логин', ' autocomplete="username"')}
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: FORM_CSS,
+      js: `// js/validation.js
+const rules = {
+  fio:   { test: (v) => true, msg: 'ФИО — только кириллица и пробелы' },
+  phone: { test: (v) => true, msg: 'Телефон в формате +7(XXX)-XXX-XX-XX' },
+  email: { test: (v) => true, msg: 'Введите корректный email' },
+  login: { test: (v) => true, msg: 'Логин — не менее 6 символов' },
+};
+
+function validateField(input) {
+  const rule = rules[input.name];
+  if (!rule) return true;
+  const value = input.value.trim();
+  const box = document.getElementById(\`\${input.name}-error\`);
+  let message = '';
+  if (value === '') message = 'Поле обязательно';
+  else if (!rule.test(value)) message = rule.msg;
+
+  input.classList.toggle('is-invalid', message !== '');
+  input.classList.toggle('is-valid', message === '');
+  if (box) box.textContent = message;
+  return message === '';
+}
+
+const form = document.getElementById('register-form');
+
+// Ваш код: focusout на форме и submit с проверкой всех полей
+`,
+      tests: [
+        { name: 'ФИО: принимает Ё, двойную фамилию; отклоняет латиницу, цифры, два пробела', js: true, check: h => {
+          const r = h.get('rules'); if (!r || !r.fio) return 'нет rules.fio';
+          const good = ['Иванов Иван Иванович', 'Петрова-Водкина Анна', 'Ёлкин Пётр', 'Алёшин'];
+          const bad = ['Ivanov Ivan', 'Иванов1', 'Иванов  Иван', 'Иванов Ivan', ' -Иван', 'Иван-'];
+          const g = good.find(v => !r.fio.test(v)); if (g) return `не принимает «${g}»`;
+          const b = bad.find(v => r.fio.test(v)); return !b || `пропускает «${b}»`;
+        } },
+        { name: 'Телефон: только +7(XXX)-XXX-XX-XX', js: true, check: h => {
+          const r = h.get('rules'); if (!r || !r.phone) return 'нет rules.phone';
+          if (!r.phone.test('+7(912)-345-67-89')) return 'не принимает +7(912)-345-67-89';
+          const bad = ['+7(912)345-67-89', '8(912)-345-67-89', '+7(912)-345-67-8', '+7(912)-345-67-890', 'тел +7(912)-345-67-89', '+7 912-345-67-89'];
+          const b = bad.find(v => r.phone.test(v)); return !b || `пропускает «${b}»`;
+        } },
+        { name: 'Email и логин', js: true, check: h => {
+          const r = h.get('rules'); if (!r || !r.email || !r.login) return 'нет rules.email или rules.login';
+          if (!r.email.test('user@mail.ru') || !r.email.test('a.b@college.edu')) return 'email не принимает user@mail.ru';
+          const b = ['user@mail', 'user mail@x.ru', 'usermail.ru', 'user@@mail.ru', 'user@mail.r'].find(v => r.email.test(v));
+          if (b) return `email пропускает «${b}»`;
+          if (!r.login.test('ivanov')) return 'логин из 6 символов не принят';
+          return !r.login.test('ivano') || 'логин из 5 символов принят';
+        } },
+        { name: 'Уход с поля (focusout) проверяет это поле', js: true, check: h => {
+          h.type('#phone', '+7(912)345-67-89');
+          h.$('#phone').dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+          if (!h.$('#phone').classList.contains('is-invalid')) return 'после ухода с поля телефон не подсвечен';
+          if (h.text('#phone-error') !== 'Телефон в формате +7(XXX)-XXX-XX-XX') return `сообщение: «${h.text('#phone-error')}»`;
+          return !h.$('#fio').classList.contains('is-invalid') || 'проверилось и ФИО, а с него не уходили';
+        } },
+        { name: 'Отправка с ошибками: подсвечены ВСЕ неверные поля, форма не ушла', js: true, check: h => {
+          h.type('#fio', 'Ivanov'); h.type('#phone', '89123456789'); h.type('#email', 'user@mail'); h.type('#login', 'ivan');
+          if (h.submit('#register-form')) return 'форма отправилась';
+          const n = h.$$('.is-invalid').length;
+          return n === 4 || `подсвечено ${n} из 4: проверяйте все поля через map, а не every`;
+        } },
+        { name: 'Верные данные: форма отправляется, поля зелёные', js: true, check: h => {
+          h.type('#fio', 'Алёшин Пётр'); h.type('#phone', '+7(912)-345-67-89'); h.type('#email', 'petr@mail.ru'); h.type('#login', 'aleshin');
+          if (!h.submit('#register-form')) return 'верная форма не отправляется';
+          return h.$$('.is-valid').length === 4 || 'не все поля получили is-valid';
+        } }
+      ]
+    },
+    {
+      id: 'w5402', lesson: 'm9-lr33', module: 'mdk96', mech: 'build', title: 'Маска телефона', level: 'Среднее', minutes: 25, points: 150,
+      story: 'Требовать от человека руками набрать +7(912)-345-67-89 со всеми скобками жестоко. Пусть он вводит только цифры, а скобки и дефисы появляются сами — и Backspace при этом не застревает.',
+      goal: 'Напишите функцию formatPhone(value): оставить только цифры (replace(/\\D/g, \'\')), убрать первую 7 или 8, обрезать до 10 цифр; пустой ввод — пустая строка; дальше собрать «+7(» + 3 цифры, «)-» и следующие 3 — только если цифр больше 3, «-» + 2 — если больше 6, «-» + 2 — если больше 8. На каждое событие input поля [name="phone"] записывайте в него formatPhone(его значения). В HTML полю телефона добавьте maxlength="17" и placeholder="+7(XXX)-XXX-XX-XX".',
+      hints: [
+        'Начало: let digits = value.replace(/\\D/g, \'\'); if (digits.startsWith(\'7\') || digits.startsWith(\'8\')) digits = digits.slice(1); digits = digits.slice(0, 10);',
+        'if (digits.length === 0) return \'\'; let result = \'+7(\' + digits.slice(0, 3);',
+        'if (digits.length > 3) result += \')-\' + digits.slice(3, 6); — и так же для 6 и 8. Закрывающая скобка появляется только с четвёртой цифрой, поэтому Backspace не застревает.',
+        'Подключение: document.querySelectorAll(\'input[name="phone"]\').forEach((input) => { input.addEventListener(\'input\', () => { input.value = formatPhone(input.value); }); });'
+      ],
+      html: `<main class="reg">
+  <h1>Новая заявка</h1>
+  <form id="request-form" novalidate>
+${field('phone', 'Телефон для связи', ' type="tel" inputmode="tel" autocomplete="tel"')}
+    <button class="btn" type="submit">Отправить</button>
+  </form>
+</main>`,
+      css: FORM_CSS,
+      js: `// js/phone-mask.js
+function formatPhone(value) {
+  return value;
+}
+
+// Подключите маску к полю name="phone"
+`,
+      tests: [
+        { name: 'formatPhone собирает полный номер из разных вариантов ввода', js: true, check: h => {
+          const f = h.get('formatPhone'); if (typeof f !== 'function') return 'нет функции formatPhone';
+          for (const v of ['9123456789', '89123456789', '79123456789', '+7 912 345 67 89', '8 (912) 345-67-89']) {
+            const r = f(v); if (r !== '+7(912)-345-67-89') return `formatPhone('${v}') = '${r}'`;
+          }
+          return true;
+        } },
+        { name: 'Готовый номер не меняется, лишние цифры отрезаются', js: true, check: h => {
+          const f = h.get('formatPhone'); if (typeof f !== 'function') return 'нет функции formatPhone';
+          const a = f('+7(912)-345-67-89'); if (a !== '+7(912)-345-67-89') return `повторный прогон даёт '${a}'`;
+          const b = f('891234567890000'); return b === '+7(912)-345-67-89' || `лишние цифры: '${b}'`;
+        } },
+        { name: 'Частичный ввод: скобка только с 4-й цифры', js: true, check: h => {
+          const f = h.get('formatPhone'); if (typeof f !== 'function') return 'нет функции formatPhone';
+          const cases = [['', ''], ['abc', ''], ['9', '+7(9'], ['912', '+7(912'], ['9123', '+7(912)-3'], ['912345', '+7(912)-345'], ['9123456', '+7(912)-345-6'], ['912345678', '+7(912)-345-67-8']];
+          for (const [v, want] of cases) { const r = f(v); if (r !== want) return `formatPhone('${v}') = '${r}', нужно '${want}'`; }
+          return true;
+        } },
+        { name: 'Маска работает при вводе в поле', js: true, check: h => {
+          h.type('#phone', '89123456789');
+          return h.$('#phone').value === '+7(912)-345-67-89' || `в поле: ${h.$('#phone').value}`;
+        } },
+        { name: 'У поля maxlength="17" и placeholder="+7(XXX)-XXX-XX-XX"', check: h => {
+          const i = h.$('#phone');
+          return i.getAttribute('maxlength') === '17' && i.getAttribute('placeholder') === '+7(XXX)-XXX-XX-XX' || 'добавьте полю maxlength="17" и placeholder="+7(XXX)-XXX-XX-XX"';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w55.js ---- */
+/* Занятие 55. ПР22. fetch и JSON: проверка логина без перезагрузки */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5501', lesson: 'm9-pr22', module: 'mdk96', mech: 'build', title: 'Логин свободен?', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Пользователь придумал логин, заполнил ещё шесть полей — и только после отправки узнал, что логин занят. Спросим сервер сразу, как человек ушёл с поля. Настоящего check_login.php в песочнице нет, поэтому вверху скрипта стоит заглушка: она отвечает на fetch так же, как ответил бы PHP.',
+      goal: 'Напишите async-функцию checkLogin() и повесьте её на событие blur поля логина. Логин берите через trim; если он короче 6 символов — сразу return, запрос не отправляйте. Запрос: await fetch(\'check_login.php?login=\' + encodeURIComponent(login)); если !response.ok — бросьте ошибку (throw new Error(…)); иначе data = await response.json(). Свободен (data.free) — у поля класс is-valid, текст в #login-error пустой; занят — класс is-invalid и в #login-error текст data.message. Любую ошибку ловите в try/catch и выводите в #login-error «Не удалось проверить логин». Заглушку сервера не меняйте.',
+      hints: [
+        'Каркас: async function checkLogin() { const login = loginInput.value.trim(); if (login.length < 6) return; try { … } catch (err) { … } } и loginInput.addEventListener(\'blur\', checkLogin);',
+        'Внутри try: const response = await fetch(\'check_login.php?login=\' + encodeURIComponent(login)); if (!response.ok) throw new Error(\'HTTP \' + response.status);',
+        'Дальше: const data = await response.json(); loginInput.classList.toggle(\'is-invalid\', !data.free); loginInput.classList.toggle(\'is-valid\', data.free);',
+        'Текст: loginBox.textContent = data.free ? \'\' : data.message; а в catch — loginBox.textContent = \'Не удалось проверить логин\';'
+      ],
+      html: `<main class="reg">
+  <h1>Регистрация</h1>
+  <form id="register-form" novalidate>
+    <div class="field">
+      <label for="login">Логин</label>
+      <input id="login" name="login" autocomplete="username" aria-describedby="login-error">
+      <div class="invalid-feedback" id="login-error"></div>
+    </div>
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: `${BASE}
+.reg { max-width: 420px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; margin-bottom: 4px; font-weight: 700; }
+.field input { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 2px solid #c5cad3; border-radius: 8px; font: inherit; }
+.field input.is-invalid { border-color: #c62828; }
+.field input.is-valid { border-color: #146c43; }
+.invalid-feedback { min-height: 1em; margin-top: 4px; color: #b42318; font-size: 14px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }`,
+      js: `// ===== Заглушка сервера: так ответил бы check_login.php. Не меняйте =====
+const takenLogins = ['adminka', 'ivanov', 'manager'];
+const serverLog = [];          // адреса, на которые ушёл fetch
+let serverOnline = true;       // false — «выключили Apache»
+window.fetch = async (url) => {
+  serverLog.push(url);
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  if (!serverOnline) throw new TypeError('Failed to fetch');
+  const login = decodeURIComponent(String(url).split('login=')[1] || '');
+  if (login === 'broken') return { ok: false, status: 500, json: async () => { throw new SyntaxError('Unexpected token <'); } };
+  const free = !takenLogins.includes(login);
+  const data = { free, message: free ? 'Логин свободен' : 'Логин уже занят' };
+  return { ok: true, status: 200, json: async () => JSON.parse(JSON.stringify(data)) };
+};
+// ===== Конец заглушки =====
+
+const loginInput = document.querySelector('input[name="login"]');
+const loginBox = document.getElementById('login-error');
+
+// Ваш код: async function checkLogin() и обработчик blur
+`,
+      tests: [
+        { name: 'Занятый логин: is-invalid и «Логин уже занят» после ухода с поля', js: true, check: async h => {
+          h.type('#login', 'ivanov'); h.$('#login').dispatchEvent(new FocusEvent('blur'));
+          await h.wait(150);
+          if (!h.$('#login').classList.contains('is-invalid')) return 'занятый логин не подсвечен';
+          return h.text('#login-error') === 'Логин уже занят' || `под полем: «${h.text('#login-error')}»`;
+        } },
+        { name: 'Свободный логин: is-valid, ошибки нет', js: true, check: async h => {
+          h.type('#login', 'ivanov'); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(150);
+          h.type('#login', 'petrov2026'); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(150);
+          const i = h.$('#login');
+          if (!i.classList.contains('is-valid') || i.classList.contains('is-invalid')) return 'свободный логин должен получить is-valid без is-invalid';
+          return h.text('#login-error') === '' || 'текст ошибки остался';
+        } },
+        { name: 'Короткий логин — запрос не отправляется', js: true, check: async h => {
+          h.type('#login', '  abc  '); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(100);
+          return h.get('serverLog').length === 0 || 'для логина короче 6 символов fetch вызывать не нужно';
+        } },
+        { name: 'Логин в адресе закодирован через encodeURIComponent', js: true, check: async h => {
+          h.type('#login', 'a&b=1 тест'); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(100);
+          const u = h.get('serverLog')[0] || '';
+          return u === 'check_login.php?login=' + encodeURIComponent('a&b=1 тест') || `адрес запроса: ${u || 'запроса нет'}`;
+        } },
+        { name: 'Ответ 500 — проверка response.ok и сообщение пользователю', js: true, check: async h => {
+          h.type('#login', 'broken'); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(150);
+          if (h.errors.length) return 'ошибка не поймана: ' + h.errors[0];
+          return h.text('#login-error') === 'Не удалось проверить логин' || `под полем: «${h.text('#login-error')}»`;
+        } },
+        { name: 'Сервер выключен — пользователь видит сообщение, а не тишину', js: true, check: async h => {
+          h.get('serverOnline = false');
+          h.type('#login', 'petrov2026'); h.$('#login').dispatchEvent(new FocusEvent('blur')); await h.wait(150);
+          if (h.errors.length) return 'ошибка не поймана: ' + h.errors[0];
+          return h.text('#login-error') === 'Не удалось проверить логин' || 'нужен try/catch с сообщением «Не удалось проверить логин»';
+        } },
+        { name: 'Используются async/await и проверка response.ok', check: h => /async\s+function\s+checkLogin|checkLogin\s*=\s*async/.test(h.js) && /await\s+fetch/.test(h.js) && /response\.ok|\.ok\b/.test(h.js.split('// ===== Конец заглушки')[1] || '') || 'нужны async function checkLogin, await fetch и проверка response.ok' }
+      ]
+    },
+    {
+      id: 'w5502', lesson: 'm9-pr22', module: 'mdk96', mech: 'build', title: 'Который час на сервере', level: 'Лёгкое', minutes: 20, points: 100,
+      story: 'Первое знакомство с JSON: тестовая страница портала спрашивает hello.php, который отвечает {"time": "…", "name": "Портал"}. Страница не перезагружается — меняется только одна строчка. Сервер в песочнице заменён заглушкой.',
+      goal: 'По щелчку на #ask: отправьте await fetch(\'hello.php\'), проверьте response.ok, разберите JSON и запишите в #answer текст «Портал: сейчас 12:34:56» (название и время берите из data.name и data.time). Если сервер ответил ошибкой или недоступен — в #answer «Сервер не отвечает». Также запишите в переменную note строку JSON.stringify({ a: 1, b: \'текст\' }), а в переменную parsed — результат JSON.parse(\'{"x": [1, 2, 3]}\'). Заглушку не меняйте.',
+      hints: [
+        'Обработчик: ask.addEventListener(\'click\', async () => { try { … } catch (err) { answer.textContent = \'Сервер не отвечает\'; } });',
+        'Внутри: const response = await fetch(\'hello.php\'); if (!response.ok) throw new Error(\'HTTP \' + response.status); const data = await response.json();',
+        'Вывод: answer.textContent = `${data.name}: сейчас ${data.time}`;',
+        'JSON: const note = JSON.stringify({ a: 1, b: \'текст\' }); const parsed = JSON.parse(\'{"x": [1, 2, 3]}\');'
+      ],
+      html: `<main class="demo">
+  <h1>Проверка связи с сервером</h1>
+  <button class="btn" id="ask" type="button">Который час?</button>
+  <p id="answer">Ответа пока нет.</p>
+</main>`,
+      css: `${BASE}
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+#answer { font-size: 20px; }`,
+      js: `// ===== Заглушка сервера: так ответил бы hello.php. Не меняйте =====
+let serverStatus = 200;        // 500 — «сервер сломался»
+window.fetch = async (url) => {
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  if (url !== 'hello.php') return { ok: false, status: 404, json: async () => ({}) };
+  const text = JSON.stringify({ time: '12:34:56', name: 'Портал' });
+  return { ok: serverStatus === 200, status: serverStatus, json: async () => JSON.parse(text) };
+};
+// ===== Конец заглушки =====
+
+const ask = document.getElementById('ask');
+const answer = document.getElementById('answer');
+
+// 1. JSON туда и обратно: переменные note и parsed
+
+// 2. Кнопка «Который час?»
+`,
+      tests: [
+        { name: 'Щелчок по кнопке выводит «Портал: сейчас 12:34:56»', js: true, check: async h => {
+          h.click('#ask'); await h.wait(150);
+          return h.text('#answer') === 'Портал: сейчас 12:34:56' || `в #answer: «${h.text('#answer')}»`;
+        } },
+        { name: 'Ответ 500 — «Сервер не отвечает»', js: true, check: async h => {
+          h.get('serverStatus = 500');
+          h.click('#ask'); await h.wait(150);
+          if (h.errors.length) return 'ошибка не поймана: ' + h.errors[0];
+          return h.text('#answer') === 'Сервер не отвечает' || `в #answer: «${h.text('#answer')}»: проверьте response.ok`;
+        } },
+        { name: 'note — строка JSON, parsed — объект с массивом x', js: true, check: h => {
+          if (h.get('note') !== '{"a":1,"b":"текст"}') return `note = ${JSON.stringify(h.get('note'))}`;
+          const p = h.get('parsed');
+          return p && Array.isArray(p.x) && p.x.join() === '1,2,3' || 'parsed должен быть объектом { x: [1, 2, 3] }';
+        } },
+        { name: 'Скрипт работает без ошибок', js: true, check: async h => { h.click('#ask'); await h.wait(100); return !h.errors.length || h.errors[0]; } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w56.js ---- */
+/* Занятие 56. ЛР34. Интеграция дизайна из модуля 2 в систему: сверка с макетом */
+(() => {
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5601', lesson: 'm9-lr34', module: 'mdk96', mech: 'build', title: 'Токены и бейджи статусов', level: 'Среднее', minutes: 30, points: 150,
+      story: 'Админ-панель портала работает, но на макет не похожа: цвета вписаны «на глаз» в десяти местах, а в таблице видны технические слова new и in_work. Вынесем цвета из стайл-гайда в CSS-переменные и превратим коды статусов в русские бейджи.',
+      goal: 'CSS: в :root объявите токены из стайл-гайда: --color-primary: #1f4fb8; --color-text: #1d1f24; --color-muted: #4b5563; --color-bg: #f6f7fb; --color-success: #146c43; --color-warning: #8a5a00; --color-danger: #b42318. Замените ВСЕ hex-цвета в правилах на var(--…); вне :root можно оставить только белый #ffffff. JS: объект STATUS (new → «Новая», badge-new; in_work → «В работе», badge-work; done → «Выполнена», badge-done; cancelled → «Отменена», badge-cancel) и функция renderBadge(el, status): textContent — русское слово, className — «badge » + класс. Для неизвестного статуса — сам код и класс badge (оператор ??). При загрузке пройдите по всем [data-badge] и отрисуйте их.',
+      hints: [
+        'В начале CSS: :root { --color-primary: #1f4fb8; --color-text: #1d1f24; … } — значения копируйте точно, как из Figma.',
+        'Дальше: body { color: var(--color-text); background: var(--color-bg); } .btn-main { background: var(--color-primary); } .badge-done { background: var(--color-success); } и так везде.',
+        'const STATUS = { new: { text: \'Новая\', cls: \'badge-new\' }, in_work: { text: \'В работе\', cls: \'badge-work\' }, … };',
+        'function renderBadge(el, status) { const s = STATUS[status] ?? { text: status, cls: \'\' }; el.textContent = s.text; el.className = `badge ${s.cls}`; } и document.querySelectorAll(\'[data-badge]\').forEach((b) => renderBadge(b, b.textContent.trim()));'
+      ],
+      html: `<header class="top">
+  <a class="logo" href="#requests">Чистый дом</a>
+</header>
+<main class="admin" id="requests">
+  <h1>Заявки</h1>
+  <table class="table">
+    <thead>
+      <tr><th>№</th><th>Клиент</th><th>Статус</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>12</td><td>Иванова Анна</td><td><span class="badge" data-badge>new</span></td></tr>
+      <tr><td>13</td><td>Петров Пётр</td><td><span class="badge" data-badge>in_work</span></td></tr>
+      <tr><td>14</td><td>Сидорова Мария</td><td><span class="badge" data-badge>done</span></td></tr>
+      <tr><td>15</td><td>Ёлкин Олег</td><td><span class="badge" data-badge>cancelled</span></td></tr>
+    </tbody>
+  </table>
+  <button class="btn-main" type="button">Обновить список</button>
+</main>`,
+      css: `body { margin: 0; font-family: Arial, sans-serif; color: #1d1f24; background: #f6f7fb; }
+.top { padding: 12px 16px; background: #1f4fb8; }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.admin { padding: 16px; }
+.table { width: 100%; border-collapse: collapse; background: #ffffff; }
+.table th, .table td { padding: 8px; border-bottom: 1px solid #d0d5dd; text-align: left; }
+.table th { color: #4b5563; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #4b5563; color: #ffffff; font-size: 14px; }
+.badge-new { background: #1f4fb8; }
+.badge-work { background: #8a5a00; }
+.badge-done { background: #146c43; }
+.badge-cancel { background: #4b5563; }
+.btn-main { margin-top: 16px; padding: 8px 16px; border: 0; border-radius: 12px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+.btn-main:hover { background: #1d1f24; }`,
+      js: `// js/statuses.js
+// 1. STATUS: код статуса → русский текст и класс бейджа
+
+// 2. renderBadge(el, status)
+
+// 3. При загрузке отрисовать все [data-badge]
+`,
+      tests: [
+        { name: 'В :root объявлены все семь токенов с точными значениями', check: h => {
+          const want = { primary: '#1f4fb8', text: '#1d1f24', muted: '#4b5563', bg: '#f6f7fb', success: '#146c43', warning: '#8a5a00', danger: '#b42318' };
+          const cs = h.win.getComputedStyle(h.doc.documentElement);
+          for (const [k, v] of Object.entries(want)) {
+            const got = cs.getPropertyValue('--color-' + k).trim().toLowerCase();
+            if (got !== v) return `--color-${k}: ${got || 'не задан'}, нужно ${v}`;
+          }
+          return true;
+        } },
+        { name: 'Вне :root нет hex-цветов, кроме белого', check: h => {
+          const rest = h.css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/:root\s*\{[^}]*\}/g, '');
+          const bad = (rest.match(/#[0-9a-f]{3,8}\b/gi) || []).filter(c => !/^#(fff|ffffff)$/i.test(c));
+          return !bad.length || `ещё вписаны цвета: ${[...new Set(bad)].join(', ')} — замените на var(--…)`;
+        } },
+        { name: 'Цвета на странице не изменились после перехода на токены', check: h => {
+          if (h.cs('.btn-main', 'background-color') !== 'rgb(31, 79, 184)') return 'у .btn-main должен быть цвет --color-primary';
+          if (h.cs('body', 'background-color') !== 'rgb(246, 247, 251)') return 'фон страницы — --color-bg';
+          return h.cs('body', 'color') === 'rgb(29, 31, 36)' || 'цвет текста — --color-text';
+        } },
+        { name: 'После загрузки бейджи на русском, кодов статусов не видно', js: true, check: h => {
+          const t = h.$$('[data-badge]').map(b => h.text(b)).join(', ');
+          return t === 'Новая, В работе, Выполнена, Отменена' || `сейчас: ${t}`;
+        } },
+        { name: 'Классы и цвета бейджей как в макете', js: true, check: h => {
+          const b = h.$$('[data-badge]');
+          const cls = b.map(x => x.className).join(' | ');
+          if (cls !== 'badge badge-new | badge badge-work | badge badge-done | badge badge-cancel') return `классы: ${cls}`;
+          return h.cs(b[1], 'background-color') === 'rgb(138, 90, 0)' && h.cs(b[2], 'background-color') === 'rgb(20, 108, 67)' || 'цвета бейджей не совпадают с токенами';
+        } },
+        { name: 'Неизвестный статус не ломает интерфейс', js: true, check: h => {
+          const f = h.get('renderBadge'); if (typeof f !== 'function') return 'нет функции renderBadge';
+          const el = h.$('[data-badge]'); f(el, 'archived');
+          if (h.errors.length) return h.errors[0];
+          return h.text(el) === 'archived' && el.className.trim() === 'badge' || `текст «${h.text(el)}», классы «${el.className}»`;
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w57.js ---- */
+/* Занятие 57. ЛР35. Анимация интерфейса: карточки, модальные окна, уведомления */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5701', lesson: 'm9-lr35', module: 'mdk96', mech: 'build', title: 'Окно «Подробнее о заявке»', level: 'Сложное', minutes: 30, points: 200,
+      story: 'На странице «Мои заявки» портала у карточки есть кнопка «Подробнее». Пусть она открывает окно на <dialog>, которое плавно выезжает и так же плавно уходит — эксперт на экзамене кликнет и сразу увидит анимацию.',
+      goal: 'CSS: окну .modal-anim с атрибутом open задайте анимацию появления (@keyframes modal-in) длительностью не больше 0.3s, а окну с классом is-closing — анимацию ухода modal-out (до 0.3s, с forwards). В @keyframes меняйте только transform и opacity. JS: функция openModal(dialog) вызывает showModal(); closeModal(dialog, value) добавляет класс is-closing, ждёт событие animationend, затем убирает класс и вызывает dialog.close(value). Кнопка с data-open="id" открывает окно с этим id (один обработчик click на document и closest). Окно закрывается с анимацией тремя способами: кнопкой «Понятно» (у неё атрибут data-close), клавишей Esc (событие cancel: вызовите e.preventDefault(), иначе браузер закроет окно мгновенно) и щелчком по затемнённому фону (e.target === dialog).',
+      hints: [
+        'CSS: .modal-anim[open] { animation: modal-in .25s ease-out; } .modal-anim.is-closing { animation: modal-out .2s ease-in forwards; } и два @keyframes: modal-in { from { opacity: 0; transform: translateY(24px) scale(.97); } }, modal-out { to { … то же … } }',
+        'Открытие: document.addEventListener(\'click\', (e) => { const opener = e.target.closest(\'[data-open]\'); if (opener) openModal(document.getElementById(opener.dataset.open)); });',
+        'closeModal: dialog.classList.add(\'is-closing\'); dialog.addEventListener(\'animationend\', () => { dialog.classList.remove(\'is-closing\'); dialog.close(value); }, { once: true });',
+        'Для каждого dialog.modal-anim: cancel → e.preventDefault(); closeModal(dialog, \'cancel\'); click → if (e.target === dialog) closeModal(dialog, \'cancel\'); кнопка: dialog.querySelector(\'[data-close]\').addEventListener(\'click\', () => closeModal(dialog, \'ok\'));'
+      ],
+      html: `<main class="page">
+  <h1>Мои заявки</h1>
+  <article class="request-card">
+    <h2>Заявка №15 · Уборка квартиры</h2>
+    <p>Статус: в работе. Создана 12.10.2026.</p>
+    <button class="btn" type="button" data-open="details-dialog">Подробнее</button>
+  </article>
+</main>
+<dialog id="details-dialog" class="modal-anim" aria-labelledby="details-title">
+  <h2 id="details-title">Заявка №15</h2>
+  <p>Адрес: улица Студенческая, 5, квартира 12. Мастер приедет с 10:00 до 12:00.</p>
+  <button class="btn" type="button" data-close>Понятно</button>
+</dialog>`,
+      css: `${BASE}
+.page { max-width: 560px; }
+.request-card { padding: 16px; border: 1px solid #d0d5dd; border-radius: 12px; }
+.request-card h2 { margin: 0 0 8px; font-size: 18px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+.modal-anim { max-width: min(90vw, 360px); padding: 24px; border: 0; border-radius: 12px; }
+.modal-anim::backdrop { background: rgb(0 0 0 / 0.45); }
+.modal-anim h2 { margin-top: 0; }
+/* Ниже — анимация открытия и закрытия окна */
+`,
+      js: `// Модальное окно с анимацией
+// 1. openModal(dialog) и closeModal(dialog, value)
+
+// 2. Кнопки с data-open открывают своё окно (один обработчик на document)
+
+// 3. Для каждого dialog.modal-anim: Esc (cancel), щелчок по фону, кнопка data-close
+`,
+      tests: [
+        { name: 'Кнопка «Подробнее» открывает окно', js: true, check: h => { h.click('[data-open]'); return h.$('#details-dialog').open || 'окно не открылось: нужен showModal()'; } },
+        { name: 'У открытого окна есть анимация не длиннее 0.3s', js: true, check: h => {
+          h.click('[data-open]');
+          const name = h.cs('#details-dialog', 'animation-name'), dur = parseFloat(h.cs('#details-dialog', 'animation-duration'));
+          if (!name || name === 'none') return 'у .modal-anim[open] нет animation';
+          return dur > 0 && dur <= 0.3 || `длительность ${dur}s, нужно до 0.3s`;
+        } },
+        { name: 'В @keyframes меняются только transform и opacity', check: h => {
+          const frames = h.css.match(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g) || [];
+          if (frames.length < 2) return 'нужны два @keyframes: modal-in и modal-out';
+          const bad = frames.join(' ').match(/\b(top|left|right|bottom|width|height|margin[\w-]*)\s*:/);
+          return !bad || `в @keyframes анимируется ${bad[1]} — используйте transform`;
+        } },
+        { name: 'Кнопка «Понятно»: сначала класс is-closing, после animationend окно закрыто', js: true, check: h => {
+          h.click('[data-open]');
+          const d = h.$('#details-dialog');
+          h.click('[data-close]');
+          if (!d.open) return 'окно закрылось мгновенно, анимация не видна';
+          if (!d.classList.contains('is-closing')) return 'нет класса is-closing';
+          d.dispatchEvent(new AnimationEvent('animationend', { animationName: 'modal-out' }));
+          if (d.open) return 'после animationend окно не закрылось';
+          return !d.classList.contains('is-closing') || 'после закрытия уберите класс is-closing';
+        } },
+        { name: 'Esc закрывает окно с анимацией', js: true, check: h => {
+          h.click('[data-open]');
+          const d = h.$('#details-dialog');
+          d.dispatchEvent(new Event('cancel', { cancelable: true }));
+          if (!d.classList.contains('is-closing')) return 'по Esc (событие cancel) нет класса is-closing';
+          d.dispatchEvent(new AnimationEvent('animationend', { animationName: 'modal-out' }));
+          return !d.open || 'по Esc окно не закрылось';
+        } },
+        { name: 'Щелчок по затемнённому фону закрывает окно, по тексту — нет', js: true, check: h => {
+          h.click('[data-open]');
+          const d = h.$('#details-dialog');
+          h.click('#details-dialog p');
+          if (d.classList.contains('is-closing')) return 'окно закрывается от щелчка по тексту внутри';
+          h.click(d);
+          if (!d.classList.contains('is-closing')) return 'щелчок по фону не запустил закрытие';
+          d.dispatchEvent(new AnimationEvent('animationend', { animationName: 'modal-out' }));
+          return !d.open || 'щелчок по фону не закрыл окно';
+        } },
+        { name: 'Скрипт работает без ошибок', js: true, check: h => { h.click('[data-open]'); h.click('[data-close]'); h.$('#details-dialog').dispatchEvent(new AnimationEvent('animationend')); return !h.errors.length || h.errors[0]; } }
+      ]
+    },
+    {
+      id: 'w5702', lesson: 'm9-lr35', module: 'mdk96', mech: 'build', title: 'Уведомление «Заявка создана»', level: 'Среднее', minutes: 25, points: 150,
+      story: 'После создания заявки портал должен мягко сказать «Заявка создана» в углу экрана и через пару секунд сам убрать сообщение. Программа экранного чтения тоже должна его произнести.',
+      goal: 'CSS: в правиле .toast задайте прозрачность 0 и сдвиг вниз (transform), transition только для opacity и transform, не дольше 0.3s; у .toast.is-shown opacity: 1 и transform: none; .toast--error — красный фон #b42318. Добавьте @media (prefers-reduced-motion: reduce), где у .toast transition-duration почти ноль (0.01ms). JS: функция showToast(text, type = \'success\', ms = 3000) создаёт div с классами toast и toast--ТИП, кладёт текст через textContent, добавляет в #toasts, на следующем кадре (requestAnimationFrame) вешает is-shown, а через ms миллисекунд убирает is-shown и после transitionend удаляет элемент. Кнопка #create показывает «Заявка создана», кнопка #fail — «Не удалось отправить заявку» с типом error.',
+      hints: [
+        'В готовое правило .toast допишите: opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; ниже — .toast.is-shown { opacity: 1; transform: none; }',
+        'В конце CSS: @media (prefers-reduced-motion: reduce) { .toast { transition-duration: 0.01ms; } }',
+        'Создание: const toast = document.createElement(\'div\'); toast.className = `toast toast--${type}`; toast.textContent = text; box.append(toast); requestAnimationFrame(() => toast.classList.add(\'is-shown\'));',
+        'Исчезновение: setTimeout(() => { toast.classList.remove(\'is-shown\'); toast.addEventListener(\'transitionend\', () => toast.remove(), { once: true }); }, ms);'
+      ],
+      html: `<main class="page">
+  <h1>Новая заявка</h1>
+  <p>Нажмите кнопку, чтобы проверить уведомления.</p>
+  <button class="btn" id="create" type="button">Создать заявку</button>
+  <button class="btn btn-ghost" id="fail" type="button">Сымитировать ошибку</button>
+</main>
+<div id="toasts" class="toasts" aria-live="polite"></div>`,
+      css: `${BASE}
+.btn { padding: 10px 18px; border: 2px solid #1f4fb8; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+.btn-ghost { background: #ffffff; color: #1f4fb8; }
+.toasts { position: fixed; right: 16px; bottom: 16px; left: 16px; display: grid; gap: 8px; }
+.toast { padding: 12px 16px; border-radius: 10px; background: #1d1f24; color: #ffffff; }
+.toast--success { background: #146c43; }
+/* Ниже — состояние is-shown, цвет ошибки и prefers-reduced-motion */
+`,
+      js: `// Уведомления
+// 1. showToast(text, type = 'success', ms = 3000)
+
+// 2. Кнопки #create и #fail
+`,
+      tests: [
+        { name: 'showToast создаёт в #toasts уведомление с классами toast и toast--тип', js: true, check: h => {
+          const show = h.get('showToast'); if (typeof show !== 'function') return 'нет функции showToast';
+          show('Проверка', 'error', 3000);
+          const t = h.$('#toasts .toast'); if (!t) return 'в #toasts не появился .toast';
+          return t.classList.contains('toast--error') && h.text(t) === 'Проверка' || 'нужны класс toast--error и текст «Проверка»';
+        } },
+        { name: 'Класс is-shown появляется на следующем кадре, а не сразу', js: true, check: async h => {
+          const show = h.get('showToast'); if (typeof show !== 'function') return 'нет функции showToast';
+          h.win.requestAnimationFrame = cb => setTimeout(cb, 16);
+          show('Кадр');
+          const t = h.$('#toasts .toast'); if (!t) return 'уведомление не создано';
+          if (t.classList.contains('is-shown')) return 'is-shown добавлен сразу: оберните в requestAnimationFrame';
+          await h.wait(80);
+          return t.classList.contains('is-shown') || 'is-shown так и не появился';
+        } },
+        { name: 'Через ms класс is-shown снимается, после transitionend элемент удалён', js: true, check: async h => {
+          const show = h.get('showToast'); if (typeof show !== 'function') return 'нет функции showToast';
+          h.win.requestAnimationFrame = cb => setTimeout(cb, 16);
+          show('Пока', 'success', 150);
+          await h.wait(80);
+          const t = h.$('#toasts .toast');
+          if (!t || !t.classList.contains('is-shown')) return 'уведомление не показалось';
+          await h.wait(150);
+          if (t.classList.contains('is-shown')) return 'через ms класс is-shown не снят';
+          if (!t.isConnected) return 'элемент удалён сразу, анимация исчезновения не видна: ждите transitionend';
+          t.dispatchEvent(new TransitionEvent('transitionend', { propertyName: 'opacity' }));
+          return !t.isConnected || 'после transitionend уведомление осталось на странице';
+        } },
+        { name: 'Текст выводится как текст, не как HTML', js: true, check: h => {
+          const show = h.get('showToast'); if (typeof show !== 'function') return 'нет функции showToast';
+          show('<b>жирный</b>');
+          return !h.$('#toasts b') && h.text('#toasts .toast') === '<b>жирный</b>' || 'используйте textContent, а не innerHTML';
+        } },
+        { name: 'Кнопки «Создать заявку» и «Сымитировать ошибку» показывают уведомления', js: true, check: h => {
+          h.click('#create'); h.click('#fail');
+          const t = h.$$('#toasts .toast');
+          if (t.length !== 2) return `уведомлений: ${t.length}, нужно 2`;
+          if (h.text(t[0]) !== 'Заявка создана') return `первое: «${h.text(t[0])}»`;
+          return t[1].classList.contains('toast--error') && h.text(t[1]) === 'Не удалось отправить заявку' || 'второе должно быть toast--error с текстом «Не удалось отправить заявку»';
+        } },
+        { name: 'Ошибка — красная #b42318', js: true, check: h => {
+          h.click('#fail');
+          const t = h.$('#toasts .toast'); if (!t) return 'уведомление не появилось';
+          return h.cs(t, 'background-color') === 'rgb(180, 35, 24)' || `фон ошибки: ${h.cs(t, 'background-color')}`;
+        } },
+        { name: 'CSS: скрытое состояние и transition только для opacity и transform', check: h => {
+          const r = h.rules.find(x => x.selector === '.toast' && !x.media && /opacity|transform/.test(x.style.transitionProperty));
+          if (!r) return 'у .toast нет transition для opacity и transform';
+          if (r.style.transitionProperty.split(',').some(p => !/^\s*(opacity|transform)\s*$/.test(p))) return `transition: ${r.style.transitionProperty}`;
+          if (r.style.transitionDuration.split(',').some(d => parseFloat(d) > 0.3 && !/ms/.test(d))) return 'длительность больше 0.3s';
+          if (r.style.opacity !== '0') return 'у .toast без is-shown должна быть opacity: 0';
+          const shown = h.rules.find(x => x.selector === '.toast.is-shown' && !x.media);
+          return shown && shown.style.opacity === '1' && shown.style.transform === 'none' || 'у .toast.is-shown нужны opacity: 1 и transform: none';
+        } },
+        { name: 'Есть @media (prefers-reduced-motion: reduce) для .toast', check: h => h.rules.some(r => /prefers-reduced-motion:\s*reduce/.test(r.media) && /\.toast/.test(r.selector)) || 'добавьте медиазапрос prefers-reduced-motion' }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w58.js ---- */
+/* Занятие 58. ПР23. Оптимизация: Lighthouse, изображения, доступность */
+(() => {
+  const { BASE, IMG, ICON } = window.COURSE_KIT;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5801', lesson: 'm9-pr23', module: 'mdk96', mech: 'a11y', title: 'Чиним страницу-антипример', level: 'Среднее', minutes: 30, points: 150,
+      story: 'Перед вами bad-page.html — страница «Новая заявка», которую Lighthouse разносит в пух и прах: поля без подписей, серый текст, кнопка-крестик без имени, ленивый логотип и пропавший фокус. Исправьте всё по списку, не удаляя содержимое.',
+      goal: 'Исправьте: 1) у каждого поля (fio, phone, email) есть видимая подпись <label for="…"> (placeholder можно оставить); 2) autocomplete: у ФИО name, у телефона tel, у email email; 3) телефон связан с подсказкой: aria-describedby="phone-error"; 4) у кнопки-крестика aria-label="Закрыть"; 5) у логотипа нет loading="lazy", а у фото есть loading="lazy", width="300" и height="150"; правило img { max-width: 100%; height: auto; }; 6) текст .note — с контрастом не ниже 4,5:1; 7) уберите outline: none и сделайте видимый фокус: :focus-visible с outline не тоньше 2px.',
+      hints: [
+        'Подпись: <label for="fio">ФИО</label> прямо перед <input id="fio" …>. Так же для phone и email.',
+        'Атрибуты поля телефона: <input id="phone" name="phone" type="tel" autocomplete="tel" aria-describedby="phone-error" …>',
+        'Картинки: у логотипа удалите loading="lazy" — он нужен сразу. У фото: width="300" height="150" loading="lazy".',
+        'CSS: .note { color: #555555; }, правило с outline: none удалите и добавьте :focus-visible { outline: 3px solid #1f4fb8; outline-offset: 2px; }'
+      ],
+      html: `<header class="top">
+  <img class="logo" src="${ICON}" alt="Логотип портала «Чистый дом»" width="40" height="40" loading="lazy">
+  <button class="icon-btn" type="button">✕</button>
+</header>
+<main class="page">
+  <h1>Новая заявка</h1>
+  <p class="note">Заполните поля, и мастер перезвонит в течение часа.</p>
+  <img class="photo" src="${IMG}" alt="Уборка квартиры после ремонта">
+  <form class="form">
+    <input id="fio" name="fio" placeholder="ФИО">
+    <input id="phone" name="phone" type="tel" placeholder="Телефон">
+    <div class="hint" id="phone-error">Телефон в формате +7(XXX)-XXX-XX-XX</div>
+    <input id="email" name="email" type="email" placeholder="Email">
+    <button class="btn" type="submit">Отправить</button>
+  </form>
+</main>`,
+      css: `${BASE}
+.top { display: flex; align-items: center; justify-content: space-between; }
+.icon-btn { padding: 6px 12px; border: 2px solid #1f4fb8; border-radius: 8px; background: #ffffff; color: #1f4fb8; font: inherit; cursor: pointer; }
+.page { max-width: 420px; }
+.note { color: #aaaaaa; }
+.form { display: grid; gap: 8px; }
+.form input { padding: 8px 10px; border: 2px solid #6b7280; border-radius: 8px; font: inherit; }
+.hint { color: #555555; font-size: 14px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }
+* { outline: none; }`,
+      tests: [
+        { name: 'У каждого поля есть <label for>', check: h => {
+          const bad = ['fio', 'phone', 'email'].filter(id => !h.$(`label[for="${id}"]`) || !h.text(`label[for="${id}"]`));
+          return !bad.length || `нет подписи у: ${bad.join(', ')}`;
+        } },
+        { name: 'autocomplete: name, tel, email', check: h => {
+          const want = { fio: 'name', phone: 'tel', email: 'email' };
+          const bad = Object.keys(want).find(id => h.$('#' + id)?.getAttribute('autocomplete') !== want[id]);
+          return !bad || `у поля ${bad} нужен autocomplete="${want[bad]}"`;
+        } },
+        { name: 'Телефон связан с подсказкой через aria-describedby', check: h => h.$('#phone').getAttribute('aria-describedby') === 'phone-error' || 'добавьте aria-describedby="phone-error"' },
+        { name: 'У кнопки-крестика aria-label="Закрыть"', check: h => h.$('.icon-btn').getAttribute('aria-label') === 'Закрыть' || 'кнопке ✕ нужен aria-label="Закрыть"' },
+        { name: 'Логотип грузится сразу, фото — лениво и с размерами', check: h => {
+          if (h.$('.logo').getAttribute('loading') === 'lazy') return 'у логотипа не должно быть loading="lazy"';
+          const p = h.$('.photo');
+          if (p.getAttribute('loading') !== 'lazy') return 'у фото нужен loading="lazy"';
+          return p.getAttribute('width') === '300' && p.getAttribute('height') === '150' || 'у фото нужны width="300" и height="150"';
+        } },
+        { name: 'Картинки не вылезают за экран и сохраняют пропорции', at: 360, check: h => {
+          if (!h.rules.some(r => /(^|,)\s*img\s*(,|$)/.test(r.selector) && r.style.maxWidth === '100%' && r.style.height === 'auto')) return 'нужно правило img { max-width: 100%; height: auto; }';
+          return !h.overflow() || 'на 360px появилась горизонтальная прокрутка';
+        } },
+        { name: 'Контраст текста .note не ниже 4,5:1', check: h => { const c = h.contrast('.note'); return c >= 4.5 || `сейчас ${c.toFixed(2)}:1`; } },
+        { name: 'Фокус виден: нет outline: none, есть :focus-visible с outline от 2px', check: h => {
+          if (h.rules.some(r => r.style.outlineStyle === 'none' || r.style.outline === 'none' || r.style.outlineWidth === '0px')) return 'уберите outline: none';
+          const f = h.rules.find(r => /:focus-visible/.test(r.selector) && parseFloat(r.style.outlineWidth) >= 2 && r.style.outlineStyle && r.style.outlineStyle !== 'none');
+          return !!f || 'добавьте :focus-visible { outline: 3px solid …; }';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w59.js ---- */
+/* Занятие 59. ЛР36. Модальное окно отмены с причиной и смена статуса через fetch */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  const row = (id, fio, code, text, cls) => {
+    const opts = [['new', 'Новая'], ['in_work', 'В работе'], ['done', 'Выполнена'], ['cancelled', 'Отменена']]
+      .map(([v, t]) => `          <option value="${v}"${v === code ? ' selected' : ''}>${t}</option>`).join('\n');
+    return `      <tr data-id="${id}">
+        <td>${id}</td>
+        <td>${fio}</td>
+        <td><span class="badge ${cls}" data-badge>${text}</span></td>
+        <td>
+          <label class="visually-hidden" for="st-${id}">Статус заявки ${id}</label>
+          <select id="st-${id}" class="status-select" data-current="${code}">
+${opts}
+          </select>
+        </td>
+      </tr>`;
+  };
+  const TABLE = `<meta name="csrf-token" content="a1b2c3d4">
+<main class="admin">
+  <h1>Заявки клиентов</h1>
+  <table class="table">
+    <thead>
+      <tr><th>№</th><th>Клиент</th><th>Статус</th><th>Изменить</th></tr>
+    </thead>
+    <tbody>
+${row(12, 'Иванова Анна', 'new', 'Новая', 'badge-new')}
+${row(13, 'Петров Пётр', 'in_work', 'В работе', 'badge-work')}
+${row(77, 'Сидорова Мария', 'done', 'Выполнена', 'badge-done')}
+    </tbody>
+  </table>
+</main>`;
+  const TOASTS = '<div id="toasts" class="toasts" aria-live="polite"></div>';
+  const CSS = `${BASE}
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 8px; border-bottom: 1px solid #d0d5dd; text-align: left; }
+.status-select { padding: 6px; font: inherit; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #4b5563; color: #ffffff; font-size: 14px; }
+.badge-new { background: #1f4fb8; }
+.badge-work { background: #8a5a00; }
+.badge-done { background: #146c43; }
+.toasts { position: fixed; right: 16px; bottom: 16px; left: 16px; display: grid; gap: 8px; }
+.toast { padding: 12px 16px; border-radius: 10px; background: #146c43; color: #ffffff; }
+.toast--error { background: #b42318; }`;
+  const STUB = `// ===== Заглушка сервера: так ответил бы update_status.php. Не меняйте =====
+const requestsDb = { 12: { status: 'new', reason: null }, 13: { status: 'in_work', reason: null } }; // заявки 77 в базе нет
+const serverLog = [];          // что пришло на сервер
+let serverOnline = true;       // false — «выключили Apache»
+window.fetch = async (url, options = {}) => {
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  if (!serverOnline) throw new TypeError('Failed to fetch');
+  const headers = options.headers || {};
+  serverLog.push({ url, method: options.method || 'GET', headers, body: options.body });
+  const reply = (status, data) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
+  if (url !== 'update_status.php') return reply(404, { ok: false, error: 'Нет такого адреса' });
+  if (options.method !== 'POST') return reply(405, { ok: false, error: 'Метод не разрешён' });
+  if (headers['X-CSRF-Token'] !== 'a1b2c3d4') return reply(403, { ok: false, error: 'Неверный токен, обновите страницу' });
+  let data;
+  try { data = JSON.parse(options.body); } catch (err) { return reply(400, { ok: false, error: 'Некорректный JSON' }); }
+  const allowed = ['new', 'in_work', 'done', 'cancelled'];
+  if (!Number.isInteger(data.id) || data.id < 1 || !allowed.includes(data.status)) return reply(400, { ok: false, error: 'Неверная заявка или статус' });
+  const reason = String(data.reason || '').trim();
+  if (data.status === 'cancelled' && reason === '') return reply(400, { ok: false, error: 'Укажите причину отмены' });
+  if (!requestsDb[data.id]) return reply(404, { ok: false, error: 'Заявка не найдена' });
+  requestsDb[data.id] = { status: data.status, reason: data.status === 'cancelled' ? reason : null };
+  return reply(200, { ok: true, id: data.id, status: data.status });
+};
+// ===== Конец заглушки =====
+
+// ===== Готовые помощники из ЛР34 и ЛР35 =====
+const STATUS = {
+  new:       { text: 'Новая',     cls: 'badge-new' },
+  in_work:   { text: 'В работе',  cls: 'badge-work' },
+  done:      { text: 'Выполнена', cls: 'badge-done' },
+  cancelled: { text: 'Отменена',  cls: 'badge-cancel' },
+};
+function renderBadge(el, status) {
+  const s = STATUS[status] ?? { text: status, cls: '' };
+  el.textContent = s.text;
+  el.className = \`badge \${s.cls}\`;
+}
+function showToast(text, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = \`toast toast--\${type}\`;
+  toast.textContent = text;
+  document.getElementById('toasts').append(toast);
+}
+// ===== Конец помощников =====
+
+const csrf = document.querySelector('meta[name="csrf-token"]').content;
+`;
+  const SAVE = `async function saveStatus(select, status, reason = '') {
+  const row = select.closest('tr');
+  select.disabled = true;
+  try {
+    const response = await fetch('update_status.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify({ id: Number(row.dataset.id), status, reason }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || \`Ошибка \${response.status}\`);
+
+    select.dataset.current = status;
+    renderBadge(row.querySelector('[data-badge]'), status);
+    showToast('Статус изменён');
+  } catch (err) {
+    select.value = select.dataset.current;
+    showToast(err.message, 'error');
+  } finally {
+    select.disabled = false;
+  }
+}
+`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w5901', lesson: 'm9-lr36', module: 'mdk96', mech: 'build', title: 'Статус без перезагрузки', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Администратор портала меняет статус заявки — и ждёт перезагрузки страницы. Сделаем как в современных системах: выбрал в списке — статус сразу сохранился через fetch, бейдж обновился, внизу всплыло «Статус изменён». А если сервер отказал — список честно вернулся к старому значению.',
+      goal: 'Напишите async-функцию saveStatus(select, status, reason = \'\'): на время запроса select.disabled = true; fetch(\'update_status.php\') методом POST с заголовками Content-Type: application/json и X-CSRF-Token (токен уже в переменной csrf) и телом JSON.stringify({ id: Number(row.dataset.id), status, reason }), где row = select.closest(\'tr\'); ответ — await response.json(); если !response.ok или !data.ok — throw new Error(data.error). Успех: select.dataset.current = status, renderBadge для [data-badge] этой строки, showToast(\'Статус изменён\'). Ошибка (catch): select.value = select.dataset.current и showToast(err.message, \'error\'). В finally снимите disabled. Повесьте ОДИН обработчик change на таблицу (делегирование через closest(\'.status-select\')), который вызывает saveStatus(select, select.value). Заглушку и помощники не меняйте.',
+      hints: [
+        'Каркас: async function saveStatus(select, status, reason = \'\') { const row = select.closest(\'tr\'); select.disabled = true; try { … } catch (err) { … } finally { select.disabled = false; } }',
+        'Запрос: const response = await fetch(\'update_status.php\', { method: \'POST\', headers: { \'Content-Type\': \'application/json\', \'X-CSRF-Token\': csrf }, body: JSON.stringify({ id: Number(row.dataset.id), status, reason }) });',
+        'Разбор: const data = await response.json().catch(() => ({})); if (!response.ok || !data.ok) throw new Error(data.error || `Ошибка ${response.status}`);',
+        'Делегирование: document.querySelector(\'table\').addEventListener(\'change\', (e) => { const select = e.target.closest(\'.status-select\'); if (select) saveStatus(select, select.value); });'
+      ],
+      html: `${TABLE}
+${TOASTS}`,
+      css: CSS,
+      js: `${STUB}
+// Ваш код: saveStatus и один обработчик change на таблице
+`,
+      tests: [
+        { name: 'Смена на «В работе»: бейдж, data-current, запись в базе, toast', js: true, check: async h => {
+          const s = h.$('#st-12');
+          h.type(s, 'in_work');
+          if (!s.disabled) return 'на время запроса select должен быть disabled';
+          await h.wait(150);
+          if (s.disabled) return 'после ответа select остался disabled: нужен finally';
+          if (h.get('requestsDb')[12].status !== 'in_work') return 'в «базе» статус не изменился';
+          const b = h.$('tr[data-id="12"] [data-badge]');
+          if (h.text(b) !== 'В работе' || !b.classList.contains('badge-work')) return `бейдж: «${h.text(b)}», ${b.className}`;
+          if (s.dataset.current !== 'in_work') return 'data-current не обновлён';
+          return h.text('#toasts .toast') === 'Статус изменён' || 'нет уведомления «Статус изменён»';
+        } },
+        { name: 'Запрос: POST, JSON, X-CSRF-Token, id числом', js: true, check: async h => {
+          h.type('#st-13', 'done'); await h.wait(150);
+          const r = h.get('serverLog')[0]; if (!r) return 'запрос не отправлен';
+          if (r.url !== 'update_status.php' || r.method !== 'POST') return `запрос: ${r.method} ${r.url}`;
+          if (r.headers['Content-Type'] !== 'application/json') return 'нет заголовка Content-Type: application/json';
+          if (r.headers['X-CSRF-Token'] !== 'a1b2c3d4') return 'нет заголовка X-CSRF-Token с токеном из meta';
+          let body; try { body = JSON.parse(r.body); } catch (e) { return 'тело — не JSON: используйте JSON.stringify'; }
+          return body.id === 13 && body.status === 'done' || `тело: ${r.body}`;
+        } },
+        { name: 'Сервер ответил 404: select вернулся, бейдж прежний, toast с ошибкой', js: true, check: async h => {
+          h.type('#st-77', 'new'); await h.wait(150);
+          if (h.$('#st-77').value !== 'done') return `select показывает «${h.$('#st-77').value}», а в базе done`;
+          if (h.text('tr[data-id="77"] [data-badge]') !== 'Выполнена') return 'бейдж изменился, хотя сервер отказал';
+          const t = h.$('#toasts .toast');
+          return t && t.classList.contains('toast--error') && h.text(t) === 'Заявка не найдена' || 'нужен toast с типом error и текстом ошибки сервера';
+        } },
+        { name: 'Отмена без причины: сервер вернул 400 — откат и сообщение', js: true, check: async h => {
+          h.type('#st-12', 'cancelled'); await h.wait(150);
+          if (h.$('#st-12').value !== 'new') return 'select не откатился';
+          return h.text('#toasts .toast') === 'Укажите причину отмены' || `уведомление: «${h.text('#toasts .toast')}»`;
+        } },
+        { name: 'Сервер выключен: откат, toast, без необработанных ошибок', js: true, check: async h => {
+          h.get('serverOnline = false');
+          h.type('#st-13', 'done'); await h.wait(150);
+          if (h.errors.length) return 'ошибка не поймана: ' + h.errors[0];
+          if (h.$('#st-13').value !== 'in_work') return 'select не вернулся к in_work';
+          return !h.$('#st-13').disabled && !!h.$('#toasts .toast--error') || 'select должен разблокироваться, а toast — показать ошибку';
+        } },
+        { name: 'Один обработчик на таблицу работает и для новых строк', js: true, check: async h => {
+          const tr = h.$('tr[data-id="12"]').cloneNode(true);
+          tr.dataset.id = '13';
+          tr.querySelector('select').id = 'st-new'; tr.querySelector('label').htmlFor = 'st-new';
+          h.$('tbody').append(tr);
+          h.type('#st-new', 'done'); await h.wait(150);
+          const r = h.get('serverLog')[0];
+          return r && JSON.parse(r.body).id === 13 || 'для добавленной строки запрос не ушёл: повесьте change на таблицу';
+        } }
+      ]
+    },
+    {
+      id: 'w5902', lesson: 'm9-lr36', module: 'mdk96', mech: 'build', title: 'Причина отмены в окне', level: 'Сложное', minutes: 30, points: 200,
+      story: 'Отменить заявку без объяснения нельзя: клиент должен знать почему. Когда администратор выбирает «Отменена», открывается окно с полем причины. Пустую причину окно не принимает, а если окно закрыли — список возвращается к прежнему статусу, чтобы интерфейс не расходился с базой.',
+      goal: 'saveStatus уже готова. Напишите: 1) обработчик change на таблице: если выбрано cancelled — запомнить select в pendingSelect, очистить поле #cancel-reason, текст #reason-error и класс is-invalid, открыть окно showModal(); любой другой статус — сразу saveStatus(select, select.value). 2) submit формы #cancel-form: preventDefault; причина после trim пустая — полю класс is-invalid, в #reason-error «Укажите причину отмены», окно не закрывать; иначе запомнить select, обнулить pendingSelect, закрыть окно dialog.close() и вызвать saveStatus(select, \'cancelled\', reason). 3) Кнопка [data-cancel-close] закрывает окно. 4) Событие close окна: если pendingSelect ещё не null — вернуть ему value = dataset.current и обнулить.',
+      hints: [
+        'В change: if (select.value === \'cancelled\') { pendingSelect = select; reasonInput.value = \'\'; reasonError.textContent = \'\'; reasonInput.classList.remove(\'is-invalid\'); dialog.showModal(); reasonInput.focus(); } else { saveStatus(select, select.value); }',
+        'Submit: const reason = reasonInput.value.trim(); if (reason === \'\') { reasonInput.classList.add(\'is-invalid\'); reasonError.textContent = \'Укажите причину отмены\'; return; }',
+        'Порядок важен: const select = pendingSelect; pendingSelect = null; dialog.close(); saveStatus(select, \'cancelled\', reason); — иначе обработчик close решит, что окно закрыли без подтверждения.',
+        'dialog.addEventListener(\'close\', () => { if (pendingSelect) { pendingSelect.value = pendingSelect.dataset.current; pendingSelect = null; } });'
+      ],
+      html: `${TABLE}
+<dialog id="cancel-dialog" class="modal" aria-labelledby="cancel-title">
+  <form id="cancel-form" novalidate>
+    <h2 id="cancel-title">Отмена заявки</h2>
+    <label for="cancel-reason">Причина отмены</label>
+    <textarea id="cancel-reason" name="reason" maxlength="255" rows="3" aria-describedby="reason-error"></textarea>
+    <div id="reason-error" class="invalid-feedback"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" type="button" data-cancel-close>Не отменять</button>
+      <button class="btn" type="submit">Отменить заявку</button>
+    </div>
+  </form>
+</dialog>
+${TOASTS}`,
+      css: `${CSS}
+.modal { max-width: min(90vw, 380px); padding: 24px; border: 0; border-radius: 12px; }
+.modal::backdrop { background: rgb(0 0 0 / 0.45); }
+.modal h2 { margin-top: 0; }
+.modal label { display: block; margin-bottom: 4px; font-weight: 700; }
+.modal textarea { box-sizing: border-box; width: 100%; padding: 8px; border: 2px solid #c5cad3; border-radius: 8px; font: inherit; }
+.modal textarea.is-invalid { border-color: #c62828; }
+.invalid-feedback { min-height: 1em; margin: 4px 0 12px; color: #b42318; font-size: 14px; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { padding: 10px 16px; border: 2px solid #b42318; border-radius: 8px; background: #b42318; color: #ffffff; font: inherit; cursor: pointer; }
+.btn-ghost { border-color: #4b5563; background: #ffffff; color: #1d1f24; }`,
+      js: `${STUB}${SAVE}
+const dialog = document.getElementById('cancel-dialog');
+const cancelForm = document.getElementById('cancel-form');
+const reasonInput = document.getElementById('cancel-reason');
+const reasonError = document.getElementById('reason-error');
+let pendingSelect = null;      // какой select ждёт причину
+
+// 1. change на таблице: cancelled — окно, остальное — сразу saveStatus
+
+// 2. submit формы причины
+
+// 3. Кнопка «Не отменять»
+
+// 4. Событие close: вернуть select, если отмену не подтвердили
+`,
+      tests: [
+        { name: 'Выбор «Отменена» открывает окно и ничего не отправляет', js: true, check: async h => {
+          h.type('#st-12', 'cancelled'); await h.wait(100);
+          if (!h.$('#cancel-dialog').open) return 'окно не открылось';
+          return h.get('serverLog').length === 0 || 'запрос ушёл раньше, чем ввели причину';
+        } },
+        { name: 'Пустая причина: ошибка под полем, окно открыто, запроса нет', js: true, check: async h => {
+          h.type('#st-12', 'cancelled');
+          h.$('#cancel-reason').value = '   ';
+          if (h.submit('#cancel-form')) return 'нужен e.preventDefault() в submit';
+          await h.wait(100);
+          if (!h.$('#cancel-dialog').open) return 'окно закрылось без причины';
+          if (h.text('#reason-error') !== 'Укажите причину отмены') return `под полем: «${h.text('#reason-error')}»`;
+          if (!h.$('#cancel-reason').classList.contains('is-invalid')) return 'нет класса is-invalid у поля';
+          return h.get('serverLog').length === 0 || 'запрос не должен уходить';
+        } },
+        { name: 'Причина введена: окно закрыто, в базе cancelled с причиной, бейдж «Отменена»', js: true, check: async h => {
+          h.type('#st-12', 'cancelled');
+          h.$('#cancel-reason').value = '  Клиент передумал  ';
+          h.submit('#cancel-form'); await h.wait(150);
+          if (h.$('#cancel-dialog').open) return 'окно не закрылось';
+          const r = h.get('requestsDb')[12];
+          if (r.status !== 'cancelled' || r.reason !== 'Клиент передумал') return `в базе: ${JSON.stringify(r)}`;
+          if (h.$('#st-12').value !== 'cancelled') return 'select откатился, хотя отмена подтверждена';
+          return h.text('tr[data-id="12"] [data-badge]') === 'Отменена' || 'бейдж не обновился';
+        } },
+        { name: '«Не отменять»: окно закрыто, select вернулся, запроса нет', js: true, check: async h => {
+          h.type('#st-13', 'cancelled');
+          h.click('[data-cancel-close]'); await h.wait(100);
+          if (h.$('#cancel-dialog').open) return 'окно не закрылось';
+          // в скрытой проверочной рамке браузер может не прислать событие close — пришлём его сами
+          h.$('#cancel-dialog').dispatchEvent(new Event('close'));
+          if (h.$('#st-13').value !== 'in_work') return `select показывает «${h.$('#st-13').value}»`;
+          return h.get('serverLog').length === 0 || 'запрос не должен уходить';
+        } },
+        { name: 'Закрытие окна (Esc) тоже возвращает select', js: true, check: async h => {
+          h.type('#st-12', 'cancelled');
+          h.$('#cancel-dialog').close(); await h.wait(100);
+          h.$('#cancel-dialog').dispatchEvent(new Event('close'));
+          return h.$('#st-12').value === 'new' || 'после закрытия окна select должен вернуться к data-current';
+        } },
+        { name: 'При новом открытии старая ошибка и причина стёрты', js: true, check: async h => {
+          h.type('#st-12', 'cancelled'); h.$('#cancel-reason').value = ''; h.submit('#cancel-form');
+          h.click('[data-cancel-close]'); h.$('#cancel-dialog').dispatchEvent(new Event('close'));
+          h.$('#cancel-reason').value = 'старое';
+          h.type('#st-13', 'cancelled');
+          return h.$('#cancel-reason').value === '' && h.text('#reason-error') === '' && !h.$('#cancel-reason').classList.contains('is-invalid') || 'при открытии очистите поле, текст ошибки и is-invalid';
+        } },
+        { name: 'Другие статусы сохраняются сразу, без окна', js: true, check: async h => {
+          h.type('#st-12', 'done'); await h.wait(150);
+          if (h.$('#cancel-dialog').open) return 'окно открылось для статуса «Выполнена»';
+          return h.get('requestsDb')[12].status === 'done' || 'статус не сохранился';
+        } }
+      ]
+    }
+  );
+})();
+/* ---- content/tasks/w60.js ---- */
+/* Занятие 60. ЛР37. Контрольная: задание 3 КИМ за 60 минут */
+(() => {
+  const { BASE } = window.COURSE_KIT;
+  const field = (name, label, attrs = '') => `    <div class="field">
+      <label for="${name}">${label}</label>
+      <input id="${name}" name="${name}"${attrs}>
+      <div class="invalid-feedback" id="${name}-error"></div>
+    </div>`;
+  window.COURSE_TASKS.push(
+    {
+      id: 'w6001', lesson: 'm9-lr37', module: 'mdk96', mech: 'build', title: 'Контрольная: валидация по памяти', level: 'Сложное', minutes: 25, points: 200,
+      story: 'Тренировка «как на экзамене»: перед вами чистая форма регистрации портала и пустой скрипт. За 15–20 минут без подсказок напишите валидацию четырёх полей и маску телефона. Подсказки открывайте, только если застряли дольше 5 минут.',
+      goal: 'Без готового кода: форме #register-form поставьте атрибут novalidate из JS. Проверки (значение после trim): login — не меньше 6 символов, сообщение «Логин — не менее 6 символов»; fio — кириллица с Ё, слова через пробел или дефис, «ФИО — только кириллица»; phone — ровно +7(XXX)-XXX-XX-XX, «Формат: +7(XXX)-XXX-XX-XX»; email — «что-то@домен.зона», зона от 2 символов, «Некорректный email». Неверное поле получает класс is-invalid и текст в #ИМЯ-error, верное — класс снимается и текст пустой. Проверка при уходе с поля (focusout на форме) и при отправке — ВСЕХ полей сразу, с preventDefault при ошибке. Маска: при вводе в телефон цифры превращаются в +7(XXX)-XXX-XX-XX (первая 7 или 8 отбрасывается, не больше 10 цифр).',
+      hints: [
+        'Скелет: const rules = { fio: [/^…$/, \'ФИО — только кириллица\'], … }; function check(input) { const rule = rules[input.name]; if (!rule) return true; const ok = rule[0].test(input.value.trim()); … return ok; }',
+        'Внутри check: input.classList.toggle(\'is-invalid\', !ok); const box = document.getElementById(input.name + \'-error\'); if (box) box.textContent = ok ? \'\' : rule[1];',
+        'Подключение: form.setAttribute(\'novalidate\', \'\'); form.addEventListener(\'focusout\', (e) => e.target.name && check(e.target)); в submit: const allOk = [...form.elements].map(check).every(Boolean); if (!allOk) e.preventDefault();',
+        'Маска: let d = e.target.value.replace(/\\D/g, \'\'); if (/^[78]/.test(d)) d = d.slice(1); d = d.slice(0, 10); дальше собрать \'+7(\' + d.slice(0, 3) + (d.length > 3 ? \')-\' + d.slice(3, 6) : \'\') + …'
+      ],
+      html: `<main class="reg">
+  <h1>Регистрация</h1>
+  <form id="register-form">
+${field('login', 'Логин', ' autocomplete="username"')}
+${field('fio', 'ФИО', ' autocomplete="name"')}
+${field('phone', 'Телефон', ' type="tel" inputmode="tel" maxlength="17" placeholder="+7(XXX)-XXX-XX-XX" autocomplete="tel"')}
+${field('email', 'Email', ' type="email" autocomplete="email"')}
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: `${BASE}
+.reg { max-width: 420px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; margin-bottom: 4px; font-weight: 700; }
+.field input { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 2px solid #c5cad3; border-radius: 8px; font: inherit; }
+.field input.is-invalid { border-color: #c62828; }
+.invalid-feedback { min-height: 1em; margin-top: 4px; color: #b42318; font-size: 14px; }
+.btn { padding: 10px 18px; border: 0; border-radius: 8px; background: #1f4fb8; color: #ffffff; font: inherit; cursor: pointer; }`,
+      js: `// js/validation.js — контрольная, пишем по памяти
+`,
+      tests: [
+        { name: 'Форма получила novalidate из JS', js: true, check: h => h.$('#register-form').hasAttribute('novalidate') || 'поставьте форме атрибут novalidate' },
+        { name: 'Неверные данные: все четыре ошибки под полями, форма не ушла', js: true, check: h => {
+          h.$('#login').value = 'ivan'; h.$('#fio').value = 'Ivanov Ivan'; h.$('#phone').value = '+7(912)345-67-89'; h.$('#email').value = 'user@mail';
+          if (h.submit('#register-form')) return 'форма отправилась';
+          const want = { login: 'Логин — не менее 6 символов', fio: 'ФИО — только кириллица', phone: 'Формат: +7(XXX)-XXX-XX-XX', email: 'Некорректный email' };
+          for (const [k, v] of Object.entries(want)) {
+            if (!h.$('#' + k).classList.contains('is-invalid')) return `поле ${k} не подсвечено`;
+            if (h.text(`#${k}-error`) !== v) return `под ${k}: «${h.text(`#${k}-error`)}»`;
+          }
+          return true;
+        } },
+        { name: 'Ловушки: Ё, двойная фамилия, логин с пробелами, телефон без дефиса', js: true, check: h => {
+          h.$('#login').value = ' aleshin '; h.$('#fio').value = 'Алёшина-Петрова Ёлка'; h.$('#phone').value = '+7(912)-345-67-89'; h.$('#email').value = 'a@b.ru';
+          if (!h.submit('#register-form')) return `верные данные не прошли: ${h.$$('.is-invalid').map(e => e.name).join(', ')}`;
+          h.$('#login').value = '  ivan  ';
+          h.submit('#register-form');
+          if (!h.$('#login').classList.contains('is-invalid')) return 'логин «  ivan  » после trim короче 6';
+          h.$('#login').value = 'aleshin'; h.$('#fio').value = 'Иванов  Иван';
+          h.submit('#register-form');
+          return h.$('#fio').classList.contains('is-invalid') || 'ФИО с двумя пробелами подряд пропущено';
+        } },
+        { name: 'Исправленное поле очищается', js: true, check: h => {
+          h.$('#email').value = 'user@mail'; h.submit('#register-form');
+          h.$('#email').value = 'user@mail.ru'; h.submit('#register-form');
+          return !h.$('#email').classList.contains('is-invalid') && h.text('#email-error') === '' || 'после исправления email ошибка осталась';
+        } },
+        { name: 'Уход с поля проверяет только это поле', js: true, check: h => {
+          h.$('#email').value = 'mail.ru';
+          h.$('#email').dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+          if (!h.$('#email').classList.contains('is-invalid')) return 'focusout не проверил email';
+          return !h.$('#login').classList.contains('is-invalid') || 'проверилось и пустое поле логина, а с него не уходили';
+        } },
+        { name: 'Маска телефона', js: true, check: h => {
+          h.type('#phone', '8 912 345 67 89');
+          if (h.$('#phone').value !== '+7(912)-345-67-89') return `в поле: ${h.$('#phone').value}`;
+          h.type('#phone', '9123');
+          if (h.$('#phone').value !== '+7(912)-3') return `при вводе 9123: ${h.$('#phone').value}`;
+          h.type('#phone', '');
+          return h.$('#phone').value === '' || 'пустое поле должно остаться пустым';
+        } }
+      ]
+    },
+    {
+      id: 'w6002', lesson: 'm9-lr37', module: 'mdk96', mech: 'build', title: 'Контрольная: анимация за 7 минут', level: 'Среднее', minutes: 15, points: 150,
+      story: 'Последний пункт контрольной — анимация, которую эксперт увидит за 10 секунд: карточка заявки приподнимается при наведении, а сообщение «Заявка создана» мягко выезжает сверху. И, конечно, уважение к тем, кто отключил движение в системе.',
+      goal: 'Только CSS. .card: transition для transform и box-shadow не дольше 0.3s; .card:hover: transform: translateY(-3px) и тень box-shadow. .alert: animation slide-in длительностью до 0.3s; @keyframes slide-in меняет только opacity и transform (from { opacity: 0; transform: translateY(-8px); }). В конце — @media (prefers-reduced-motion: reduce), где у .card transition-duration и у .alert animation-duration почти ноль (0.01ms). !important не используйте: правило внутри медиазапроса стоит ниже, поэтому и так победит.',
+      hints: [
+        '.card { … transition: transform .2s ease-out, box-shadow .2s ease-out; } — допишите в готовое правило.',
+        '.card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgb(0 0 0 / 0.1); }',
+        '.alert { … animation: slide-in .3s ease-out; } и @keyframes slide-in { from { opacity: 0; transform: translateY(-8px); } }',
+        '@media (prefers-reduced-motion: reduce) { .card { transition-duration: 0.01ms; } .alert { animation-duration: 0.01ms; } }'
+      ],
+      html: `<main class="list">
+  <h1>Мои заявки</h1>
+  <p class="alert">Заявка создана</p>
+  <article class="card">
+    <h2>Уборка квартиры</h2>
+    <p>Статус: новая.</p>
+  </article>
+  <article class="card">
+    <h2>Мытьё окон</h2>
+    <p>Статус: в работе.</p>
+  </article>
+</main>`,
+      css: `${BASE}
+.list { max-width: 520px; }
+.alert { padding: 12px 16px; border-radius: 10px; background: #e7f4ec; color: #14532d; }
+.card { margin-bottom: 12px; padding: 16px; border: 1px solid #d0d5dd; border-radius: 12px; background: #ffffff; }
+.card h2 { margin: 0 0 8px; font-size: 18px; }
+.card p { margin: 0; }`,
+      tests: [
+        { name: '.card: transition для transform и box-shadow до 0.3s', check: h => {
+          const p = h.cs('.card', 'transition-property'), d = h.cs('.card', 'transition-duration');
+          if (!/transform/.test(p) || !/box-shadow/.test(p)) return `transition-property: ${p}`;
+          return d.split(',').every(x => parseFloat(x) > 0 && parseFloat(x) <= 0.3) || `длительность: ${d}`;
+        } },
+        { name: '.card:hover приподнимает карточку и добавляет тень', check: h => {
+          const r = h.rules.find(x => /\.card:hover/.test(x.selector) && !x.media);
+          if (!r) return 'нет правила .card:hover';
+          if (!/translateY\(\s*-/.test(r.style.transform)) return 'нужен transform: translateY(-3px)';
+          return !!r.style.boxShadow && r.style.boxShadow !== 'none' || 'добавьте box-shadow';
+        } },
+        { name: '.alert выезжает анимацией slide-in до 0.3s', check: h => {
+          if (h.cs('.alert', 'animation-name') !== 'slide-in') return `animation-name: ${h.cs('.alert', 'animation-name')}`;
+          const d = parseFloat(h.cs('.alert', 'animation-duration'));
+          return d > 0 && d <= 0.3 || `длительность ${d}s`;
+        } },
+        { name: '@keyframes slide-in меняет только opacity и transform', check: h => {
+          const m = h.css.match(/@keyframes\s+slide-in\s*\{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/);
+          if (!m) return 'нет @keyframes slide-in';
+          const props = (m[1].match(/[\w-]+(?=\s*:)/g) || []);
+          if (!props.length) return '@keyframes пустой';
+          const bad = props.find(p => !/^(opacity|transform)$/.test(p));
+          return !bad || `в @keyframes анимируется ${bad}`;
+        } },
+        { name: 'prefers-reduced-motion: у .card и .alert почти нулевая длительность', check: h => {
+          const inMedia = h.rules.filter(r => /prefers-reduced-motion:\s*reduce/.test(r.media));
+          const card = inMedia.find(r => /\.card\b/.test(r.selector) && parseFloat(r.style.transitionDuration) <= 0.01 && r.style.transitionDuration !== '');
+          const alert = inMedia.find(r => /\.alert\b/.test(r.selector) && parseFloat(r.style.animationDuration) <= 0.01 && r.style.animationDuration !== '');
+          if (!card) return 'в медиазапросе нет .card с transition-duration: 0.01ms';
+          return !!alert || 'в медиазапросе нет .alert с animation-duration: 0.01ms';
+        } }
+      ]
+    }
+  );
+})();
 (window.TASKS = window.TASKS || []).push(...window.COURSE_TASKS);

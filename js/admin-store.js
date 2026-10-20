@@ -131,6 +131,24 @@
       if (fresh.length) await reload(); else if (changed) save();
       return fresh;
     },
+    /* ---------- работы на проверку (курс МДК.09.01) ---------- */
+    worksWaiting() { return (db.works || []).filter(w => w.status === 'sent'); },
+    // body: { verdict: 'accept' | 'return', scores: [2, 1, 0…], note }
+    async gradeWork(userId, lesson, body) {
+      const r = await send('POST', `api/admin/users/${encodeURIComponent(userId)}/works/${encodeURIComponent(lesson)}`, body);
+      if (!r) return false;
+      db.works = (db.works || []).map(w => w.user === userId && w.lesson === lesson ? r.work : w);
+      putUser(r.user);
+      return true;
+    },
+    async pollWorks() {
+      let list; try { list = await Ash.api('GET', 'api/admin/works'); } catch (e) { return []; }
+      const key = w => w.user + '|' + w.lesson + '|' + w.sentAt + '|' + w.status;
+      const known = new Set((db.works || []).map(key));
+      const fresh = list.filter(w => w.status === 'sent' && !known.has(key(w)));
+      if (list.length !== (db.works || []).length || list.some(w => !known.has(key(w)))) { db.works = list; save(); }
+      return fresh;
+    },
     async setGroup(userId, group) {
       const u = this.byId('users', userId); u.group = group || null; save();
       putUser(await send('POST', `api/admin/users/${userId}/group`, { group: group || null }));

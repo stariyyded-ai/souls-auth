@@ -152,7 +152,7 @@
         <div class="f full"><label for="le-title">Название урока</label><input id="le-title" type="text" maxlength="120" value="${esc(l.title)}"></div>
         <div class="f"><label for="le-mod">Тема</label><select id="le-mod">${S.db.modules.map(m => `<option value="${m.id}"${m.id === l.module ? ' selected' : ''}>${esc(m.title)}</option>`).join('')}</select></div>
         <div class="f"><label for="le-n">Номер в теме</label><input id="le-n" type="number" min="1" max="99" value="${l.lesson}"></div>
-        <div class="f"><label for="le-kind">Вид занятия</label><select id="le-kind"><option value="lecture"${l.kind !== 'practice' ? ' selected' : ''}>Лекция</option><option value="practice"${l.kind === 'practice' ? ' selected' : ''}>Практическая работа</option></select></div>
+        <div class="f"><label for="le-kind">Вид занятия</label><select id="le-kind"><option value="lecture"${!['practice', 'lab'].includes(l.kind) ? ' selected' : ''}>Лекция</option><option value="practice"${l.kind === 'practice' ? ' selected' : ''}>Практическая работа</option><option value="lab"${l.kind === 'lab' ? ' selected' : ''}>Лабораторная работа</option></select></div>
         <div class="f"><label for="le-ses">Номер занятия в курсе</label><input id="le-ses" type="number" min="1" max="999" value="${l.session || ''}" placeholder="необязательно"></div>
         <div class="f"><label for="le-min">Минут на занятие</label><input id="le-min" type="number" min="1" max="600" value="${l.minutes}"></div>
         <div class="f"><label for="le-diff">Сложность</label><select id="le-diff">${DIFF.map(d => `<option${d === l.difficulty ? ' selected' : ''}>${d}</option>`).join('')}</select></div>

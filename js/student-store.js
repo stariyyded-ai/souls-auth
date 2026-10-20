@@ -135,7 +135,10 @@
     lessonState(id) { return st.lessons[id] || null; },
     markRead(id) { if (!st.lessons[id]?.read) run({ type: 'read', lesson: id }); },
     // answers — номера выбранных вариантов; правильность проверяет и сервер
-    recordQuiz(id, answers) { return run({ type: 'quiz', lesson: id, answers }); }
+    recordQuiz(id, answers) { return run({ type: 'quiz', lesson: id, answers }); },
+    // Работа на проверку преподавателю: ссылка, комментарий и отметки самопроверки по критериям
+    workState(id) { return (st.works && st.works[id]) || null; },
+    submitWork(id, link, comment, checks) { const r = run({ type: 'work', lesson: id, link, comment, checks }); if (r.ok !== false) flush(); return r; }
   };
   window.Student = S;
 })();

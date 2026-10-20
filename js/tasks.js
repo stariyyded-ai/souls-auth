@@ -23,16 +23,30 @@
   const B = window.BOOT, LESSONS = window.LESSONS || [];
   const group = B.db.groups.find(g => g.id === B.me.group);
   const lessonOf = t => t.lesson && LESSONS.find(l => l.id === t.lesson);
-  const access = t => { const l = lessonOf(t); return !t.lesson ? 'open' : !l ? 'hidden' : window.StudentLogic.lessonAccess(l, group, B.me.role); };
-  const COURSE = TASKS.filter(t => t.lesson && access(t) !== 'hidden');
+  const lAccess = l => window.StudentLogic.lessonAccess(l, group, B.me.role);
+  const access = t => { const l = lessonOf(t); return !t.lesson ? 'open' : !l ? 'hidden' : lAccess(l); };
   const MODULES = B.db.modules;
-  let mechFilter = 'all', section = COURSE.length ? 'course' : 'game';
+  const KIND = { lecture: 'лекция', practice: 'практическая работа', lab: 'лабораторная работа' };
+
+  /* ---------- курсы: у каждого своя страница tasks.html?c=0901 ---------- */
+  // Порядок вкладок задан преподавателем; курс в базе находится по коду (поле code или начало названия)
+  const TABS = [['0801', 'МДК.08.01'], ['0504', 'МДК.05.04'], ['0901', 'МДК.09.01'], ['0302', 'МДК.03.02']]
+    .map(([key, code]) => ({ key, code, course: (B.db.courses || []).find(c => c.code === code || (c.title || '').startsWith(code)) || null }));
+  const courseLessons = tab => !tab || !tab.course ? [] : LESSONS.filter(l => (tab.course.modules || []).includes(l.module) && !l.hidden && !l.modHidden && lAccess(l) !== 'hidden');
+  const tabOfLesson = id => { const l = LESSONS.find(x => x.id === id); return l && TABS.find(t => t.course && (t.course.modules || []).includes(l.module)); };
+  const param = new URLSearchParams(location.search).get('c');
+  let mechFilter = 'all';
+  let section = param === 'game' ? 'game' : TABS.some(t => t.key === param) ? param : null;
+  // Без выбора — первый курс, где студенту что-то открыто; иначе испытания
+  const pickDefault = () => (TABS.find(t => courseLessons(t).some(l => E.lessonTasks(l).length || l.work)) || {}).key || 'game';
+  if (!section) section = pickDefault();
   $('mech-filter').innerHTML = `<button type="button" class="chip on" data-m="all">Все</button>` +
     GAME_MECH.map(([k, m]) => `<button type="button" class="chip" data-m="${k}">${m.title}</button>`).join('');
   chips('mech-filter', 'm', v => { mechFilter = v; renderList(); });
-  if (!COURSE.length) $('sec-filter').hidden = true;
-  $('sec-filter').querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === section));
-  chips('sec-filter', 's', v => { section = v; renderList(); });
+  function renderTabs() {
+    $('sec-filter').innerHTML = TABS.map(t => `<a class="chip${section === t.key ? ' on' : ''}" href="tasks.html?c=${t.key}"${section === t.key ? ' aria-current="page"' : ''}${t.course ? ` title="${esc(t.course.title)}"` : ''}>${t.code}</a>`).join('')
+      + `<a class="chip${section === 'game' ? ' on' : ''}" href="tasks.html?c=game"${section === 'game' ? ' aria-current="page"' : ''}>Испытания</a>`;
+  }
 
   function status(t) {
     const s = St.taskState(t.id);
@@ -50,20 +64,49 @@
         <p class="tc-status">${locked ? '🔒 откроется вместе с уроком' : s.text}</p>
       </div></li>`;
   };
+  // Работа на проверку преподавателю
+  const WORK_ST = { sent: ['started', 'на проверке у преподавателя'], returned: ['started', 'возвращена на доработку'] };
+  function workStatus(l) {
+    const w = St.workState(l.id);
+    if (!w) return { cls: 'new', text: 'не сдана' };
+    if (w.status === 'graded') return { cls: 'solved', text: `принята · ${w.grade} из ${w.max} баллов` };
+    const [cls, text] = WORK_ST[w.status] || ['new', 'не сдана'];
+    return { cls, text };
+  }
+  const workCard = (l, locked) => {
+    const s = workStatus(l);
+    return `<li class="task-card work-card ${locked ? 'locked' : s.cls}">
+      <span class="num" aria-hidden="true">✎</span>
+      <div class="tc-body">
+        <h3>${locked ? 'Сдать работу преподавателю' : `<a href="#work-${l.id}">Сдать работу преподавателю</a>`}</h3>
+        <p class="tc-meta"><span>критериев: ${l.work.criteria.length}</span><span>оценка 2/1/0 по каждому</span><span>до ${E.workReward(1, 1)} очков</span></p>
+        <p class="tc-status">${locked ? '🔒 откроется вместе с уроком' : s.text}</p>
+      </div></li>`;
+  };
+
   function renderList() {
     const st = St.state;
-    const list = section === 'course' ? COURSE : GAME;
-    const solved = list.filter(t => st.tasks[t.id]?.solved).length;
-    const pts = list.reduce((a, t) => a + (st.tasks[t.id]?.best || 0), 0);
-    $('sum-solved').textContent = `${solved} / ${list.length}`;
+    renderTabs();
+    const tab = TABS.find(t => t.key === section);
+    $('course-head').hidden = !tab;
+    if (tab) $('course-head').innerHTML = `<p class="eyebrow">${tab.code}</p><h2>${esc(tab.course ? tab.course.title.replace(tab.code, '').trim() || tab.course.title : 'Курс готовится')}</h2>${tab.course && tab.course.text ? `<p class="plate-sub">${esc(tab.course.text)}</p>` : ''}${tab.course ? ` <a href="lessons.html#course-${tab.course.id}">Все уроки курса →</a>` : ''}`;
+    const lessons = tab ? courseLessons(tab).filter(l => E.lessonTasks(l).length || l.work) : [];
+    const tasks = tab ? lessons.flatMap(l => E.lessonTasks(l).map(id => TASKS.find(t => t.id === id)).filter(Boolean)) : GAME;
+    const works = lessons.filter(l => l.work);
+    const solved = tasks.filter(t => st.tasks[t.id]?.solved).length + works.filter(l => St.workState(l.id)?.status === 'graded').length;
+    const total = tasks.length + works.length;
+    const pts = tasks.reduce((a, t) => a + (st.tasks[t.id]?.best || 0), 0) + works.reduce((a, l) => a + (St.workState(l.id)?.paid || 0), 0);
+    document.querySelector('.tasks-sum').hidden = !total;
+    $('sum-solved').textContent = `${solved} / ${total}`;
     $('sum-points').textContent = fmt(pts);
     const bar = $('sum-bar');
-    bar.querySelector('i').style.setProperty('--w', (list.length ? solved / list.length * 100 : 0) + '%');
-    bar.setAttribute('aria-valuemin', 0); bar.setAttribute('aria-valuemax', list.length); bar.setAttribute('aria-valuenow', solved);
+    bar.querySelector('i').style.setProperty('--w', (total ? solved / total * 100 : 0) + '%');
+    bar.setAttribute('aria-valuemin', 0); bar.setAttribute('aria-valuemax', total); bar.setAttribute('aria-valuenow', solved);
     $('boosts').innerHTML = boostsHTML();
     $('mech-filter').hidden = section !== 'game';
     $('mech-list').hidden = section !== 'game';
-    $('course-list').hidden = section !== 'course';
+    $('course-list').hidden = section === 'game';
+    document.title = `${tab ? tab.code + ' · ' : section === 'game' ? 'Испытания · ' : ''}Задания · Пепельный Пиксель`;
     if (section === 'game') {
       $('mech-list').innerHTML = GAME_MECH.filter(([k]) => mechFilter === 'all' || mechFilter === k).map(([k, m]) => `
       <section class="plate mech" aria-labelledby="m-${k}">
@@ -72,30 +115,81 @@
       </section>`).join('');
       return;
     }
-    // Курс: темы по порядку из админки, внутри — занятия, у занятия — его задания
-    const lessons = LESSONS.filter(l => COURSE.some(t => t.lesson === l.id));
-    const firstOpen = COURSE.find(t => access(t) === 'open' && !st.tasks[t.id]?.solved);
-    $('course-list').innerHTML = MODULES.map((m, mi) => {
+    if (!tab.course || !(tab.course.modules || []).length) {
+      $('course-list').innerHTML = `<section class="plate"><p class="empty">Курс ${tab.code} пока пуст: преподаватель ещё не добавил в него занятия и задания. Загляните сюда позже.</p></section>`;
+      return;
+    }
+    // Курс: темы по порядку курса, внутри — занятия, у занятия — задания и работа на проверку
+    const isDone = l => E.lessonTasks(l).every(id => st.tasks[id]?.solved) && E.workAccepted(l, st);
+    const firstOpen = lessons.find(l => lAccess(l) === 'open' && !isDone(l));
+    const mods = tab.course.modules.map(id => MODULES.find(m => m.id === id)).filter(Boolean);
+    $('course-list').innerHTML = mods.map((m, mi) => {
       const ls = lessons.filter(l => l.module === m.id).sort((a, b) => (a.session || a.lesson) - (b.session || b.lesson));
       if (!ls.length) return '';
-      const ts = COURSE.filter(t => ls.some(l => l.id === t.lesson));
-      const done = ts.filter(t => st.tasks[t.id]?.solved).length;
-      const open = firstOpen ? ls.some(l => l.id === firstOpen.lesson) : mi === 0;
+      const done = ls.filter(isDone).length;
+      const open = firstOpen ? ls.includes(firstOpen) : mi === 0;
       return `<details class="plate course-mod"${open ? ' open' : ''}>
-        <summary><h2>${esc(m.title)}</h2><span class="plate-sub">решено ${done} из ${ts.length}</span></summary>
+        <summary><h2>${esc(m.title)}</h2><span class="plate-sub">выполнено ${done} из ${ls.length}</span></summary>
         ${ls.map(l => {
-          const lt = window.Economy.lessonTasks(l).map(id => COURSE.find(t => t.id === id)).filter(Boolean);
-          const locked = access(lt[0]) !== 'open';
+          const lt = E.lessonTasks(l).map(id => TASKS.find(t => t.id === id)).filter(Boolean);
+          const locked = lAccess(l) !== 'open';
           return `<div class="course-lesson">
-            <h3 class="cl-title"><span class="eyebrow">${l.session ? `Занятие ${l.session}` : `Урок ${l.lesson}`}${l.kind === 'practice' ? ' · практическая работа' : l.kind === 'lecture' ? ' · лекция' : ''}</span>
+            <h3 class="cl-title"><span class="eyebrow">${l.session ? `Занятие ${l.session}` : `Урок ${l.lesson}`}${KIND[l.kind] ? ' · ' + KIND[l.kind] : ''}</span>
               ${locked ? esc(l.title) : `<a href="lessons.html#${l.id}">${esc(l.title)}</a>`}</h3>
-            <ul class="task-grid">${lt.map((t, i) => card(t, i + 1, locked)).join('')}</ul>
+            <ul class="task-grid">${lt.map((t, i) => card(t, i + 1, locked)).join('')}${l.work ? workCard(l, locked) : ''}</ul>
           </div>`;
         }).join('')}
       </details>`;
-    }).join('') || '<section class="plate"><p class="empty">Преподаватель ещё не добавил занятия вашей группе.</p></section>';
+    }).join('') || `<section class="plate"><p class="empty">Преподаватель ещё не добавил занятия курса ${tab.code} вашей группе.</p></section>`;
   }
 
+  /* ================= Работа на проверку ================= */
+  let work = null;
+  function openWork(id) {
+    const l = LESSONS.find(x => x.id === id && x.work);
+    if (!l || lAccess(l) === 'hidden') { location.hash = ''; return; }
+    if (lAccess(l) !== 'open') { toast('Эта работа откроется вместе с уроком.'); location.hash = ''; return; }
+    work = l;
+    const home = tabOfLesson(l.id);
+    if (home && section !== home.key) section = home.key;
+    ['list-view', 'task-view'].forEach(v => { $(v).hidden = true; }); $('work-view').hidden = false;
+    document.title = `${l.title} · Сдать работу · Пепельный Пиксель`;
+    $('w-crumb').textContent = `${l.session ? `Работа ${l.session} из 65` : ''}${KIND[l.kind] ? ' · ' + KIND[l.kind] : ''}`;
+    $('w-title').textContent = l.title;
+    $('w-lesson').href = `lessons.html#${l.id}`;
+    renderWork();
+    window.scrollTo(0, 0); $('w-title').focus({ preventScroll: true });
+  }
+  function renderWork() {
+    const l = work, w = St.workState(l.id), graded = w && w.scores && w.status !== 'sent';
+    const pill = !w ? ['new', 'Не сдана'] : w.status === 'sent' ? ['soon', 'На проверке'] : w.status === 'graded' ? ['on', `Принята: ${w.grade} из ${w.max} баллов`] : ['late', 'Возвращена на доработку'];
+    $('w-status').innerHTML = `<p><span class="pill ${pill[0]}">${pill[1]}</span>${w && w.sentAt ? ` <small>сдана ${new Date(w.sentAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${w.tries > 1 ? `, попытка ${w.tries}` : ''}</small>` : ''}</p>
+      ${!w ? '<p>Прочитайте лекцию и ход работы, сделайте работу, отметьте выполненные критерии и пришлите ссылку. Преподаватель поставит 2, 1 или 0 баллов по каждому критерию.</p>' : ''}
+      ${w && w.status === 'sent' ? '<p>Преподаватель увидит работу в админке. Пока она на проверке, отправить её ещё раз нельзя.</p>' : ''}
+      ${w && w.status === 'graded' ? `<p>Награда: +${fmt(w.paid || 0)} XP и душ. Можно доработать и сдать снова: за более высокую оценку доначислится разница.</p>` : ''}
+      ${w && w.note ? `<blockquote class="teacher-note"><b>Преподаватель:</b> ${esc(w.note).replace(/\n/g, '<br>')}</blockquote>` : ''}`;
+    $('w-crit').innerHTML = `<thead><tr><th scope="col">Сделано</th><th scope="col">Критерий</th><th scope="col">2 балла</th><th scope="col">1 балл</th><th scope="col">0 баллов</th>${graded ? '<th scope="col">Оценка</th>' : ''}</tr></thead>
+      <tbody>${l.work.criteria.map((c, i) => `<tr><td><input type="checkbox" id="w-c${i}" aria-label="Сделано: ${esc(c.name)}"${w && w.checks && w.checks[i] ? ' checked' : ''}></td><th scope="row"><label for="w-c${i}">${esc(c.name)}</label></th>
+        <td>${esc(c.d2)}</td><td>${esc(c.d1)}</td><td>${esc(c.d0)}</td>${graded ? `<td class="num"><b>${w.scores[i]}</b></td>` : ''}</tr>`).join('')}</tbody>`;
+    $('w-link').value = w ? w.link || '' : ''; $('w-comment').value = w ? w.comment || '' : '';
+    const sent = w && w.status === 'sent';
+    $('w-send').disabled = !!sent; $('w-send').textContent = !w ? 'СДАТЬ НА ПРОВЕРКУ' : sent ? 'НА ПРОВЕРКЕ' : 'СДАТЬ СНОВА';
+    $('w-link').disabled = !!sent; $('w-comment').disabled = !!sent;
+    $('w-note').textContent = '';
+  }
+  $('w-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const checks = work.work.criteria.map((c, i) => $('w-c' + i).checked);
+    const r = St.submitWork(work.id, $('w-link').value.trim(), $('w-comment').value.trim(), checks);
+    if (r.ok === false) { $('w-note').textContent = r.msg; if (sfx.error) sfx.error(); return; }
+    if (sfx.lit) sfx.lit();
+    renderWork();
+    $('w-note').textContent = 'Работа отправлена преподавателю.';
+    toast('Работа отправлена на проверку.');
+  });
+  $('w-back').addEventListener('click', e => { e.preventDefault(); location.hash = ''; });
+  // Оценка пришла с сервера (страница подхватывает новое состояние) — обновляем открытую работу
+  St.on(() => { if (work && !$('work-view').hidden) { const keep = [$('w-link').value, $('w-comment').value]; renderWork(); if (St.workState(work.id)?.status !== 'sent') { $('w-link').value = keep[0]; $('w-comment').value = keep[1]; } } });
   /* ================= Рабочее место ================= */
   const CM = window.CodeMirror;
   CM.registerHelper('lint', 'html', text => R.htmlLint(text).map(m => ({ from: CM.Pos(m.line - 1, Math.max(0, m.col - 1)), to: CM.Pos(m.line - 1, m.col), message: m.message, severity: m.type })));
@@ -215,7 +309,11 @@
     else task = TASKS.find(t => t.id === id);
     if (!task) { location.hash = ''; return; }
     if (!task.sandbox && access(task) !== 'open') { toast('Это задание откроется вместе с уроком.'); location.hash = ''; return; }
-    $('list-view').hidden = true; $('task-view').hidden = false;
+    work = null;
+    // Задание открыли со страницы урока: «← Все задания» вернёт на страницу его курса
+    const home = task.lesson && tabOfLesson(task.lesson);
+    if (home && !param) section = home.key;
+    $('list-view').hidden = true; $('work-view').hidden = true; $('task-view').hidden = false;
     document.title = `${task.title} · Задания · Пепельный Пиксель`;
     const lesson = task.sandbox ? LESSONS.find(l => l.id === task.from) : lessonOf(task);
     const num = lesson ? window.Economy.lessonTasks(lesson).indexOf(task.id) + 1 : 0;
@@ -254,9 +352,8 @@
   }
   function close() {
     sendWork();
-    task = null; clearInterval(tick); tick = null;
-    $('task-view').hidden = true; $('list-view').hidden = false;
-    document.title = 'Задания · Пепельный Пиксель';
+    task = null; work = null; clearInterval(tick); tick = null;
+    $('task-view').hidden = true; $('work-view').hidden = true; $('list-view').hidden = false;
     renderList();
   }
   /* ---------- время работы над заданием ---------- */
@@ -282,7 +379,12 @@
     if (s && s.startedAt) { startedAt = Date.parse(s.startedAt); clock(); }
   });
 
-  const route = () => { const id = location.hash.slice(1); if (/^(t\d\d|k\d{4}|sandbox)$/.test(id)) open(id); else close(); };
+  const route = () => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (/^(t\d\d|[kw]\d{4}|sandbox)$/.test(id)) open(id);
+    else if (id.startsWith('work-')) { sendWork(); task = null; clearInterval(tick); tick = null; openWork(id.slice(5)); }
+    else close();
+  };
   window.addEventListener('hashchange', route);
   $('back').addEventListener('click', e => { e.preventDefault(); location.hash = ''; });
 

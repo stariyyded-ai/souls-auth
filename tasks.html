@@ -34,21 +34,46 @@
       <div id="list-view">
         <div class="page-head">
           <h1>Задания</h1>
-          <p class="lead">Задания курса привязаны к занятиям: решайте их после урока. Испытания — 25 игровых заданий по HTML и CSS. Очки = базовый балл за результат + бонус за чистый код (до 40%) + бонус за скорость (до 30%, если уложились в норму времени). Перерешать можно сколько угодно: начисляется только прирост к лучшему результату.</p>
+          <p class="lead">Выберите курс: у каждого своя страница с заданиями по занятиям. Задания с автопроверкой решаются прямо здесь, а работы курса МДК.09.01 сдаются преподавателю на оценку. Испытания — 25 игровых заданий по HTML и CSS. Очки = базовый балл за результат + бонус за чистый код (до 40%) + бонус за скорость (до 30%, если уложились в норму времени). Перерешать можно сколько угодно: начисляется только прирост к лучшему результату.</p>
         </div>
-        <div class="chips sec-filter" role="group" aria-label="Раздел" id="sec-filter">
-          <button type="button" class="chip on" data-s="course">Задания курса</button>
-          <button type="button" class="chip" data-s="game">Испытания</button>
-        </div>
+        <nav class="chips sec-filter course-tabs" aria-label="Курсы" id="sec-filter"></nav>
+        <section class="plate course-head" id="course-head" hidden></section>
         <section class="plate tasks-sum" aria-label="Прогресс">
-          <div><p class="eyebrow">Решено</p><p class="big" id="sum-solved">0</p></div>
+          <div><p class="eyebrow">Выполнено</p><p class="big" id="sum-solved">0</p></div>
           <div class="sum-bar"><div class="bar xp" role="progressbar" aria-label="Решено заданий" id="sum-bar"><i></i></div></div>
-          <div><p class="eyebrow">Очков за задания</p><p class="big" id="sum-points">0</p></div>
+          <div><p class="eyebrow">Очков</p><p class="big" id="sum-points">0</p></div>
           <div class="boosts" id="boosts"></div>
         </section>
         <div class="chips mech-filter" role="group" aria-label="Механика" id="mech-filter"></div>
         <div id="mech-list"></div>
         <div id="course-list"></div>
+      </div>
+
+      <!-- Работа на проверку преподавателю (курс МДК.09.01) -->
+      <div id="work-view" hidden>
+        <div class="task-top">
+          <div class="back-links"><a href="#" class="back" id="w-back">← Все задания курса</a><a href="lessons.html" class="back" id="w-lesson">← Лекция и ход работы</a></div>
+          <div class="task-title">
+            <p class="eyebrow" id="w-crumb"></p>
+            <h1 id="w-title" tabindex="-1"></h1>
+          </div>
+        </div>
+        <section class="plate work-status" id="w-status" aria-live="polite"></section>
+        <section class="plate" aria-labelledby="w-crit-title">
+          <div class="plate-head"><h2 id="w-crit-title">Критерии оценки</h2><p class="plate-sub">по каждому критерию 2, 1 или 0 баллов</p></div>
+          <p class="hint">Отметьте, что уже сделано: это ваша самопроверка, преподаватель её увидит.</p>
+          <div class="table-wrap"><table class="crit-table" id="w-crit"></table></div>
+        </section>
+        <section class="plate" aria-labelledby="w-form-title">
+          <div class="plate-head"><h2 id="w-form-title">Сдать работу</h2></div>
+          <form class="work-form" id="w-form" novalidate>
+            <label for="w-link">Ссылка на работу</label>
+            <input id="w-link" type="url" inputmode="url" maxlength="500" placeholder="https://github.com/… или ссылка на Figma, Google Диск, хостинг">
+            <label for="w-comment">Комментарий преподавателю</label>
+            <textarea id="w-comment" rows="4" maxlength="2000" placeholder="Что сделано, что не получилось, где лежат файлы, если работа на компьютере в классе"></textarea>
+            <div class="work-actions"><button type="submit" class="btn" id="w-send">СДАТЬ НА ПРОВЕРКУ</button><p class="note" id="w-note" role="status"></p></div>
+          </form>
+        </section>
       </div>
 
       <!-- Одно задание -->

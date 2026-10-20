@@ -4855,3 +4855,850 @@ form.addEventListener('submit', (event) => {
     })
   });
 })();
+/* ---- tools/solutions/w20.js ---- */
+/* Занятие 20: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2001: () => ({
+      html: `<header class="header">
+  <a class="logo" href="#requests">ЧистоДом</a>
+  <nav class="nav" aria-label="Меню">
+    <a href="#new">Новая заявка</a>
+    <a href="#exit">Выход</a>
+  </nav>
+</header>
+<main class="page">
+  <h1>Мои заявки</h1>
+  <article class="card">
+    <h2>Генеральная уборка</h2>
+    <p>12.11.2026, 10:00 · ул. Ленина, 5</p>
+  </article>
+</main>`,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 16px; background: #0f766e; }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.nav { display: flex; gap: 16px; }
+.nav a { color: #ffffff; }
+.page { padding: 24px 16px; }
+h1 { margin: 0 0 16px; font-size: 28px; }
+.card { width: 100%; padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; }
+.card h2 { margin: 0 0 8px; font-size: 18px; }`
+    }),
+    w2002: t => ({
+      html: t.html,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.page { padding: 24px 16px; }
+h1 { margin: 0 0 16px; font-size: 28px; }
+.requests { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.request-card { padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff; }
+.request-card h2 { margin: 0 0 8px; font-size: 18px; }
+.request-info { display: grid; grid-template-columns: 100px 1fr; gap: 4px 12px; margin: 0; }
+.request-info dt { color: #64748b; }
+.request-info dd { margin: 0; }
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w21.js ---- */
+/* Занятие 21: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2101: t => ({
+      html: t.html,
+      css: `:root {
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-on-primary: #ffffff;
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #cbd5e1;
+  --radius: 12px;
+  --space-2: 16px;
+  --space-3: 24px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: var(--color-text); background: var(--color-bg); }
+.header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2); background: var(--color-primary); }
+.header a { color: var(--color-on-primary); text-decoration: none; }
+.nav { display: flex; gap: var(--space-2); }
+.page { padding: var(--space-3) var(--space-2); }
+.muted { color: var(--color-muted); }
+.btn { padding: 12px var(--space-3); border: 0; border-radius: var(--radius); background: var(--color-primary); color: var(--color-on-primary); font: inherit; cursor: pointer; }
+.btn:hover { background: var(--color-primary-dark); }
+.card { margin-top: var(--space-3); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.card h2 { margin: 0 0 8px; color: var(--color-primary); }`
+    }),
+    w2102: t => ({
+      html: t.html,
+      css: `${t.css}.page { width: 100%; max-width: 480px; margin: 0 auto; padding: var(--space-3) var(--space-2); }
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover { background: var(--color-primary-dark); }
+.btn--block { width: 100%; }
+.btn--outline { background: transparent; color: var(--color-primary); border: 2px solid var(--color-primary); }
+.card { background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--space-2); }
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w22.js ---- */
+/* Занятие 22: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2201: t => ({
+      html: `<main class="page">
+  <h1>Регистрация</h1>
+  <form class="form" action="#" method="post">
+    <div class="field">
+      <label for="login">Логин</label>
+      <input type="text" id="login" name="login" required minlength="6" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <input type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label for="fio">ФИО</label>
+      <input type="text" id="fio" name="fio" required pattern="[А-Яа-яЁё\\s\\-]+" title="Только русские буквы, пробелы и дефис" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="phone">Телефон</label>
+      <input type="tel" id="phone" name="phone" required pattern="\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}" placeholder="+7(900)-123-45-67" autocomplete="tel">
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required autocomplete="email">
+    </div>
+    <button class="btn" type="submit">Зарегистрироваться</button>
+  </form>
+</main>`,
+      css: t.css
+    }),
+    w2202: t => ({
+      html: t.html.replace('    <!-- Допишите: вид услуги, дата, время, тип оплаты, комментарий, согласие -->\n', `    <div class="field">
+      <label for="service">Вид услуги</label>
+      <select id="service" name="service_id" required>
+        <option value="">— Выберите услугу —</option>
+        <option value="1">Общий клининг</option>
+        <option value="2">Генеральная уборка</option>
+        <option value="3">Послестроительная уборка</option>
+        <option value="4">Химчистка ковров и мебели</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="date">Дата</label>
+      <input type="date" id="date" name="date" required min="2026-12-01">
+    </div>
+    <div class="field">
+      <label for="time">Время</label>
+      <input type="time" id="time" name="time" required>
+    </div>
+    <fieldset class="field">
+      <legend>Тип оплаты</legend>
+      <label><input type="radio" name="payment" value="cash" required> Наличными</label>
+      <label><input type="radio" name="payment" value="card"> Банковской картой</label>
+    </fieldset>
+    <div class="field">
+      <label for="comment">Комментарий</label>
+      <textarea id="comment" name="comment" rows="3" maxlength="300"></textarea>
+    </div>
+    <label><input type="checkbox" name="agree" required> Согласен на обработку персональных данных</label>
+`),
+      css: t.css
+    })
+  });
+})();
+/* ---- tools/solutions/w23.js ---- */
+/* Занятие 23: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2301: t => ({
+      html: t.html,
+      css: `${t.css}.form { display: flex; flex-direction: column; gap: var(--space-2); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field__label { font-weight: 600; font-size: var(--fs-small); }
+.field__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+}
+.field__input:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 1px; border-color: var(--color-primary); }
+.field__hint { margin: 0; font-size: var(--fs-small); color: var(--color-muted); }
+.field__error { margin: 0; font-size: var(--fs-small); color: var(--color-error); }
+.field--error .field__input { border-color: var(--color-error); }
+`
+    }),
+    w2302: t => ({
+      html: t.html
+        .replace('<div class="alert alert--error">', '<div class="alert alert--error" role="alert">')
+        .replace('id="login" name="login" required>', 'id="login" name="login" required autocomplete="username">')
+        .replace('id="password" name="password" required>', 'id="password" name="password" required autocomplete="current-password">'),
+      css: `${t.css}.page--auth { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; }
+.alert { margin-bottom: var(--space-2); padding: 12px var(--space-2); border-radius: var(--radius); font-size: var(--fs-small); }
+.alert--error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.auth__link { text-align: center; }
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w24.js ---- */
+/* Занятие 24: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2401: t => ({
+      html: t.html,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.page { width: min(100% - 32px, 1100px); margin: 0 auto; }
+h1 { font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem); }
+.requests { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.request-card { padding: 16px; border-radius: 12px; background: #ffffff; }
+.request-card h2 { margin: 0 0 8px; font-size: 1.125rem; }
+.request-card p { margin: 0; color: #64748b; }
+
+@media (min-width: 768px) {
+  .requests { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 1200px) {
+  .requests { grid-template-columns: repeat(3, 1fr); }
+}`
+    }),
+    w2402: t => ({
+      html: t.html,
+      css: `*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; color: #0f172a; background: #f8fafc; }
+.header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 16px; background: #0f766e; }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; color: #ffffff; font-size: 1.125rem; }
+.page { padding: 24px 16px; }
+.request-card { padding: 16px; border-radius: 12px; background: #ffffff; }
+.request-card img { display: block; max-width: 100%; height: auto; }
+
+@media (hover: hover) {
+  .request-card:hover { box-shadow: 0 8px 20px rgb(15 23 42 / 0.12); }
+}`
+    })
+  });
+})();
+/* ---- tools/solutions/w25.js ---- */
+/* Занятие 25: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2501: t => ({
+      html: t.html,
+      css: `${t.css}.request-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-1); margin-bottom: var(--space-1); }
+.request-card__title { margin: 0; font-size: 1.125rem; }
+.request-card__info { display: grid; grid-template-columns: 80px 1fr; gap: 4px var(--space-1); margin: 0; font-size: var(--fs-small); }
+.request-card__info dt { color: var(--color-muted); }
+.request-card__info dd { margin: 0; }
+.request-card__reason { margin: var(--space-1) 0 0; padding: var(--space-1); border-left: 3px solid var(--status-cancel); background: #fef2f2; font-size: var(--fs-small); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #ffffff;
+}
+.badge--new { background: var(--status-new); }
+.badge--work { background: var(--status-work); color: #1f2937; }
+.badge--done { background: var(--status-done); }
+.badge--cancel { background: var(--status-cancel); }
+`
+    }),
+    w2502: t => ({
+      html: t.html.replace(/<th>/g, '<th scope="col">'),
+      css: `${t.css}.table-wrap { overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th,
+.admin-table td { padding: var(--space-1); text-align: left; border-bottom: 1px solid var(--color-border); }
+
+@media (max-width: 767px) {
+  .admin-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .admin-table tr { display: block; margin-bottom: var(--space-2); background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .admin-table td { display: grid; grid-template-columns: 90px 1fr; gap: var(--space-1); }
+  .admin-table td::before { content: attr(data-label); font-weight: 600; color: var(--color-muted); }
+}
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w26.js ---- */
+/* Занятие 26: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2601: t => ({
+      html: t.html.replace('<div class="requests">', '<div class="requests row g-3">').replace(/ {6}<div>\n/g, '      <div class="col-12 col-md-6">\n'),
+      css: `${t.css}:root {
+  --bs-primary: #0f766e;
+  --bs-primary-rgb: 15, 118, 110;
+  --bs-border-radius: 12px;
+}
+.btn-primary {
+  --bs-btn-bg: #0f766e;
+  --bs-btn-border-color: #0f766e;
+  --bs-btn-hover-bg: #115e59;
+}
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w27.js ---- */
+/* Занятие 27: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2701: t => ({
+      html: t.html,
+      css: t.css
+        .replace('font-weight: 600; cursor: pointer; }', 'font-weight: 600; cursor: pointer; transition: background-color 0.2s ease, transform 0.15s ease; }')
+        .replace('.btn:hover { background: var(--color-primary-dark); transition: all 1s; }', `.btn:hover { background: var(--color-primary-dark); }
+.btn:active { transform: scale(0.97); }`)
+        .replace('box-shadow: var(--shadow); }\n.request-card:hover { position: relative; top: -4px; }', `box-shadow: var(--shadow); transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
+.request-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgb(15 23 42 / 0.12); }`)
+    }),
+    w2702: t => ({
+      html: t.html,
+      css: `${t.css
+        .replace('color: #166534; }', 'color: #166534; animation: slide-down 0.3s ease-out both; }')
+        .replace('box-shadow: var(--shadow); }', 'box-shadow: var(--shadow); animation: fade-up 0.4s ease-out both; }')}@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.request-card:nth-child(2) { animation-delay: 80ms; }
+.request-card:nth-child(3) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .request-card,
+  .alert { animation: none; }
+}
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w28.js ---- */
+/* Занятие 28: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w2801: t => ({
+      html: t.html
+        .replace('>ЧистоДом</a>', '>ТехноПульс</a>')
+        .replace(`        <option value="1">Общий клининг</option>
+        <option value="2">Генеральная уборка</option>
+        <option value="3">Послестроительная уборка</option>
+        <option value="4">Химчистка ковров и мебели</option>`, `        <option value="1">Ремонт смартфона</option>
+        <option value="2">Ремонт ноутбука</option>
+        <option value="3">Ремонт бытовой техники</option>
+        <option value="4">Иная услуга</option>`)
+        .replace('    <button class="btn" type="submit">', `    <fieldset class="field">
+      <legend class="field__label">Тип оплаты</legend>
+      <label class="choice"><input type="radio" name="payment" value="cash" required> Наличные</label>
+      <label class="choice"><input type="radio" name="payment" value="card"> Банковская карта</label>
+    </fieldset>
+    <button class="btn" type="submit">`),
+      css: t.css
+        .replace('--color-primary: #0f766e;', '--color-primary: #1d4ed8;')
+        .replace('--color-primary-dark: #115e59;', '--color-primary-dark: #1e3a8a;')
+        .replace('--color-accent: #f59e0b;', '--color-accent: #f97316;')
+        .replace('--color-bg: #f8fafc;', '--color-bg: #f1f5f9;')
+        .replace('--color-text: #0f172a;', '--color-text: #111827;')
+        .replace('--color-error: #dc2626;', '--color-error: #b91c1c;')
+        .replace('--radius: 12px;', '--radius: 8px;')
+    })
+  });
+})();
+/* ---- tools/solutions/w53.js ---- */
+/* Занятие 53: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5301: t => ({
+      html: t.html, css: t.css,
+      js: `// Проверка формы регистрации
+const form = document.getElementById('register-form');
+
+function showError(name, message) {
+  const input = document.querySelector(\`[name="\${name}"]\`);
+  const box = document.getElementById(\`\${name}-error\`);
+  input.classList.add('is-invalid');
+  input.setAttribute('aria-invalid', 'true');
+  box.textContent = message;
+}
+
+function clearError(name) {
+  const input = document.querySelector(\`[name="\${name}"]\`);
+  const box = document.getElementById(\`\${name}-error\`);
+  input.classList.remove('is-invalid');
+  input.removeAttribute('aria-invalid');
+  box.textContent = '';
+}
+
+form.addEventListener('submit', (event) => {
+  const login = form.login.value.trim();
+  const password = form.password.value;
+  const password2 = form.password2.value;
+  let ok = true;
+
+  if (login.length < 6) {
+    showError('login', 'Логин — не менее 6 символов');
+    ok = false;
+  } else {
+    clearError('login');
+  }
+
+  if (password === '') {
+    showError('password', 'Введите пароль');
+    ok = false;
+  } else {
+    clearError('password');
+  }
+
+  if (password2 !== password) {
+    showError('password2', 'Пароли не совпадают');
+    ok = false;
+  } else {
+    clearError('password2');
+  }
+
+  if (!ok) event.preventDefault();
+});
+`
+    }),
+    w5302: t => ({
+      html: t.html, css: t.css,
+      js: t.js.replace('// Ваш код: один обработчик input на всю форму\n', `// Живые события: один обработчик на всю форму
+form.addEventListener('input', (event) => {
+  if (event.target.name) clearError(event.target.name);
+
+  counter.textContent = \`Символов: \${form.fio.value.trim().length}\`;
+
+  const names = ['login', 'password', 'password2', 'fio'];
+  send.disabled = names.some((name) => form[name].value.trim() === '');
+});
+`)
+    })
+  });
+})();
+/* ---- tools/solutions/w54.js ---- */
+/* Занятие 54: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5401: t => ({
+      html: t.html, css: t.css,
+      js: t.js
+        .replace("fio:   { test: (v) => true,", "fio:   { test: (v) => /^[А-ЯЁа-яё]+(?:[ -][А-ЯЁа-яё]+)*$/.test(v),")
+        .replace("phone: { test: (v) => true,", "phone: { test: (v) => /^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}$/.test(v),")
+        .replace("email: { test: (v) => true,", "email: { test: (v) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(v),")
+        .replace("login: { test: (v) => true,", "login: { test: (v) => v.length >= 6,")
+        .replace('// Ваш код: focusout на форме и submit с проверкой всех полей\n', `// проверяем поле, когда пользователь его покинул
+form.addEventListener('focusout', (e) => {
+  if (e.target.name) validateField(e.target);
+});
+
+// финальная проверка перед отправкой: map — чтобы проверились ВСЕ поля
+form.addEventListener('submit', (e) => {
+  const fields = [...form.querySelectorAll('input[name]')];
+  const results = fields.map(validateField);
+  if (results.includes(false)) {
+    e.preventDefault();
+    form.querySelector('.is-invalid')?.focus();
+  }
+});
+`)
+    }),
+    w5402: t => ({
+      html: t.html.replace('inputmode="tel"', 'inputmode="tel" maxlength="17" placeholder="+7(XXX)-XXX-XX-XX"'),
+      css: t.css,
+      js: `// js/phone-mask.js
+function formatPhone(value) {
+  let digits = value.replace(/\\D/g, '');
+  if (digits.startsWith('7') || digits.startsWith('8')) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  if (digits.length === 0) return '';
+  let result = '+7(' + digits.slice(0, 3);
+  if (digits.length > 3) result += ')-' + digits.slice(3, 6);
+  if (digits.length > 6) result += '-' + digits.slice(6, 8);
+  if (digits.length > 8) result += '-' + digits.slice(8, 10);
+  return result;
+}
+
+document.querySelectorAll('input[name="phone"]').forEach((input) => {
+  input.addEventListener('input', () => {
+    input.value = formatPhone(input.value);
+  });
+});
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w55.js ---- */
+/* Занятие 55: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5501: t => ({
+      html: t.html, css: t.css,
+      js: t.js.replace('// Ваш код: async function checkLogin() и обработчик blur\n', `async function checkLogin() {
+  const login = loginInput.value.trim();
+  if (login.length < 6) return; // короткий — пусть ругается валидация из ЛР33
+
+  try {
+    const url = 'check_login.php?login=' + encodeURIComponent(login);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+
+    loginInput.classList.toggle('is-invalid', !data.free);
+    loginInput.classList.toggle('is-valid', data.free);
+    loginBox.textContent = data.free ? '' : data.message;
+  } catch (err) {
+    console.error(err);
+    loginBox.textContent = 'Не удалось проверить логин';
+  }
+}
+
+loginInput.addEventListener('blur', checkLogin);
+`)
+    }),
+    w5502: t => ({
+      html: t.html, css: t.css,
+      js: t.js.replace(`// 1. JSON туда и обратно: переменные note и parsed
+
+// 2. Кнопка «Который час?»
+`, `// JSON туда и обратно
+const note = JSON.stringify({ a: 1, b: 'текст' });
+const parsed = JSON.parse('{"x": [1, 2, 3]}');
+console.log(note, parsed.x);
+
+// Кнопка «Который час?»
+ask.addEventListener('click', async () => {
+  try {
+    const response = await fetch('hello.php');
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    answer.textContent = \`\${data.name}: сейчас \${data.time}\`;
+  } catch (err) {
+    answer.textContent = 'Сервер не отвечает';
+  }
+});
+`)
+    })
+  });
+})();
+/* ---- tools/solutions/w56.js ---- */
+/* Занятие 56: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5601: t => ({
+      html: t.html,
+      css: `:root {
+  --color-primary: #1f4fb8;
+  --color-text: #1d1f24;
+  --color-muted: #4b5563;
+  --color-bg: #f6f7fb;
+  --color-success: #146c43;
+  --color-warning: #8a5a00;
+  --color-danger: #b42318;
+}
+body { margin: 0; font-family: Arial, sans-serif; color: var(--color-text); background: var(--color-bg); }
+.top { padding: 12px 16px; background: var(--color-primary); }
+.logo { color: #ffffff; font-weight: 700; text-decoration: none; }
+.admin { padding: 16px; }
+.table { width: 100%; border-collapse: collapse; background: #ffffff; }
+.table th, .table td { padding: 8px; border-bottom: 1px solid var(--color-muted); text-align: left; }
+.table th { color: var(--color-muted); }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--color-muted); color: #ffffff; font-size: 14px; }
+.badge-new { background: var(--color-primary); }
+.badge-work { background: var(--color-warning); }
+.badge-done { background: var(--color-success); }
+.badge-cancel { background: var(--color-muted); }
+.btn-main { margin-top: 16px; padding: 8px 16px; border: 0; border-radius: 12px; background: var(--color-primary); color: #ffffff; font: inherit; cursor: pointer; }
+.btn-main:hover { background: var(--color-text); }`,
+      js: `// js/statuses.js
+const STATUS = {
+  new:       { text: 'Новая',     cls: 'badge-new' },
+  in_work:   { text: 'В работе',  cls: 'badge-work' },
+  done:      { text: 'Выполнена', cls: 'badge-done' },
+  cancelled: { text: 'Отменена',  cls: 'badge-cancel' },
+};
+
+function renderBadge(el, status) {
+  const s = STATUS[status] ?? { text: status, cls: '' };
+  el.textContent = s.text;
+  el.className = \`badge \${s.cls}\`;
+}
+
+document.querySelectorAll('[data-badge]').forEach((b) => renderBadge(b, b.textContent.trim()));
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w57.js ---- */
+/* Занятие 57: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5701: t => ({
+      html: t.html,
+      css: `${t.css}.modal-anim[open] { animation: modal-in .25s ease-out; }
+.modal-anim.is-closing { animation: modal-out .2s ease-in forwards; }
+
+@keyframes modal-in { from { opacity: 0; transform: translateY(24px) scale(.97); } }
+@keyframes modal-out { to { opacity: 0; transform: translateY(24px) scale(.97); } }
+`,
+      js: `// Модальное окно с анимацией
+function openModal(dialog) {
+  dialog.showModal();
+}
+
+function closeModal(dialog, value = '') {
+  dialog.classList.add('is-closing');
+  dialog.addEventListener('animationend', () => {
+    dialog.classList.remove('is-closing');
+    dialog.close(value);
+  }, { once: true });
+}
+
+document.addEventListener('click', (e) => {
+  const opener = e.target.closest('[data-open]');
+  if (opener) openModal(document.getElementById(opener.dataset.open));
+});
+
+document.querySelectorAll('dialog.modal-anim').forEach((dialog) => {
+  dialog.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeModal(dialog, 'cancel');
+  });
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) closeModal(dialog, 'cancel');
+  });
+  dialog.querySelector('[data-close]').addEventListener('click', () => closeModal(dialog, 'ok'));
+});
+`
+    }),
+    w5702: t => ({
+      html: t.html,
+      css: `${t.css.replace('color: #ffffff; }', 'color: #ffffff; opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; }')}.toast.is-shown { opacity: 1; transform: none; }
+.toast--error { background: #b42318; }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition-duration: 0.01ms; }
+}
+`,
+      js: `// Уведомления
+function showToast(text, type = 'success', ms = 3000) {
+  const box = document.getElementById('toasts');
+  const toast = document.createElement('div');
+  toast.className = \`toast toast--\${type}\`;
+  toast.textContent = text;
+  box.append(toast);
+
+  requestAnimationFrame(() => toast.classList.add('is-shown'));
+
+  setTimeout(() => {
+    toast.classList.remove('is-shown');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, ms);
+}
+
+document.getElementById('create').addEventListener('click', () => showToast('Заявка создана'));
+document.getElementById('fail').addEventListener('click', () => showToast('Не удалось отправить заявку', 'error'));
+`
+    })
+  });
+})();
+/* ---- tools/solutions/w58.js ---- */
+/* Занятие 58: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5801: t => ({
+      html: t.html
+        .replace(' width="40" height="40" loading="lazy">', ' width="40" height="40">')
+        .replace('<button class="icon-btn" type="button">', '<button class="icon-btn" type="button" aria-label="Закрыть">')
+        .replace('alt="Уборка квартиры после ремонта">', 'alt="Уборка квартиры после ремонта" width="300" height="150" loading="lazy">')
+        .replace('<input id="fio" name="fio" placeholder="ФИО">', '<label for="fio">ФИО</label>\n    <input id="fio" name="fio" placeholder="Иванов Иван" autocomplete="name">')
+        .replace('<input id="phone" name="phone" type="tel" placeholder="Телефон">', '<label for="phone">Телефон</label>\n    <input id="phone" name="phone" type="tel" placeholder="+7(XXX)-XXX-XX-XX" autocomplete="tel" aria-describedby="phone-error">')
+        .replace('<input id="email" name="email" type="email" placeholder="Email">', '<label for="email">Email</label>\n    <input id="email" name="email" type="email" placeholder="user@mail.ru" autocomplete="email">'),
+      css: t.css
+        .replace('.note { color: #aaaaaa; }', '.note { color: #555555; }')
+        .replace('* { outline: none; }', `img { max-width: 100%; height: auto; }
+:focus-visible { outline: 3px solid #1f4fb8; outline-offset: 2px; }`)
+    })
+  });
+})();
+/* ---- tools/solutions/w59.js ---- */
+/* Занятие 59: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w5901: t => ({
+      html: t.html, css: t.css,
+      js: t.js.replace('// Ваш код: saveStatus и один обработчик change на таблице\n', `async function saveStatus(select, status, reason = '') {
+  const row = select.closest('tr');
+  select.disabled = true;                       // защита от двойного клика
+  try {
+    const response = await fetch('update_status.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify({ id: Number(row.dataset.id), status, reason }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || \`Ошибка \${response.status}\`);
+
+    select.dataset.current = status;            // запоминаем новое значение
+    renderBadge(row.querySelector('[data-badge]'), status);
+    showToast('Статус изменён');
+  } catch (err) {
+    select.value = select.dataset.current;      // откат к старому значению
+    showToast(err.message, 'error');
+  } finally {
+    select.disabled = false;
+  }
+}
+
+document.querySelector('table').addEventListener('change', (e) => {
+  const select = e.target.closest('.status-select');
+  if (select) saveStatus(select, select.value);
+});
+`)
+    }),
+    w5902: t => ({
+      html: t.html, css: t.css,
+      js: t.js.replace(`// 1. change на таблице: cancelled — окно, остальное — сразу saveStatus
+
+// 2. submit формы причины
+
+// 3. Кнопка «Не отменять»
+
+// 4. Событие close: вернуть select, если отмену не подтвердили
+`, `document.querySelector('table').addEventListener('change', (e) => {
+  const select = e.target.closest('.status-select');
+  if (!select) return;
+  if (select.value === 'cancelled') {
+    pendingSelect = select;
+    reasonInput.value = '';
+    reasonError.textContent = '';
+    reasonInput.classList.remove('is-invalid');
+    dialog.showModal();
+    reasonInput.focus();
+  } else {
+    saveStatus(select, select.value);
+  }
+});
+
+cancelForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const reason = reasonInput.value.trim();
+  if (reason === '') {
+    reasonInput.classList.add('is-invalid');
+    reasonError.textContent = 'Укажите причину отмены';
+    reasonInput.focus();
+    return;
+  }
+  const select = pendingSelect;
+  pendingSelect = null;
+  dialog.close();
+  saveStatus(select, 'cancelled', reason);
+});
+
+document.querySelector('[data-cancel-close]').addEventListener('click', () => dialog.close());
+
+// закрыли окно без подтверждения (кнопка, Esc) — вернуть select назад
+dialog.addEventListener('close', () => {
+  if (pendingSelect) {
+    pendingSelect.value = pendingSelect.dataset.current;
+    pendingSelect = null;
+  }
+});
+`)
+    })
+  });
+})();
+/* ---- tools/solutions/w60.js ---- */
+/* Занятие 60: эталонные решения */
+(() => {
+  Object.assign(window.TASK_SOLUTIONS = window.TASK_SOLUTIONS || {}, {
+    w6001: t => ({
+      html: t.html, css: t.css,
+      js: `// js/validation.js — минимальный экзаменационный вариант
+const rules = {
+  fio:   [/^[А-ЯЁа-яё]+(?:[ -][А-ЯЁа-яё]+)*$/, 'ФИО — только кириллица'],
+  phone: [/^\\+7\\(\\d{3}\\)-\\d{3}-\\d{2}-\\d{2}$/,  'Формат: +7(XXX)-XXX-XX-XX'],
+  email: [/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/,     'Некорректный email'],
+  login: [/^.{6,}$/,                            'Логин — не менее 6 символов'],
+};
+
+function check(input) {
+  const rule = rules[input.name];
+  if (!rule) return true;
+  const ok = rule[0].test(input.value.trim());
+  input.classList.toggle('is-invalid', !ok);
+  const box = document.getElementById(input.name + '-error');
+  if (box) box.textContent = ok ? '' : rule[1];
+  return ok;
+}
+
+const form = document.querySelector('form');
+form.setAttribute('novalidate', '');
+form.addEventListener('focusout', (e) => {
+  if (e.target.name) check(e.target);
+});
+form.addEventListener('submit', (e) => {
+  const allOk = [...form.elements].map(check).every(Boolean);
+  if (!allOk) e.preventDefault();
+});
+
+// маска телефона
+document.querySelector('[name="phone"]').addEventListener('input', (e) => {
+  let d = e.target.value.replace(/\\D/g, '');
+  if (/^[78]/.test(d)) d = d.slice(1);
+  d = d.slice(0, 10);
+  e.target.value = !d ? '' : '+7(' + d.slice(0, 3)
+    + (d.length > 3 ? ')-' + d.slice(3, 6) : '')
+    + (d.length > 6 ? '-' + d.slice(6, 8) : '')
+    + (d.length > 8 ? '-' + d.slice(8, 10) : '');
+});
+`
+    }),
+    w6002: t => ({
+      html: t.html,
+      css: t.css
+        .replace('color: #14532d; }', 'color: #14532d; animation: slide-in .3s ease-out; }')
+        .replace('border-radius: 12px; background: #ffffff; }', 'border-radius: 12px; background: #ffffff; transition: transform .2s ease-out, box-shadow .2s ease-out; }') + `
+.card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgb(0 0 0 / 0.1); }
+
+@keyframes slide-in { from { opacity: 0; transform: translateY(-8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition-duration: 0.01ms; }
+  .alert { animation-duration: 0.01ms; }
+}`
+    })
+  });
+})();

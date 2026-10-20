@@ -16,7 +16,9 @@ window.ADMIN_SEED = (() => {
     { id: 'c3', title: 'Типографика в интерфейсах', text: 'Шрифтовые пары, ритм, сетка', hours: 16, published: true, modules: [] },
     { id: 'c4', title: 'Продвинутый JavaScript', text: 'Состояние, компоненты, API', hours: 40, published: true, modules: ['m5'] },
     { id: 'c5', title: 'Дизайн-системы', text: 'Токены, библиотеки, документация', hours: 32, published: true, modules: ['m4'] },
-    { id: 'c6', title: 'МДК.08.01 Проектирование и разработка интерфейсов', text: '55 занятий по 2 часа: HTML, CSS, вёрстка, JavaScript, веб-дизайн и юзабилити. Подготовка к демоэкзамену', hours: 110, published: true, modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'] }
+    { id: 'c6', code: 'МДК.08.01', title: 'МДК.08.01 Проектирование и разработка интерфейсов', text: '55 занятий по 2 часа: HTML, CSS, вёрстка, JavaScript, веб-дизайн и юзабилити. Подготовка к демоэкзамену', hours: 110, published: true, modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'] },
+    // Курс МДК.09.01: 25 практических и 40 лабораторных работ (уроки m9-* в content/lessons), подготовка к демоэкзамену 2027
+    { id: 'c7', code: 'МДК.09.01', title: 'МДК.09.01 Проектирование и разработка веб-приложений', text: '25 практических и 40 лабораторных работ по 2 часа: проектирование, дизайн, вёрстка, MySQL, PHP, JavaScript. Подготовка к демоэкзамену КИМ 09.02.07-3-2027', hours: 130, published: true, modules: ['mdk91', 'mdk92', 'mdk93', 'mdk94', 'mdk95', 'mdk96', 'mdk97'] }
   ];
   const modules = [
     { id: 'm1', title: 'Основы HTML', lessons: 8 },
@@ -29,16 +31,31 @@ window.ADMIN_SEED = (() => {
     { id: 'mdk2', title: '08.01.01 · CSS: оформление страниц', lessons: 9 },
     { id: 'mdk3', title: '08.01.01 · Вёрстка, публикация и JavaScript', lessons: 12 },
     { id: 'mdk4', title: '08.01.02 · Веб-дизайн и проектирование', lessons: 9 },
-    { id: 'mdk5', title: '08.01.02 · Интерфейс и юзабилити', lessons: 14 }
+    { id: 'mdk5', title: '08.01.02 · Интерфейс и юзабилити', lessons: 14 },
+    // Курс МДК.09.01 (программа в /mnt/project-files/mdk-09-01, перенос — tools/import-mdk0901.mjs)
+    { id: 'mdk91', title: '09.01 · Проектирование информационной системы', lessons: 8 },
+    { id: 'mdk92', title: '09.01 · Дизайн веб-приложений', lessons: 11 },
+    { id: 'mdk93', title: '09.01 · Вёрстка интерфейса', lessons: 9 },
+    { id: 'mdk94', title: '09.01 · Базы данных MySQL', lessons: 9 },
+    { id: 'mdk95', title: '09.01 · Серверная часть на PHP', lessons: 15 },
+    { id: 'mdk96', title: '09.01 · Интерактивность на JavaScript', lessons: 8 },
+    { id: 'mdk97', title: '09.01 · Публикация и подготовка к экзамену', lessons: 5 }
   ];
   const MDK = Array.from({ length: 55 }, (_, i) => 'mdk-' + String(i + 1).padStart(2, '0'));
+  // Работы МДК.09.01 по порядку курса: ПР и ЛР вперемешку, как в программе
+  const M9 = ['pr01', 'lr01', 'pr02', 'lr02', 'pr03', 'lr03', 'pr04', 'lr04', 'pr05', 'lr05', 'pr06', 'lr06', 'pr07', 'lr07', 'pr08', 'lr08', 'pr09', 'lr09', 'lr10',
+    'pr10', 'lr11', 'pr11', 'lr12', 'pr12', 'lr13', 'lr14', 'lr15', 'lr16', 'pr13', 'lr17', 'pr14', 'lr18', 'lr19', 'pr15', 'lr20', 'lr21', 'lr22',
+    'pr16', 'lr23', 'pr17', 'lr24', 'pr18', 'lr25', 'lr26', 'pr19', 'lr27', 'lr28', 'lr29', 'pr20', 'lr30', 'lr31', 'lr32',
+    'pr21', 'lr33', 'pr22', 'lr34', 'lr35', 'pr23', 'lr36', 'lr37', 'pr24', 'lr38', 'pr25', 'lr39', 'lr40'].map(x => 'm9-' + x);
 
   const groups = [
     { id: 'g1', code: 'ВД-21', title: 'Веб-дизайн, 2 курс', curator: 'Хранительница огня', courses: ['c1', 'c2'], modules: ['m1', 'm2', 'm3', 'm4'], deadline: inDays(21), quota: 20 },
     { id: 'g2', code: 'ВД-22', title: 'Веб-дизайн, 2 курс', curator: 'Андрэ из Асторы', courses: ['c1'], modules: ['m1', 'm2', 'm3'], deadline: inDays(14), quota: 18 },
     { id: 'g3', code: 'ВД-31', title: 'Веб-дизайн, 3 курс', curator: 'Лоскутик', courses: ['c1', 'c3', 'c4'], modules: ['m1', 'm2', 'm3', 'm4', 'm5'], deadline: inDays(30), quota: 16 },
     // Первый курс на МДК.08.01: в группе все 55 занятий, проходить можно первые три (остальные открывает преподаватель)
-    { id: 'g4', code: 'ИСП-11', title: 'Информационные системы, 1 курс', curator: 'Хранительница огня', courses: ['c6'], modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'], deadline: inDays(120), quota: 25, lessons: MDK, lessonsOpen: MDK.slice(0, 3) }
+    { id: 'g4', code: 'ИСП-11', title: 'Информационные системы, 1 курс', curator: 'Хранительница огня', courses: ['c6'], modules: ['mdk1', 'mdk2', 'mdk3', 'mdk4', 'mdk5'], deadline: inDays(120), quota: 25, lessons: MDK, lessonsOpen: MDK.slice(0, 3) },
+    // Второй курс на МДК.09.01: все 65 работ, проходить можно первые три
+    { id: 'g5', code: 'ИСП-21', title: 'Информационные системы, 2 курс', curator: 'Хранительница огня', courses: ['c7'], modules: ['mdk91', 'mdk92', 'mdk93', 'mdk94', 'mdk95', 'mdk96', 'mdk97'], deadline: inDays(150), quota: 25, lessons: M9, lessonsOpen: M9.slice(0, 3) }
   ];
 
   const achievements = [

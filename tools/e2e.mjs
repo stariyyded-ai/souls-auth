@@ -96,7 +96,7 @@ try {
   ok(await anon.locator('#mod-list .pip.done').count() === 0, 'в модулях новичка нет пройденных уроков');
   ok(await anon.textContent('#st-group') === 'Группа ВД-21 · Веб-дизайн, 2 курс', 'по коду студент попал в свою группу');
   // Курсы: открыты курсы группы (ВД-21: c1, c2), остальные — только по запросу
-  ok(await anon.locator('#course-list .course.active').count() === 2 && await anon.locator('#course-list [data-ask]').count() === 4, 'в кабинете открыты только курсы группы');
+  ok(await anon.locator('#course-list .course.active').count() === 2 && await anon.locator('#course-list [data-ask]').count() === 5, 'в кабинете открыты только курсы группы');
   await anon.click('[data-ask="c4"]'); await anon.waitForTimeout(500);
   ok((await anon.textContent('#course-list .course:has-text("Продвинутый JavaScript") button')) === 'ЗАЯВКА ОТПРАВЛЕНА', 'студент попросил открыть курс');
   const again = await api(anon, 'POST', 'api/me/course-request', { course: 'c4' });
@@ -463,10 +463,47 @@ try {
     await ctx.close(); await ad2.context().close();
   }
 
+  /* ---------- курсы на «Заданиях» и сдача работы преподавателю (МДК.09.01) ---------- */
+  {
+    const w9 = await ctxPage();
+    await w9.goto(U + 'index.html');
+    ok((await api(w9, 'POST', 'api/register', { name: 'Студент Девятки', password: 'nine1234', code: invite('g5') })).status === 201, 'студент зарегистрировался в группу ИСП-21 (МДК.09.01)');
+    await login(w9, 'Студент Девятки', 'nine1234'); await w9.waitForURL(/cabinet\.html/, { timeout: 10000 });
+    await w9.goto(U + 'tasks.html'); await w9.waitForTimeout(800);
+    ok((await w9.locator('#sec-filter .chip').allTextContents()).join(',') === 'МДК.08.01,МДК.05.04,МДК.09.01,МДК.03.02,Испытания', 'на «Заданиях» четыре курса и испытания');
+    ok((await w9.textContent('#sec-filter .chip.on')) === 'МДК.09.01' && await w9.locator('#course-list .course-mod').count() === 7, 'студенту открылась страница своего курса МДК.09.01 с семью модулями');
+    ok(await w9.locator('.work-card:not(.locked)').count() === 3, 'открыты первые три работы, остальные ждут преподавателя');
+    await w9.goto(U + 'tasks.html?c=0302'); await w9.waitForTimeout(500);
+    ok((await w9.textContent('#course-list')).includes('пока пуст'), 'курс МДК.03.02 — отдельная страница-заглушка');
+    await w9.goto(U + 'tasks.html?c=0901#work-m9-lr01'); await w9.waitForTimeout(800);
+    await w9.click('#w-send'); await w9.waitForTimeout(300);
+    ok((await w9.textContent('#w-note')).includes('ссылку'), 'пустую работу сдать нельзя');
+    await w9.fill('#w-link', 'https://github.com/student/portal'); await w9.check('#w-c0');
+    await w9.click('#w-send'); await w9.waitForTimeout(1500);
+    ok((await w9.textContent('#w-status .pill')) === 'На проверке' && await w9.locator('#w-send').isDisabled(), 'работа ушла на проверку, повторно отправить нельзя');
+    ok((await api(w9, 'POST', 'api/me/actions', { actions: [{ type: 'work', lesson: 'm9-lr10', link: 'https://x.ru' }] })).body.results[0].ok === false, 'закрытую работу сервер не принимает');
+    const sid = (await api(w9, 'GET', 'api/me')).body.me.id;
+    const xp0 = (await api(w9, 'GET', 'api/me')).body.state.xp;
+    const n9 = (await api(ad, 'GET', 'api/admin/works')).body.find(w => w.user === sid && w.lesson === 'm9-lr01');
+    ok(n9 && n9.status === 'sent' && n9.checks[0] === true, 'работа видна администратору в разделе «Работы» с самопроверкой');
+    ok((await api(ad, 'POST', `api/admin/users/${sid}/works/m9-lr01`, { verdict: 'return' })).status === 400, 'вернуть на доработку без комментария нельзя');
+    ok((await api(ad, 'POST', `api/admin/users/${sid}/works/m9-lr01`, { verdict: 'return', note: 'Нет README' })).status === 200, 'преподаватель вернул работу на доработку');
+    await w9.reload(); await w9.waitForTimeout(1000);
+    ok((await w9.textContent('#w-status')).includes('Нет README') && !(await w9.locator('#w-send').isDisabled()), 'студент видит замечание и может сдать снова');
+    await w9.click('#w-send'); await w9.waitForTimeout(1500);
+    const crit = (await api(w9, 'GET', 'api/me')).body.state.works['m9-lr01'].checks.length;
+    const g = await api(ad, 'POST', `api/admin/users/${sid}/works/m9-lr01`, { verdict: 'accept', scores: Array(crit).fill(2).map((x, i) => i ? 2 : 1), note: 'Хорошо' });
+    const st9 = (await api(w9, 'GET', 'api/me')).body.state;
+    ok(g.status === 200 && st9.works['m9-lr01'].status === 'graded' && st9.xp - xp0 === Math.round(200 * (crit * 2 - 1) / (crit * 2)), 'принятая работа: оценка и награда пропорционально баллам');
+    await w9.goto(U + 'tasks.html?c=0901'); await w9.waitForTimeout(800);
+    ok((await w9.locator('.work-card.solved .tc-status').first().textContent()).includes('принята'), 'на странице курса работа отмечена принятой');
+    await w9.context().close();
+  }
+
   /* ---------- телефон: все страницы без горизонтальной прокрутки ---------- */
   const m = await ctxPage(390);
   await login(m, '123', '123123123'); await m.waitForURL(/admin\.html/, { timeout: 10000 });
-  for (const pg of ['cabinet.html', 'lessons.html', 'tasks.html', 'shop.html', 'leaderboard.html', 'admin.html#users', 'admin.html#lessons', 'admin.html#requests', 'register.html', 'privacy.html']) {
+  for (const pg of ['cabinet.html', 'lessons.html', 'tasks.html', 'shop.html', 'leaderboard.html', 'admin.html#users', 'admin.html#lessons', 'admin.html#requests', 'admin.html#works', 'tasks.html?c=0901', 'register.html', 'privacy.html']) {
     await m.goto(U + pg); await m.waitForTimeout(700);
     const ov = await m.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     if (ov > 0) ok(false, `${pg}: горизонтальная прокрутка ${ov}px на телефоне`);

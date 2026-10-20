@@ -27,7 +27,7 @@
   const inCourse = l => !course || !(course.modules || []).length || course.modules.includes(l.module);
   const modTitle = id => MODULES.find(m => m.id === id)?.title || '';
   const tasksOf = l => window.Economy.lessonTasks(l).map(id => TASKS.find(t => t.id === id)).filter(Boolean);
-  const KIND = { lecture: 'Лекция', practice: 'Практическая работа' };
+  const KIND = { lecture: 'Лекция', practice: 'Практическая работа', lab: 'Лабораторная работа' };
   const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many;
   let blobUrl = null;
 
@@ -50,6 +50,8 @@
     const parts = [];
     if (s && s.quizMax) parts.push(`квиз ${s.quiz} из ${s.quizMax}`);
     if (ts.length && solved) parts.push(ts.length === 1 ? 'задание решено' : `заданий решено ${solved} из ${ts.length}`);
+    const w = l.work && St.workState(l.id);
+    if (w) parts.push(w.status === 'graded' ? `работа принята: ${w.grade} из ${w.max}` : w.status === 'sent' ? 'работа на проверке' : 'работа на доработке');
     if (window.Economy.lessonDone(l, St.state)) return { cls: 'done', text: parts.join(' · ') };
     if (s && s.read) return { cls: 'started', text: parts.join(' · ') || 'прочитан' };
     return { cls: 'new', text: 'не начат' };
@@ -145,7 +147,7 @@
       return;
     }
     // Квиз и мини-задание у урока из админки могут отсутствовать
-    document.querySelector('.quiz').hidden = !(l.quiz && l.quiz.length); document.querySelector('.mini').hidden = !tasksOf(l).length;
+    document.querySelector('.quiz').hidden = !(l.quiz && l.quiz.length); document.querySelector('.mini').hidden = !tasksOf(l).length && !l.work;
     $('ls-body').innerHTML = '<p class="loading">Открываю урок…</p>';
     let md;
     try { md = await markdownOf(l); } catch (e) {
@@ -206,9 +208,21 @@
     };
   }
 
+  // Работа на проверку преподавателю (курс МДК.09.01): сдаётся на странице заданий, tasks.html#work-<id>
+  function workCard(l) {
+    if (!l.work) return '';
+    const w = St.workState(l.id);
+    const st = !w ? '' : w.status === 'graded' ? `<p class="done">Принята · ${w.grade} из ${w.max} баллов</p>` : w.status === 'sent' ? '<p class="done">На проверке</p>' : '<p class="done">Вернули на доработку</p>';
+    return `<div class="mini-card work${w && w.status === 'graded' ? ' solved' : ''}">
+      <div><p class="eyebrow">Сдача работы · оценка преподавателя</p><h3>Сдать работу на проверку</h3><p>Сделайте задание по ходу работы выше и пришлите ссылку на результат. Преподаватель оценит каждый из ${l.work.criteria.length} критериев на 2, 1 или 0 баллов.</p>
+        <p class="meta"><span>критерии — в таблице «Критерии оценки»</span><span>до ${window.Economy.workReward(1, 1)} XP и душ</span></p></div>
+      <div class="mini-act">${st}<a class="btn" href="tasks.html#work-${l.id}">${!w ? 'СДАТЬ РАБОТУ' : w.status === 'sent' ? 'ОТКРЫТЬ' : 'СДАТЬ СНОВА'}</a></div>
+    </div>`;
+  }
+
   function renderMini(l) {
     const ts = tasksOf(l);
-    $('mini-title').textContent = ts.length > 1 ? `Задания (${ts.length})` : 'Задание';
+    $('mini-title').textContent = l.work ? (ts.length ? 'Задания и сдача работы' : 'Сдача работы') : ts.length > 1 ? `Задания (${ts.length})` : 'Задание';
     $('mini').innerHTML = (ts.length > 1 ? `<p class="mini-note">Решайте по порядку. Урок будет пройден, когда сданы все задания и квиз решён без ошибок. Всего ≈ ${ts.reduce((a, t) => a + t.minutes, 0)} мин.</p>` : '') + ts.map((t, i) => {
       const s = St.taskState(t.id);
       const max = Math.round(t.points * 1.7);
@@ -217,7 +231,7 @@
         <p class="meta"><span>норма ${t.minutes} мин</span><span>до ${fmt(max)} очков</span><span>автопроверка: ${t.tests.length} ${plural(t.tests.length, 'требование', 'требования', 'требований')} + качество кода</span></p></div>
       <div class="mini-act">${s && s.solved ? `<p class="done">Решено · ${fmt(s.best)} из ${fmt(max)}</p>` : ''}<a class="btn" href="tasks.html#${t.id}">${s && s.solved ? 'ПЕРЕРЕШАТЬ' : s ? 'ПРОДОЛЖИТЬ' : 'НАЧАТЬ'}</a></div>
     </div>`;
-    }).join('');
+    }).join('') + workCard(l);
   }
 
   /* ---------- лекция ---------- */

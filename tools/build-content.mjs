@@ -7,7 +7,9 @@
 // Формат урока: front-matter с метаданными, дальше Markdown.
 //   id, module, lesson (номер в теме), title, minutes — обязательно;
 //   tasks: [k0101, k0102] — задания урока (или старое task: t01), kind: lecture | practice,
-//   session — номер занятия в курсе, difficulty, groups.
+//   session — номер занятия в курсе, difficulty, groups; kind: lab — лабораторная работа (курс МДК.09.01).
+//   work: yes — работу сдают преподавателю на оценку (ссылка и комментарий); критерии берутся из таблицы
+//   под заголовком «## Критерии оценки» (столбцы: аспект, 2 балла, 1 балл, 0 баллов).
 // Квиз — блок между строками «:::quiz» и «:::»:
 //   ? Вопрос
 //   - [ ] неверный вариант
@@ -66,9 +68,18 @@ function quiz(body, file) {
   return { text: text.trim(), quiz: qs };
 }
 
+// Критерии сдаваемой работы: строки таблицы под «## Критерии оценки» → { name, d2, d1, d0 }
+function criteria(text) {
+  const m = text.match(/^## Критерии оценки\s*\n([\s\S]*?)(?=\n## |(?![\s\S]))/m);
+  if (!m) return [];
+  const cells = line => line.trim().replace(/^\||\|$/g, '').split('|').map(s => s.trim().replace(/\*\*/g, ''));
+  return m[1].split('\n').filter(l => /^\s*\|/.test(l)).slice(2).map(cells)
+    .filter(c => c.length >= 4 && c[0] && !/^итого/i.test(c[0])).map(c => ({ name: c[0], d2: c[1], d1: c[2], d0: c[3] }));
+}
+
 /* ---------- задания курса ---------- */
 const tdir = join(root, 'content', 'tasks');
-const taskFiles = existsSync(tdir) ? readdirSync(tdir).filter(f => /^k.*\.js$/.test(f) && (!ONLY || ONLY.includes(f.slice(1, 3)))).sort() : [];
+const taskFiles = existsSync(tdir) ? readdirSync(tdir).filter(f => /^[kw].*\.js$/.test(f) && (!ONLY || ONLY.includes(f.slice(1, 3)))).sort() : [];
 const kit = existsSync(join(tdir, '_kit.js')) ? readFileSync(join(tdir, '_kit.js'), 'utf8') : 'window.COURSE_TASKS = [];';
 const taskSrc = taskFiles.map(f => `/* ---- content/tasks/${f} ---- */\n` + readFileSync(join(tdir, f), 'utf8').trim());
 const course = `/* Собрано из content/tasks командой node tools/build-content.mjs. Руками не править. */\n${kit.trim()}\n${taskSrc.join('\n')}\n(window.TASKS = window.TASKS || []).push(...window.COURSE_TASKS);\n`;
@@ -84,7 +95,7 @@ const seen = new Set();
 for (const t of TASKS) {
   if (seen.has(t.id)) problems.push(`задание ${t.id} объявлено дважды`);
   seen.add(t.id);
-  if (!/^t\d\d$/.test(t.id) && !/^k\d{4}$/.test(t.id)) problems.push(`${t.id}: id задания курса пишется как k0101 (занятие 01, задание 1)`);
+  if (!/^t\d\d$/.test(t.id) && !/^[kw]\d{4}$/.test(t.id)) problems.push(`${t.id}: id задания курса пишется как k0101 (занятие 01, задание 1), у МДК.09.01 — w1001`);
   for (const k of ['title', 'level', 'minutes', 'points', 'goal', 'html', 'css', 'tests', 'mech']) if (t[k] == null) problems.push(`${t.id}: нет поля ${k}`);
   if (!MECH[t.mech]) problems.push(`${t.id}: неизвестная механика ${t.mech}`);
   if (!Array.isArray(t.tests) || !t.tests.length) problems.push(`${t.id}: нет проверок`);
@@ -94,7 +105,7 @@ for (const t of TASKS) {
 
 /* ---------- уроки ---------- */
 const mdDir = join(root, 'content', 'md');
-const lessons = readdirSync(dir).filter(f => f.endsWith('.md') && (!ONLY || ONLY.some(n => f.startsWith(`mdk-${n}-`)))).sort().map(file => {
+const lessons = readdirSync(dir).filter(f => f.endsWith('.md') && (!ONLY || ONLY.some(n => f.startsWith(`mdk-${n}-`) || f.startsWith(`m9-${n}-`)))).sort().map(file => {
   const { meta, body } = frontMatter(readFileSync(join(dir, file), 'utf8'), file);
   for (const k of ['id', 'module', 'lesson', 'title', 'minutes']) if (meta[k] == null) throw new Error(`${file}: нет поля ${k}`);
   const { text, quiz: q } = quiz(body, file);
@@ -105,7 +116,11 @@ const lessons = readdirSync(dir).filter(f => f.endsWith('.md') && (!ONLY || ONLY
     if (!t) problems.push(`${file}: нет задания ${id}`);
     else if (t.lesson && t.lesson !== meta.id) problems.push(`${file}: задание ${id} привязано к уроку ${t.lesson}`);
   }
-  if (meta.kind && !['lecture', 'practice'].includes(meta.kind)) problems.push(`${file}: kind бывает lecture или practice`);
+  if (meta.kind && !['lecture', 'practice', 'lab'].includes(meta.kind)) problems.push(`${file}: kind бывает lecture, practice или lab`);
+  if (meta.work === 'yes') {
+    meta.work = { criteria: criteria(text) };
+    if (!meta.work.criteria.length) problems.push(`${file}: work: yes, но нет таблицы «## Критерии оценки»`);
+  } else delete meta.work;
   const v = createHash('sha1').update(text).digest('hex').slice(0, 10);
   return { ...meta, tasks, task: tasks[0] || null, groups: meta.groups || [], file: 'content/lessons/' + file, md: v, quiz: q, text };
 });

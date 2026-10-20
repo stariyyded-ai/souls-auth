@@ -279,3 +279,12 @@ code.invite { font-family: "JetBrains Mono", monospace; font-size: 14px; color: 
   .users-table .mini-bar { width: 60px; }
   .users-table th, .users-table td { padding-inline: 6px; }
 }
+
+/* Проверка работ (раздел «Работы») */
+.crit-grade { min-width: 760px; }
+.crit-grade td, .crit-grade th { vertical-align: top; }
+.grade-opt { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; font-size: 13px; line-height: 1.35; }
+.grade-opt input { margin-top: 2px; accent-color: var(--gold); }
+.work-check { display: grid; gap: 12px; }
+.work-check a { color: var(--gold); word-break: break-all; }
+.teacher-note { margin: 0; padding: 10px 14px; border-left: 3px solid var(--gold); background: rgba(242, 213, 138, 0.06); }

@@ -214,6 +214,24 @@
         if (gain) { st.xp += gain; st.souls += gain; journal('transaction', `Квиз урока «${lesson.title}»`, gain); }
         return { ok: true, correct, total, gain, got: checkAchievements() };
       }
+      // Сдача работы преподавателю (курс МДК.09.01): ссылка на результат и комментарий, самопроверка по критериям.
+      // Оценку ставит преподаватель в админке (server/index.js, /api/admin/users/:id/works/:lesson)
+      case 'work': {
+        const lesson = env.lesson(a.lesson);
+        if (!lesson || !lesson.work) return fail('Эту работу сейчас сдать нельзя.');
+        const link = str(a.link).trim(), comment = str(a.comment).trim();
+        if (link && (!/^https?:\/\/\S+$/i.test(link) || link.length > 500)) return fail('Ссылка должна начинаться с http:// или https://.');
+        if (!link && !comment) return fail('Добавьте ссылку на работу или комментарий.');
+        if (comment.length > 2000) return fail('Комментарий длиннее 2000 символов.');
+        st.works ||= {};
+        const w = st.works[lesson.id] || (st.works[lesson.id] = { tries: 0 });
+        if (w.status === 'sent') return fail('Работа уже на проверке.');
+        const n = lesson.work.criteria.length;
+        w.link = link; w.comment = comment; w.tries++; w.status = 'sent'; w.sentAt = env.now();
+        w.checks = Array.from({ length: n }, (_, i) => !!(Array.isArray(a.checks) && a.checks[i]));
+        journal('action', `сдал на проверку «${lesson.title}»`);
+        return { ok: true };
+      }
     }
     return fail('Неизвестное действие.');
 

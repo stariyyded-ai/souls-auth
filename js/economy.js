@@ -62,12 +62,15 @@
 
   // Задания урока: новый формат — массив tasks, старый — одно поле task
   const lessonTasks = l => Array.isArray(l.tasks) && l.tasks.length ? l.tasks : l.task ? [l.task] : [];
-  // Урок пройден, когда он прочитан, квиз решён без ошибок и все задания урока сданы (то же считает сервер для админки)
+  // Работа, которую сдают преподавателю (курс МДК.09.01): засчитана, когда преподаватель её принял с оценкой
+  const workAccepted = (l, st) => !l.work || !!(st.works && st.works[l.id] && st.works[l.id].status === 'graded');
+  // Урок пройден, когда он прочитан, квиз решён без ошибок, все задания урока сданы
+  // и работа (если она есть) принята преподавателем (то же считает сервер для админки)
   function lessonDone(l, st) {
     const s = st.lessons[l.id];
     const quizOk = !(l.quiz && l.quiz.length) || (s && s.quizMax && s.quiz === s.quizMax);
     const taskOk = lessonTasks(l).every(id => st.tasks[id] && st.tasks[id].solved);
-    return !!(s && s.read && quizOk && taskOk);
+    return !!(s && s.read && quizOk && taskOk && workAccepted(l, st));
   }
 
   // Насколько урок пройден, от 0 до 1: прочитан, доля верных ответов квиза и каждое решённое задание — равные части.
@@ -75,12 +78,17 @@
   function lessonProgress(l, st) {
     if (lessonDone(l, st)) return 1;
     const s = st.lessons[l.id] || {}, ts = lessonTasks(l), hasQuiz = !!(l.quiz && l.quiz.length);
-    const parts = 1 + (hasQuiz ? 1 : 0) + ts.length;
-    const got = (s.read ? 1 : 0) + (hasQuiz && s.quizMax ? (s.quiz || 0) / s.quizMax : 0) + ts.filter(id => st.tasks[id] && st.tasks[id].solved).length;
+    const parts = 1 + (hasQuiz ? 1 : 0) + ts.length + (l.work ? 1 : 0);
+    const got = (s.read ? 1 : 0) + (hasQuiz && s.quizMax ? (s.quiz || 0) / s.quizMax : 0) + ts.filter(id => st.tasks[id] && st.tasks[id].solved).length
+      + (l.work && workAccepted(l, st) ? 1 : 0);
     return Math.min(0.99, got / parts);
   }
 
+  // Награда за принятую работу: до 200 XP и 200 душ, пропорционально баллам (оценка 2/1/0 по каждому критерию)
+  const WORK_MAX = 200;
+  const workReward = (score, max) => max ? Math.round(WORK_MAX * Math.max(0, Math.min(score, max)) / max) : 0;
+
   const clock = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, lessonProgress, lessonTasks, clock };
+  window.Economy = { LEVELS, CLEAN_SHARE, SPEED_SHARE, level, score, applyBoosters, lessonDone, lessonProgress, lessonTasks, workAccepted, workReward, clock };
 })();

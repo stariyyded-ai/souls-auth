@@ -189,3 +189,33 @@
 }
 .timer.done { border-color: var(--ok); }
 .timer.done .clock { color: var(--ok); }
+
+/* Вкладки курсов: каждая — своя страница tasks.html?c=… */
+.course-tabs { flex-wrap: wrap; }
+.course-tabs a.chip { text-decoration: none; }
+.course-head { display: grid; gap: 4px; }
+.course-head h2 { margin: 0; }
+.course-head a { color: var(--gold); justify-self: start; }
+.work-card .num { font-size: 18px; }
+
+/* Сдача работы преподавателю */
+.work-status { display: grid; gap: 10px; }
+.work-status p { margin: 0; }
+.pill { display: inline-block; font-size: 13px; padding: 3px 8px; border: 2px solid currentColor; }
+.pill.new { color: var(--muted); }
+.pill.soon { color: var(--warn, #e8b34a); }
+.pill.on { color: var(--ok, #8db85a); }
+.pill.late { color: #e0574a; }
+.teacher-note { margin: 0; padding: 10px 14px; border-left: 3px solid var(--gold); background: rgba(242, 213, 138, 0.06); }
+.crit-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 14px; }
+.crit-table th, .crit-table td { padding: 8px 10px; border-bottom: 1px solid rgba(242, 213, 138, 0.15); text-align: left; vertical-align: top; }
+.crit-table thead th { color: var(--gold); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+.crit-table input { width: 20px; height: 20px; accent-color: var(--gold); }
+.crit-table label { cursor: pointer; }
+.work-form { display: grid; gap: 8px; max-width: 760px; }
+.work-form label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); margin-top: 6px; }
+.work-form input, .work-form textarea { width: 100%; padding: 10px 12px; font: inherit; color: inherit; background: rgba(0, 0, 0, 0.35); border: 2px solid rgba(242, 213, 138, 0.35); }
+.work-form input:focus, .work-form textarea:focus { outline: 0; border-color: var(--gold); }
+.work-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 8px; }
+.work-actions .btn { width: auto; padding-inline: 22px; }
+#work-view .table-wrap { overflow-x: auto; }

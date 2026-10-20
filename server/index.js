@@ -78,7 +78,7 @@ function me(row) {
 function adminDb() {
   const out = {};
   D.COLLS.forEach(c => { out[c] = D.listColl(c); });
-  return { ...out, site: D.getSite(), users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), lessonList: lessonList(), taskList: taskList() };
+  return { ...out, site: D.getSite(), users: D.allUsers(), purchases: D.listPurchases(), logs: D.listLogs(), requests: listRequests(), works: listWorks(), lessonList: lessonList(), taskList: taskList() };
 }
 // Заявки студентов на доступ к курсу: новые сверху
 const listRequests = () => D.listColl('requests').sort((a, b) => b.date.localeCompare(a.date));
@@ -340,7 +340,12 @@ function checkLesson(it) {
   tasks.forEach(id => { if (!D.GAME.TASKS.some(t => t.id === id)) fail(400, 'Нет такого задания.'); });
   it.tasks = [...new Set(tasks)];
   it.task = it.tasks[0] || null;
-  it.kind = it.kind === 'practice' ? 'practice' : 'lecture';
+  it.kind = ['practice', 'lab'].includes(it.kind) ? it.kind : 'lecture';
+  // Сдача работы преподавателю: критерии — строки (название и что даёт 2, 1, 0 баллов)
+  const crit = it.work && Array.isArray(it.work.criteria) ? it.work.criteria : null;
+  if (crit && crit.length && crit.length <= 12 && crit.every(c => c && ['name', 'd2', 'd1', 'd0'].every(k => str(c[k], 500)) && c.name.trim()))
+    it.work = { criteria: crit.map(c => ({ name: c.name, d2: c.d2, d1: c.d1, d0: c.d0 })) };
+  else delete it.work;
   it.session = it.session == null || it.session === '' ? undefined : Math.max(1, Math.min(999, parseInt(it.session, 10) || 1));
   if (!Array.isArray(it.quiz) || it.quiz.length > 30) fail(400, 'Квиз: до 30 вопросов.');
   it.quiz.forEach((q, i) => {
@@ -434,6 +439,55 @@ app.get('/api/admin/users/:id/tasks', needAdmin, (req, res) => {
     };
   }).filter(Boolean).sort((a, b) => String(b.lastDate || b.startedAt).localeCompare(String(a.lastDate || a.startedAt)));
   res.json({ tasks });
+});
+/* Работы, сданные преподавателю (курс МДК.09.01): очередь на проверку и оценка.
+   Оценка — 2, 1 или 0 баллов по каждому критерию из урока; принятая работа даёт до 200 XP и душ
+   пропорционально баллам (js/economy.js, workReward), повторная оценка доплачивает только прирост. */
+function listWorks() {
+  const lessons = D.allLessons();
+  return D.db.prepare("SELECT id, state FROM users WHERE state LIKE '%\"works\"%'").all().flatMap(r => {
+    const works = JSON.parse(r.state).works || {};
+    return Object.entries(works).map(([id, w]) => {
+      const l = lessons.find(x => x.id === id);
+      return l && l.work ? { user: r.id, lesson: id, ...w } : null;
+    }).filter(Boolean);
+  }).sort((a, b) => String(b.sentAt).localeCompare(String(a.sentAt)));
+}
+app.get('/api/admin/works', needAdmin, (req, res) => res.json(listWorks()));
+app.post('/api/admin/users/:id/works/:lesson', needAdmin, (req, res) => {
+  const l = D.allLessons().find(x => x.id === req.params.lesson && x.work);
+  if (!l) fail(404, 'Нет такой работы.');
+  const verdict = req.body?.verdict, note = String(req.body?.note || '').trim().slice(0, 2000);
+  if (!['accept', 'return'].includes(verdict)) fail(400, 'Нет такого решения.');
+  const n = l.work.criteria.length, raw = req.body?.scores;
+  const scores = Array.isArray(raw) && raw.length === n && raw.every(x => [0, 1, 2].includes(x)) ? raw : null;
+  if (verdict === 'accept' && !scores) fail(400, 'Поставьте 2, 1 или 0 по каждому критерию.');
+  if (verdict === 'return' && !note) fail(400, 'Напишите, что доработать.');
+  const out = D.tx(() => {
+    const row = D.getUser(req.params.id);
+    if (!row) fail(404, 'Пользователь не найден.');
+    const st = parseState(row), w = st?.works?.[l.id];
+    if (!w) fail(404, 'Студент не сдавал эту работу.');
+    const E = D.GAME.Economy, now = D.now();
+    const journal = (kind, text, amount) => { st.journal.unshift({ id: D.uid('j'), kind, text, amount, date: now }); st.journal = st.journal.slice(0, 200); };
+    w.note = note; w.gradedAt = now; w.scores = scores; w.by = req.user.id;
+    if (verdict === 'accept') {
+      const score = scores.reduce((a, b) => a + b, 0), max = n * 2, reward = E.workReward(score, max);
+      const delta = Math.max(0, reward - (w.paid || 0));
+      w.status = 'graded'; w.grade = score; w.max = max;
+      if (delta) { w.paid = reward; st.xp += delta; st.souls += delta; journal('transaction', `Награда за работу «${l.title}»: ${score} из ${max}`, delta); }
+      st.history.unshift({ date: now.slice(0, 10), task: l.title, module: D.getItem('modules', l.module)?.title || 'Работы', status: 'accepted', xp: delta, souls: delta });
+    } else {
+      w.status = 'returned';
+      st.history.unshift({ date: now.slice(0, 10), task: l.title, module: D.getItem('modules', l.module)?.title || 'Работы', status: 'failed', xp: 0, souls: 0 });
+    }
+    st.history = st.history.slice(0, 60);
+    const p = syncProfile(row, st);
+    D.db.prepare('UPDATE users SET state = ?, profile = ?, rev = rev + 1 WHERE id = ?').run(JSON.stringify(st), JSON.stringify(p), row.id);
+    adminLog(req, `${verdict === 'accept' ? `принял работу «${l.title}» с оценкой ${w.grade} из ${w.max}` : `вернул на доработку «${l.title}»`} у «${row.name}»`);
+    return { user: D.userOut(D.getUser(row.id)), work: { user: row.id, lesson: l.id, ...w } };
+  });
+  res.json(out);
 });
 app.post('/api/admin/users/:id/role', needAdmin, (req, res) => {
   const role = req.body?.role;
