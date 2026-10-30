@@ -219,9 +219,22 @@ function ensureCourse0901() {
   });
 }
 
+// Курс «Информатика» (уроки inf-*): в уже созданную базу один раз добавляем курс и его тему. Группы не трогаем
+function ensureCourseInf() {
+  if (db.prepare('SELECT value FROM meta WHERE key = ?').get('inf')) return;
+  const s = loadSeed();
+  const have = c => new Set(listColl(c).map(x => x.id));
+  const mods = have('modules'), courses = have('courses');
+  tx(() => {
+    s.modules.filter(m => m.id.startsWith('inf') && !mods.has(m.id)).forEach(m => putItem('modules', m));
+    s.courses.filter(c => c.id === 'c8' && !courses.has(c.id)).forEach(c => putItem('courses', c));
+    db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run('inf', now());
+  });
+}
+
 if (!db.prepare('SELECT value FROM meta WHERE key = ?').get('seeded')) {
   seed();
-  ['mdk0801', 'mdk0901'].forEach(k => db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(k, now()));
+  ['mdk0801', 'mdk0901', 'inf'].forEach(k => db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(k, now()));
 }
 // Темы курса (кнопка «Открыть» в кабинете): старым базам проставляем их из начальных данных, если поля ещё нет
 function ensureCourseModules() {
@@ -239,6 +252,7 @@ function ensureCourseModules() {
 
 ensureCourse();
 ensureCourse0901();
+ensureCourseInf();
 ensureCourseModules();
 ensureInvites();
 ensureThemes();
