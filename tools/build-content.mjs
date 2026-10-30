@@ -79,7 +79,7 @@ function criteria(text) {
 
 /* ---------- задания курса ---------- */
 const tdir = join(root, 'content', 'tasks');
-const taskFiles = existsSync(tdir) ? readdirSync(tdir).filter(f => /^[kw].*\.js$/.test(f) && (!ONLY || ONLY.includes(f.slice(1, 3)))).sort() : [];
+const taskFiles = existsSync(tdir) ? readdirSync(tdir).filter(f => /^[kwi].*\.js$/.test(f) && (!ONLY || ONLY.includes(f.slice(1, 3)))).sort() : [];
 const kit = existsSync(join(tdir, '_kit.js')) ? readFileSync(join(tdir, '_kit.js'), 'utf8') : 'window.COURSE_TASKS = [];';
 const taskSrc = taskFiles.map(f => `/* ---- content/tasks/${f} ---- */\n` + readFileSync(join(tdir, f), 'utf8').trim());
 const course = `/* Собрано из content/tasks командой node tools/build-content.mjs. Руками не править. */\n${kit.trim()}\n${taskSrc.join('\n')}\n(window.TASKS = window.TASKS || []).push(...window.COURSE_TASKS);\n`;
@@ -95,7 +95,7 @@ const seen = new Set();
 for (const t of TASKS) {
   if (seen.has(t.id)) problems.push(`задание ${t.id} объявлено дважды`);
   seen.add(t.id);
-  if (!/^t\d\d$/.test(t.id) && !/^[kw]\d{4}$/.test(t.id)) problems.push(`${t.id}: id задания курса пишется как k0101 (занятие 01, задание 1), у МДК.09.01 — w1001`);
+  if (!/^t\d\d$/.test(t.id) && !/^[kwi]\d{4}$/.test(t.id)) problems.push(`${t.id}: id задания курса пишется как k0101 (занятие 01, задание 1), у МДК.09.01 — w1001, у информатики — i0101`);
   for (const k of ['title', 'level', 'minutes', 'points', 'goal', 'html', 'css', 'tests', 'mech']) if (t[k] == null) problems.push(`${t.id}: нет поля ${k}`);
   if (!MECH[t.mech]) problems.push(`${t.id}: неизвестная механика ${t.mech}`);
   if (!Array.isArray(t.tests) || !t.tests.length) problems.push(`${t.id}: нет проверок`);
@@ -105,7 +105,7 @@ for (const t of TASKS) {
 
 /* ---------- уроки ---------- */
 const mdDir = join(root, 'content', 'md');
-const lessons = readdirSync(dir).filter(f => f.endsWith('.md') && (!ONLY || ONLY.some(n => f.startsWith(`mdk-${n}-`) || f.startsWith(`m9-${n}-`)))).sort().map(file => {
+const lessons = readdirSync(dir).filter(f => f.endsWith('.md') && (!ONLY || ONLY.some(n => f.startsWith(`mdk-${n}-`) || f.startsWith(`m9-${n}-`) || f.startsWith(`inf-${n}-`)))).sort().map(file => {
   const { meta, body } = frontMatter(readFileSync(join(dir, file), 'utf8'), file);
   for (const k of ['id', 'module', 'lesson', 'title', 'minutes']) if (meta[k] == null) throw new Error(`${file}: нет поля ${k}`);
   const { text, quiz: q } = quiz(body, file);

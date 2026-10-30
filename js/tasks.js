@@ -30,7 +30,7 @@
 
   /* ---------- курсы: у каждого своя страница tasks.html?c=0901 ---------- */
   // Порядок вкладок задан преподавателем; курс в базе находится по коду (поле code или начало названия)
-  const TABS = [['0801', 'МДК.08.01'], ['0504', 'МДК.05.04'], ['0901', 'МДК.09.01'], ['0302', 'МДК.03.02']]
+  const TABS = [['0801', 'МДК.08.01'], ['0504', 'МДК.05.04'], ['0901', 'МДК.09.01'], ['0302', 'МДК.03.02'], ['inf', 'Информатика']]
     .map(([key, code]) => ({ key, code, course: (B.db.courses || []).find(c => c.code === code || (c.title || '').startsWith(code)) || null }));
   const courseLessons = tab => !tab || !tab.course ? [] : LESSONS.filter(l => (tab.course.modules || []).includes(l.module) && !l.hidden && !l.modHidden && lAccess(l) !== 'hidden');
   const tabOfLesson = id => { const l = LESSONS.find(x => x.id === id); return l && TABS.find(t => t.course && (t.course.modules || []).includes(l.module)); };
@@ -381,7 +381,7 @@
 
   const route = () => {
     const id = decodeURIComponent(location.hash.slice(1));
-    if (/^(t\d\d|[kw]\d{4}|sandbox)$/.test(id)) open(id);
+    if (/^(t\d\d|[kwi]\d{4}|sandbox)$/.test(id)) open(id);
     else if (id.startsWith('work-')) { sendWork(); task = null; clearInterval(tick); tick = null; openWork(id.slice(5)); }
     else close();
   };
